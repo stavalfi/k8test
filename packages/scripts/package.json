@@ -1,0 +1,13 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": true,
+  "scripts": {
+    "clean": "src/index.ts clean"
+  },
+  "dependencies": {
+    "cmd-ts": "^0.6.3"
+  }
+}

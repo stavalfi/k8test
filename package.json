@@ -6,16 +6,15 @@
   "scripts": {
     "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "test": "jest",
-    "clean": "ts-node scripts/clean",
-    "build": "yarn tsc -b tsconfig-build.json",
-    "type-check": "yarn tsc -b tsconfig-lint.json"
+    "clean": "yarn workspace scripts clean",
+    "build": "yarn tsc -b tsconfig-build.json"
   },
   "workspaces": [
     "packages/*"
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint-staged && yarn pretty-quick --staged && yarn type-check && syncpack list-mismatches"
+      "pre-commit": "yarn lint-staged && yarn pretty-quick --staged && yarn build && syncpack list-mismatches"
     }
   },
   "devDependencies": {
