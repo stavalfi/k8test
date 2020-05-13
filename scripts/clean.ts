@@ -1,3 +1,5 @@
+// remove all typescript/other tools complication outputs
+
 /* eslint-disable no-console */
 import fs from 'fs-extra'
 import path from 'path'

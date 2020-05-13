@@ -1,22 +1,21 @@
 {
-  "name": "feds-ci-main",
+  "name": "k8test",
   "private": true,
   "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}' && yarn lint:types",
+    "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "test": "jest",
     "clean": "ts-node scripts/clean",
     "build": "yarn tsc -b tsconfig-build.json",
-    "lint:types": "yarn tsc -b tsconfig-lint.json"
+    "type-check": "yarn tsc -b tsconfig-lint.json"
   },
   "workspaces": [
     "packages/*"
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint-staged && yarn pretty-quick --staged && yarn build:all",
-      "pre-push": "syncpack list-mismatches"
+      "pre-commit": "yarn lint-staged && yarn pretty-quick --staged && yarn type-check && syncpack list-mismatches"
     }
   },
   "devDependencies": {
@@ -41,7 +40,7 @@
     "gitignore-globs": "^0.1.1",
     "glob-gitignore": "^1.0.14",
     "globby": "^11.0.0",
-    "husky": "^4.2.1",
+    "husky": "^4.2.5",
     "ignore": "^5.1.4",
     "jest": "24.8.0",
     "jest-circus": "24.8.0",

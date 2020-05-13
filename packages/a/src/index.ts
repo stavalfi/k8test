@@ -1,1 +1,1 @@
-export const a1 =1 
+export const a1 = 1
