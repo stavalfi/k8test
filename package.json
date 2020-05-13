@@ -1,0 +1,55 @@
+{
+  "name": "feds-ci-main",
+  "private": true,
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
+    "test": "jest",
+    "clean": "find . \\( -type f -name 'dist' -or -type f -name 'tsconfig-build.tsbuildinfo' -or -type f -name 'tsconfig.tsbuildinfo' \\) -exec rm -vrf {} \\;",
+    "build": "yarn tsc -b tsconfig-build.json",
+    "build:all": "yarn tsc -b tsconfig-lint.json"
+  },
+  "workspaces": [
+    "packages/*",
+    "packages/testkits/*"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint-staged && yarn pretty-quick --staged && yarn build:all",
+      "pre-push": "syncpack list-mismatches"
+    }
+  },
+  "devDependencies": {
+    "@types/chance": "^1.0.8",
+    "@types/express": "~4.0.0",
+    "@types/fs-extra": "^8.0.1",
+    "@types/jest": "^24.0.0",
+    "@types/lodash": "^4.14.149",
+    "@types/node": "^13.5.1",
+    "@typescript-eslint/eslint-plugin": "^2.14.0",
+    "@typescript-eslint/parser": "^2.14.0",
+    "ci-info": "^2.0.0",
+    "create-folder-structure": "^3.0.4",
+    "eslint": "6.5.1",
+    "eslint-config-prettier": "4.3.0",
+    "eslint-plugin-jest": "22.6.4",
+    "eslint-plugin-json": "^2.0.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "globby": "^11.0.0",
+    "husky": "^4.2.1",
+    "jest": "24.8.0",
+    "jest-circus": "24.8.0",
+    "lint-staged": "^9.5.0",
+    "pkg": "^4.4.2",
+    "prettier": "^1.18.0",
+    "pretty-quick": "^1.11.0",
+    "source-map-support": "^0.5.16",
+    "syncpack": "^5.0.1",
+    "ts-jest": "24.3.0",
+    "typescript": "^3.7.5"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}

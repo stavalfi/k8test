@@ -1,0 +1,20 @@
+
+### Maven
+target/
+src/npm-ci
+# IntelliJ project files
+.idea
+*.iml
+.DS_Store
+.project
+dist
+node_modules
+.vscode
+packages/fed-build-flow-runner-cli/test/storage-internal/
+packages/fed-build-flow-runner-cli/test/storage-public/
+src/artifact-version.txt
+fed-build-flow-runner
+tsconfig-build.tsbuildinfo
+tsconfig.tsbuildinfo
+dist-all
+yarn-error.log
