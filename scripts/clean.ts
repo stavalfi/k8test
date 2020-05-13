@@ -1,15 +1,36 @@
-import execa from 'execa'
+/* eslint-disable no-console */
 import fs from 'fs-extra'
 import path from 'path'
+import glob from 'fast-glob'
 
-const ENTRIES_TO_REMOVE = ['dist', 'tsconfig-build.tsbuildinfo', 'tsconfig.tsbuildinfo']
+const BASE_PATH = path.join(__dirname, '..')
+const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
 
-const result = execa.sync('yarn', 'workspaces --json info'.split(' '))
+const remove = (options: { onlyFiles: true } | { onlyDirectories: true }) =>
+  glob(GLOBS_TO_REMOVE, {
+    cwd: BASE_PATH,
+    ignore: ['node_modules', '.git'],
+    ...options,
+  }).then(results =>
+    Promise.all(
+      results.map(toRemove => {
+        console.log('onlyFiles' in options ? `file: ${toRemove}` : `dir: ${toRemove}`)
+        return fs.remove(path.join(BASE_PATH, toRemove))
+      }),
+    ).then(() => results),
+  )
 
-const workspacesInfo = JSON.parse(JSON.parse(result.stdout).data)
-const entriesToRemove = Object.values<{ location: string }>(workspacesInfo)
-  .map(workspaceInfo => workspaceInfo.location)
-  .concat([path.join(__dirname, '..')]) // also add the main workspace path
-  .flatMap(workspaceLocation => ENTRIES_TO_REMOVE.map(entry => `${workspaceLocation}/${entry}`))
+async function main() {
+  console.log(`removing globs: ${GLOBS_TO_REMOVE.join(', ')}`)
+  console.log(`from: ${BASE_PATH}`)
+  console.log('-------------------')
 
-Promise.all(entriesToRemove.map(entryPath => fs.remove(entryPath)))
+  const dirs = await remove({ onlyDirectories: true })
+  const files = await remove({ onlyFiles: true })
+  console.log('------summary------')
+
+  console.log(`${dirs.length} directories removed`)
+  console.log(`${files.length} files removed`)
+}
+
+main()
