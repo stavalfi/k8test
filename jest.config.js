@@ -7,7 +7,6 @@ const result = execa.sync('yarn', 'workspaces --json info'.split(' '))
 const workspacesInfo = JSON.parse(JSON.parse(result.stdout).data)
 const packagesAliases = Object.values(workspacesInfo)
   .map(workspaceInfo => workspaceInfo.location)
-  .sort((path1, path2) => path2.localeCompare(path1))
   .map(packagePath => ({
     [`^${require(path.join(__dirname, packagePath, 'package.json')).name}$`]: path.join(
       __dirname,
