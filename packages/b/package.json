@@ -1,5 +1,5 @@
 {
-  "name": "a",
+  "name": "b",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
@@ -17,5 +17,10 @@
   },
   "devDependencies": {
     "create-folder-structure": "^3.0.5"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.11.2",
+    "execa": "^4.0.1",
+    "live-mutex": "^0.2.24"
   }
 }
