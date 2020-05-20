@@ -1,26 +1,34 @@
 import * as k8s from '@kubernetes/client-node'
-import { createService, getUserPort } from './service'
-import { createDeployment } from './deployment'
+import { createDeployment, deleteDeployment } from './deployment'
+import { createService, deleteService, getDeployedImagePort } from './service'
 
-export async function runImage(options: {
-  appId: string
-  k8sAppsApiClient: k8s.AppsV1Api
-  k8sApiClient: k8s.CoreV1Api
-  namespaceName: string
-  imageName: string
-  containerPortToExpose: number
-  podPortToExpose: number
-}): Promise<{
+export { createeK8sClient } from './k8s-client'
+export { createNamespaceIfNotExist } from './namespace'
+
+export type DeployedImage = {
   deploymentName: string
   serviceName: string
   getDeployedImageUrl: () => Promise<string>
-}> {
+  getDeployedImageAddress: () => Promise<string>
+  getDeployedImagePort: () => Promise<number>
+}
+
+export async function deployImageAndExposePort(options: {
+  appId: string
+  appsApiClient: k8s.AppsV1Api
+  apiClient: k8s.CoreV1Api
+  watchClient: k8s.Watch
+  namespaceName: string
+  imageName: string
+  containerPortToExpose: number
+}): Promise<DeployedImage> {
   const serviceResult = await createService({
     appId: options.appId,
-    k8sApiClient: options.k8sApiClient,
+    apiClient: options.apiClient,
+    watchClient: options.watchClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
-    podPortToExpose: options.podPortToExpose,
+    podPortToExpose: options.containerPortToExpose,
   })
   const containerLabels = serviceResult.body.spec?.selector
   if (!containerLabels) {
@@ -34,6 +42,7 @@ export async function runImage(options: {
       `failed to create a service for image: ${options.imageName} - service-labels are missing after creating them.`,
     )
   }
+  const serviceLabelKey = Object.keys(serviceLabels)[0]
   const serviceName = serviceResult.body.metadata?.name
   if (!serviceName) {
     throw new Error(
@@ -42,7 +51,8 @@ export async function runImage(options: {
   }
   const deploymentResult = await createDeployment({
     appId: options.appId,
-    k8sAppsApiClient: options.k8sAppsApiClient,
+    appsApiClient: options.appsApiClient,
+    watchClient: options.watchClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
@@ -60,22 +70,56 @@ export async function runImage(options: {
     deploymentName,
     getDeployedImageUrl: () =>
       getDeployedImageUrl({
-        k8sApiClient: options.k8sApiClient,
+        apiClient: options.apiClient,
         namespaceName: options.namespaceName,
-        serviceLabelKey: Object.keys(serviceLabels)[0],
+        serviceLabelKey,
+      }),
+    getDeployedImageAddress: () =>
+      getMasterAddress({
+        apiClient: options.apiClient,
+      }),
+    getDeployedImagePort: () =>
+      getDeployedImagePort({
+        apiClient: options.apiClient,
+        namespaceName: options.namespaceName,
+        serviceLabelKey,
       }),
   }
 }
 
-async function getDeployedImageUrl(options: {
-  k8sApiClient: k8s.CoreV1Api
+export async function deleteAllImageResources(options: {
+  appsApiClient: k8s.AppsV1Api
+  apiClient: k8s.CoreV1Api
+  watchClient: k8s.Watch
+  namespaceName: string
+  deploymentName: string
+  serviceName: string
+}): Promise<void> {
+  await deleteService({
+    apiClient: options.apiClient,
+    watchClient: options.watchClient,
+    namespaceName: options.namespaceName,
+    serviceName: options.serviceName,
+  })
+  await deleteDeployment({
+    appsApiClient: options.appsApiClient,
+    watchClient: options.watchClient,
+    namespaceName: options.namespaceName,
+    deploymentName: options.deploymentName,
+  })
+}
+
+export type GetDeployedImageUrl = (options: {
+  apiClient: k8s.CoreV1Api
   namespaceName: string
   serviceLabelKey: string
-}): Promise<string> {
+}) => Promise<string>
+
+const getDeployedImageUrl: GetDeployedImageUrl = async options => {
   const [address, port] = await Promise.all([
-    getMasterAddress({ k8sApiClient: options.k8sApiClient }),
-    getUserPort({
-      k8sApiClient: options.k8sApiClient,
+    getMasterAddress({ apiClient: options.apiClient }),
+    getDeployedImagePort({
+      apiClient: options.apiClient,
       namespaceName: options.namespaceName,
       serviceLabelKey: options.serviceLabelKey,
     }),
@@ -83,8 +127,10 @@ async function getDeployedImageUrl(options: {
   return `http://${address}:${port}`
 }
 
-async function getMasterAddress(options: { k8sApiClient: k8s.CoreV1Api }): Promise<string> {
-  const response = await options.k8sApiClient.listNode(
+export type GetMasterAddress = (options: { apiClient: k8s.CoreV1Api }) => Promise<string>
+
+const getMasterAddress: GetMasterAddress = async options => {
+  const response = await options.apiClient.listNode(
     undefined,
     false,
     undefined,

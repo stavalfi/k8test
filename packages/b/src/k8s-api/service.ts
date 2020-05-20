@@ -1,14 +1,17 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
+import { waitUntilServiceReady, waitUntilServiceDeleted } from './watch-resources'
 
 export async function createService(options: {
   appId: string
-  k8sApiClient: k8s.CoreV1Api
+  apiClient: k8s.CoreV1Api
+  watchClient: k8s.Watch
   namespaceName: string
   imageName: string
   podPortToExpose: number
 }) {
-  return options.k8sApiClient.createNamespacedService(options.namespaceName, {
+  const serviceName = `${options.appId}-${options.imageName}-service`
+  const response = await options.apiClient.createNamespacedService(options.namespaceName, {
     apiVersion: 'v1',
     kind: 'Service',
     metadata: {
@@ -29,15 +32,30 @@ export async function createService(options: {
       ],
     },
   })
+  await waitUntilServiceReady(serviceName, { watchClient: options.watchClient })
+  return response
+}
+
+export async function deleteService(options: {
+  apiClient: k8s.CoreV1Api
+  watchClient: k8s.Watch
+  namespaceName: string
+  serviceName: string
+}) {
+  const response = await options.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName)
+  await waitUntilServiceDeleted(options.serviceName, { watchClient: options.watchClient })
+  return response
 }
 
 // get the port on the user machine that is pointing to the container port
-export async function getUserPort(options: {
-  k8sApiClient: k8s.CoreV1Api
+export type GetDeployedImagePort = (options: {
+  apiClient: k8s.CoreV1Api
   namespaceName: string
   serviceLabelKey: string
-}): Promise<number> {
-  const response = await options.k8sApiClient.listNamespacedService(
+}) => Promise<number>
+
+export const getDeployedImagePort: GetDeployedImagePort = async options => {
+  const response = await options.apiClient.listNamespacedService(
     options.namespaceName,
     undefined,
     false,

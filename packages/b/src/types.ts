@@ -1,12 +1,12 @@
 export enum NamespaceStrategy {
   default = 'default',
-  new = 'new',
+  k8test = 'k8test',
   custom = 'custom',
 }
 
 export type Namespace =
   | { namespaceStrategy: NamespaceStrategy.default }
-  | { namespaceStrategy: NamespaceStrategy.new }
+  | { namespaceStrategy: NamespaceStrategy.k8test }
   | { namespaceStrategy: NamespaceStrategy.custom; namespace: string }
 
 export type Subscription = {
@@ -20,14 +20,14 @@ export type SubscribeCreatorOptions = {
   appId: string
   namespace?: Namespace
   ttlMs?: number
-  image: string
+  imageName: string
   isSingelton?: boolean
-  containerPortToExpose?: number
+  containerPortToExpose: number
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>
 
 export type Subscribe = (
-  image: string,
-  options?: Pick<SubscribeCreatorOptions, 'isSingelton' | 'containerPortToExpose'>,
+  imageName: string,
+  options: Pick<SubscribeCreatorOptions, 'isSingelton' | 'containerPortToExpose'>,
 ) => Promise<Subscription>

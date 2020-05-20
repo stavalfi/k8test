@@ -6,10 +6,10 @@ describe('test ttl option', () => {
     const ttlMs = 2000
     const delay = 1000
 
-    const subscribe: Subscribe = (image, options) =>
+    const subscribe: Subscribe = (imageName, options) =>
       baseSubscribe({
         ...options,
-        image,
+        imageName,
         appId: randomAppId(),
         ttlMs,
       })

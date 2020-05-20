@@ -1,19 +1,22 @@
 import * as k8s from '@kubernetes/client-node'
 import { Labels } from './types'
+import { waitUntilDeploymentReady, waitUntilDeploymentDeleted } from './watch-resources'
 
 export async function createDeployment(options: {
   appId: string
-  k8sAppsApiClient: k8s.AppsV1Api
+  appsApiClient: k8s.AppsV1Api
+  watchClient: k8s.Watch
   namespaceName: string
   imageName: string
   containerPortToExpose: number
   containerLabels?: Labels
 }) {
-  return options.k8sAppsApiClient.createNamespacedDeployment(options.namespaceName, {
+  const deploymentName = `${options.appId}-${options.imageName}-deployment`
+  const response = await options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
     metadata: {
-      name: `${options.appId}-${options.imageName}-deployment`,
+      name: deploymentName,
       labels: {
         [`${options.appId}-${options.imageName}-depmloyment`]: '',
       },
@@ -44,4 +47,21 @@ export async function createDeployment(options: {
       },
     },
   })
+
+  await waitUntilDeploymentReady(deploymentName, {
+    watchClient: options.watchClient,
+  })
+
+  return response
+}
+
+export async function deleteDeployment(options: {
+  appsApiClient: k8s.AppsV1Api
+  watchClient: k8s.Watch
+  namespaceName: string
+  deploymentName: string
+}) {
+  const response = await options.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName)
+  await waitUntilDeploymentDeleted(options.deploymentName, { watchClient: options.watchClient })
+  return response
 }

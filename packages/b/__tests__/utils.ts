@@ -14,9 +14,9 @@ export function redisClient(
   return { set, get }
 }
 
-export const subscribe: Subscribe = (image, options) =>
+export const subscribe: Subscribe = (imageName, options) =>
   baseSubscribe({
     ...options,
-    image,
+    imageName,
     appId: randomAppId(),
   })

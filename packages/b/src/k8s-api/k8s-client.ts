@@ -5,8 +5,9 @@ export const createeK8sClient = () => {
   const kc = new k8s.KubeConfig()
   kc.loadFromDefault()
 
-  const k8sApiClient = kc.makeApiClient(k8s.CoreV1Api)
-  const k8sAppsApiClient = kc.makeApiClient(k8s.AppsV1Api)
+  const apiClient = kc.makeApiClient(k8s.CoreV1Api)
+  const appsApiClient = kc.makeApiClient(k8s.AppsV1Api)
+  const watchClient = new k8s.Watch(kc)
 
-  return { k8sApiClient, k8sAppsApiClient }
+  return { apiClient, appsApiClient, watchClient }
 }
