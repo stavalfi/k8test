@@ -3,11 +3,13 @@ import { subscribe } from './utils'
 
 describe('reach endpoints in the cluster', () => {
   test('endpoint is only available while the endpoint has active subscription', async () => {
-    const { unsubscribe, exposedUrl } = await subscribe('redis', {
+    const { unsubscribe, getDeployedImageUrl } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
 
-    await expect(got.get(exposedUrl)).resolves.toContainEqual(
+    const deployedImageUrl = await getDeployedImageUrl()
+
+    await expect(got.get(deployedImageUrl)).resolves.toContainEqual(
       expect.objectContaining({
         statusCode: 200,
       }),
@@ -15,7 +17,7 @@ describe('reach endpoints in the cluster', () => {
 
     await unsubscribe()
 
-    await expect(got.get(exposedUrl)).rejects.toContainEqual(
+    await expect(got.get(deployedImageUrl)).rejects.toContainEqual(
       expect.objectContaining({
         statusCode: 404,
       }),

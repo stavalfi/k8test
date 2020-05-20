@@ -8,7 +8,10 @@ describe('test singletone option', () => {
       isSingelton: true,
     })
 
-    const client1 = redisClient(subscription1.exposedAddress, subscription1.exposedPort)
+    const client1 = redisClient(
+      await subscription1.getDeployedImageAddress(),
+      await subscription1.getDeployedImagePort(),
+    )
 
     await client1.set('x', '1')
 
@@ -17,7 +20,10 @@ describe('test singletone option', () => {
       isSingelton: true,
     })
 
-    const client2 = redisClient(subscription2.exposedAddress, subscription2.exposedPort)
+    const client2 = redisClient(
+      await subscription2.getDeployedImageAddress(),
+      await subscription2.getDeployedImagePort(),
+    )
 
     await expect(client2.get('x')).resolves.toEqual('1')
 
@@ -31,7 +37,10 @@ describe('test singletone option', () => {
       isSingelton: false,
     })
 
-    const client1 = redisClient(subscription1.exposedAddress, subscription1.exposedPort)
+    const client1 = redisClient(
+      await subscription1.getDeployedImageAddress(),
+      await subscription1.getDeployedImagePort(),
+    )
 
     await client1.set('x', '1')
 
@@ -40,7 +49,10 @@ describe('test singletone option', () => {
       isSingelton: false,
     })
 
-    const client2 = redisClient(subscription2.exposedAddress, subscription2.exposedPort)
+    const client2 = redisClient(
+      await subscription2.getDeployedImageAddress(),
+      await subscription2.getDeployedImagePort(),
+    )
 
     await expect(client2.get('x')).resolves.not.toEqual('1')
 

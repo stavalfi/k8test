@@ -14,11 +14,13 @@ describe('test ttl option', () => {
         ttlMs,
       })
 
-    const { exposedUrl } = await subscribe('redis', {
+    const { getDeployedImageUrl } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
 
-    await expect(got.get(exposedUrl)).resolves.toContainEqual(
+    const deployedImageUrl = await getDeployedImageUrl()
+
+    await expect(got.get(deployedImageUrl)).resolves.toContainEqual(
       expect.objectContaining({
         statusCode: 200,
       }),
@@ -26,7 +28,7 @@ describe('test ttl option', () => {
 
     await new Promise(res => setTimeout(res, ttlMs + delay))
 
-    await expect(got.get(exposedUrl)).rejects.toContainEqual(
+    await expect(got.get(deployedImageUrl)).rejects.toContainEqual(
       expect.objectContaining({
         statusCode: 404,
       }),
