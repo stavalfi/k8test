@@ -1,6 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import { Labels } from './types'
 import { waitUntilDeploymentReady, waitUntilDeploymentDeleted } from './watch-resources'
+import { generateString } from './utils'
 
 export async function createDeployment(options: {
   appId: string
@@ -9,49 +10,50 @@ export async function createDeployment(options: {
   namespaceName: string
   imageName: string
   containerPortToExpose: number
-  containerLabels?: Labels
+  containerLabels: Labels
 }) {
-  const deploymentName = `${options.appId}-${options.imageName}-deployment`
-  const response = await options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-    metadata: {
-      name: deploymentName,
-      labels: {
-        [`${options.appId}-${options.imageName}-depmloyment`]: '',
-      },
-    },
-    spec: {
-      replicas: 1,
-      selector: {
-        matchLabels: options.containerLabels,
-      },
-      template: {
-        metadata: {
-          name: `${options.appId}-${options.imageName}-pod`,
-          labels: options.containerLabels,
-        },
-        spec: {
-          containers: [
-            {
-              name: `${options.appId}-${options.imageName}-container`,
-              image: options.imageName,
-              ports: [
-                {
-                  containerPort: options.containerPortToExpose,
-                },
-              ],
-            },
-          ],
+  const deploymentName = generateString(options.appId, options.imageName, { postfix: 'depmloyment' })
+  const [, response] = await Promise.all([
+    waitUntilDeploymentReady(deploymentName, {
+      watchClient: options.watchClient,
+      namespaceName: options.namespaceName,
+    }),
+    options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: {
+        name: deploymentName,
+        labels: {
+          [deploymentName]: 'value3',
         },
       },
-    },
-  })
-
-  await waitUntilDeploymentReady(deploymentName, {
-    watchClient: options.watchClient,
-  })
-
+      spec: {
+        replicas: 1,
+        selector: {
+          matchLabels: options.containerLabels,
+        },
+        template: {
+          metadata: {
+            name: generateString(options.appId, options.imageName, { postfix: 'container' }),
+            labels: options.containerLabels,
+          },
+          spec: {
+            containers: [
+              {
+                name: generateString(options.appId, options.imageName, { postfix: 'container' }),
+                image: options.imageName,
+                ports: [
+                  {
+                    containerPort: options.containerPortToExpose,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    }),
+  ])
   return response
 }
 
@@ -61,7 +63,12 @@ export async function deleteDeployment(options: {
   namespaceName: string
   deploymentName: string
 }) {
-  const response = await options.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName)
-  await waitUntilDeploymentDeleted(options.deploymentName, { watchClient: options.watchClient })
+  const [, response] = await Promise.all([
+    waitUntilDeploymentDeleted(options.deploymentName, {
+      watchClient: options.watchClient,
+      namespaceName: options.namespaceName,
+    }),
+    options.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName),
+  ])
   return response
 }

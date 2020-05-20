@@ -3,7 +3,7 @@ import { createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
 
 export { createeK8sClient } from './k8s-client'
-export { createNamespaceIfNotExist } from './namespace'
+export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
 
 export type DeployedImage = {
   deploymentName: string
@@ -21,6 +21,7 @@ export async function deployImageAndExposePort(options: {
   namespaceName: string
   imageName: string
   containerPortToExpose: number
+  isReadyPredicate?: (deployedImageUrl: string) => Promise<void>
 }): Promise<DeployedImage> {
   const serviceResult = await createService({
     appId: options.appId,
@@ -65,7 +66,7 @@ export async function deployImageAndExposePort(options: {
     )
   }
 
-  return {
+  const result: DeployedImage = {
     serviceName,
     deploymentName,
     getDeployedImageUrl: () =>
@@ -85,6 +86,12 @@ export async function deployImageAndExposePort(options: {
         serviceLabelKey,
       }),
   }
+
+  if (options.isReadyPredicate) {
+    await options.isReadyPredicate(await result.getDeployedImageUrl())
+  }
+
+  return result
 }
 
 export async function deleteAllImageResources(options: {

@@ -1,3 +1,4 @@
+import 'source-map-support/register'
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
 import {
@@ -6,11 +7,14 @@ import {
   deployImageAndExposePort,
   deleteAllImageResources,
 } from './k8s-api'
-import { Namespace, SubscribeCreator as BaseSubscribe } from './types'
+import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions } from './types'
 
 export { Namespace, NamespaceStrategy, Subscribe, Subscription } from './types'
+export { deleteNamespaceIfExist } from './k8s-api'
 
 export const baseSubscribe: BaseSubscribe = async options => {
+  assertOptions(options)
+
   const k8sClients = createeK8sClient()
   const namespaceName = await extractNamespaceName({
     appId: options.appId,
@@ -26,6 +30,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
+    isReadyPredicate: options.isReadyPredicate,
   })
   return {
     deploymentName: deployedImage.deploymentName,
@@ -45,9 +50,20 @@ export const baseSubscribe: BaseSubscribe = async options => {
   }
 }
 
-export const randomAppId = () => `app-id-${chance().hash()}`
+export const randomAppId = () =>
+  `app-id-${chance()
+    .hash()
+    .slice(0, 10)}`
 
 export const k8testNamespace = () => `k8test`
+
+function assertOptions(options: SubscribeCreatorOptions): void {
+  if (options.appId.length !== randomAppId().length) {
+    throw new Error(
+      'please use `randomAppId` function for generating the appId. k8s apis expect specific length when we use `appId` to generate k8s resources names.',
+    )
+  }
+}
 
 async function extractNamespaceName(options: {
   appId: string

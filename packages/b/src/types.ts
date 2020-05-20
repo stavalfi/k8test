@@ -23,11 +23,12 @@ export type SubscribeCreatorOptions = {
   imageName: string
   isSingelton?: boolean
   containerPortToExpose: number
+  isReadyPredicate?: (deployedImageUrl: string) => Promise<void>
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>
 
 export type Subscribe = (
   imageName: string,
-  options: Pick<SubscribeCreatorOptions, 'isSingelton' | 'containerPortToExpose'>,
+  options: Pick<SubscribeCreatorOptions, 'isSingelton' | 'containerPortToExpose' | 'containerPortToExpose' | 'ttlMs'>,
 ) => Promise<Subscription>

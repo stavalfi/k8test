@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
-import { waitUntilServiceReady, waitUntilServiceDeleted } from './watch-resources'
+import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
+import { generateString } from './utils'
 
 export async function createService(options: {
   appId: string
@@ -10,29 +11,31 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
 }) {
-  const serviceName = `${options.appId}-${options.imageName}-service`
-  const response = await options.apiClient.createNamespacedService(options.namespaceName, {
-    apiVersion: 'v1',
-    kind: 'Service',
-    metadata: {
-      name: `${options.appId}-${options.imageName}-service`,
-      labels: {
-        [`${options.appId}-${options.imageName}-service`]: '',
-      },
-    },
-    spec: {
-      type: 'NodePort',
-      selector: {
-        [`${options.appId}-${options.imageName}-container`]: '',
-      },
-      ports: [
-        {
-          port: options.podPortToExpose,
+  const serviceName = generateString(options.appId, options.imageName, { postfix: 'service' })
+  const [, response] = await Promise.all([
+    waitUntilServiceCreated(serviceName, { watchClient: options.watchClient, namespaceName: options.namespaceName }),
+    options.apiClient.createNamespacedService(options.namespaceName, {
+      apiVersion: 'v1',
+      kind: 'Service',
+      metadata: {
+        name: serviceName,
+        labels: {
+          [serviceName]: 'value1',
         },
-      ],
-    },
-  })
-  await waitUntilServiceReady(serviceName, { watchClient: options.watchClient })
+      },
+      spec: {
+        type: 'NodePort',
+        selector: {
+          [generateString(options.appId, options.imageName, { postfix: 'container' })]: 'value2',
+        },
+        ports: [
+          {
+            port: options.podPortToExpose,
+          },
+        ],
+      },
+    }),
+  ])
   return response
 }
 
@@ -42,8 +45,13 @@ export async function deleteService(options: {
   namespaceName: string
   serviceName: string
 }) {
-  const response = await options.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName)
-  await waitUntilServiceDeleted(options.serviceName, { watchClient: options.watchClient })
+  const [, response] = await Promise.all([
+    await waitUntilServiceDeleted(options.serviceName, {
+      watchClient: options.watchClient,
+      namespaceName: options.namespaceName,
+    }),
+    options.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName),
+  ])
   return response
 }
 

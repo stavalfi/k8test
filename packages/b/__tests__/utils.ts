@@ -1,6 +1,6 @@
 import redis from 'redis'
 import { promisify } from 'util'
-import { baseSubscribe, randomAppId, Subscribe } from 'b/src'
+import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from 'b/src'
 
 export function redisClient(
   address: string,
@@ -16,7 +16,10 @@ export function redisClient(
 
 export const subscribe: Subscribe = (imageName, options) =>
   baseSubscribe({
-    ...options,
     imageName,
     appId: randomAppId(),
+    namespace: {
+      namespaceStrategy: NamespaceStrategy.k8test,
+    },
+    ...options,
   })
