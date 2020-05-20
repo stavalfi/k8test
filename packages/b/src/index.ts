@@ -1,9 +1,15 @@
-export async function register(options: { dockerImage: string; singelton: boolean }): Promise<string> {
-  return 'id'
+import chance from 'chance'
+import { SubscribeCreator as BaseSubscribe } from './types'
+
+export { Subscribe, Namespace, NamespaceStrategy, Subscription } from './types'
+
+export const baseSubscribe: BaseSubscribe = async options => {
+  return {
+    exposedUrl: 'http://1.2.3.4:8080',
+    exposedAddress: 'localhost',
+    exposedPort: 8080,
+    unsubscribe: () => Promise.resolve(),
+  }
 }
 
-export async function unRegister(id: string): Promise<void> {}
-
-export async function startMaster(options: {}): Promise<void> {
-  
-}
+export const randomAppId = () => `app-id-${chance().hash()}`

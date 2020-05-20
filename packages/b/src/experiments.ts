@@ -7,6 +7,8 @@ kc.loadFromDefault()
 const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
 const k8sAppsApi = kc.makeApiClient(k8s.AppsV1Api)
 
+type Labels = { [key: string]: string }
+
 var namespace = {
   metadata: {
     name: 'test',
@@ -22,36 +24,79 @@ async function createNamespace() {
   await sleep()
 }
 
-async function createDeployment(namespace: string, deployment: string): Promise<void> {
+type RunImageResult = {
+  service: string
+  deployment: string
+  addressWithPort: string
+  serviceLabels: Labels
+  deploymentLabels: Labels
+}
+
+async function runImage(
+  image: string,
+  options: { namespace: string; containerPortToExpose: number },
+): Promise<RunImageResult> {
+  const service = 'service1'
+  const deployment = 'deployment1'
+  const podsLabels: Labels = {
+    key1: 'value1',
+  }
+  const serviceLabels = { key2: 'value' }
+  const deploymentLabels = { key3: 'value' }
+  await createService(service, { namespace: options.namespace, podsLabels, serviceLabels })
+  await createDeployment(deployment, {
+    namespace: options.namespace,
+    podsLabels,
+    deploymentLabels,
+    image,
+    containerPortToExpose: options.containerPortToExpose,
+  })
+  const addressWithPort = await getAddressWithPortOfService({ namespace: options.namespace, serviceLabelKey: 'key2' })
+  return {
+    service,
+    deployment,
+    addressWithPort,
+    serviceLabels,
+    deploymentLabels,
+  }
+}
+
+async function createDeployment(
+  deployment: string,
+  options: {
+    namespace: string
+    deploymentLabels: Labels
+    podsLabels: Labels
+    image: string
+    containerPortToExpose: number
+  },
+): Promise<void> {
   console.log('Creating new deployment')
-  await k8sAppsApi.createNamespacedDeployment(namespace, {
+  await k8sAppsApi.createNamespacedDeployment(options.namespace, {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
     metadata: {
       name: deployment,
+      labels: options.deploymentLabels,
     },
     spec: {
       replicas: 1,
       selector: {
-        matchLabels: {
-          'pod-key1': 'pod-value1',
-        },
+        matchLabels: options.podsLabels,
       },
       template: {
         metadata: {
           name: 'pod1',
-          labels: {
-            'pod-key1': 'pod-value1',
-          },
+          labels: options.podsLabels,
         },
         spec: {
           containers: [
             {
               name: 'pod1-container',
-              image: 'verdaccio/verdaccio',
+              image: options.image,
               ports: [
                 {
-                  containerPort: 4873,
+                  containerPort: options.containerPortToExpose,
                 },
               ],
             },
@@ -61,31 +106,6 @@ async function createDeployment(namespace: string, deployment: string): Promise<
     },
   })
   console.log('Created deployment')
-  await sleep()
-}
-
-async function addNewImageToDeployment(namespace: string, deployment: string): Promise<void> {
-  console.log('Adding new image to existing deployment')
-  await k8sAppsApi.patchNamespacedDeployment(deployment, namespace, {
-    spec: {
-      template: {
-        spec: {
-          containers: [
-            {
-              name: 'pod2-container',
-              image: 'nginx',
-              ports: [
-                {
-                  containerPort: 80,
-                },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  })
-  console.log('added new image to existing deployment')
   await sleep()
 }
 
@@ -101,22 +121,21 @@ async function deleteNamespace(namespace: string) {
   await sleep()
 }
 
-async function createService(namespace: string, service: string) {
+async function createService(
+  service: string,
+  options: { namespace: string; serviceLabels: Labels; podsLabels: Labels },
+) {
   console.log('creating new service')
-  await k8sApi.createNamespacedService(namespace, {
+  await k8sApi.createNamespacedService(options.namespace, {
     apiVersion: 'v1',
     kind: 'Service',
     metadata: {
       name: service,
-      labels: {
-        'service-key1': 'service-value1',
-      },
+      labels: options.serviceLabels,
     },
     spec: {
       type: 'NodePort',
-      selector: {
-        'pod-key1': 'pod-value1',
-      },
+      selector: options.podsLabels,
       ports: [
         {
           port: 4873,
@@ -141,14 +160,14 @@ async function getMasterAddress(): Promise<string> {
 }
 
 // combined with getMasterAddress(), access a specific service in the deployment
-async function getServiceNodePort(namespace: string, serviceLabelSelector: string): Promise<number> {
+async function getServiceNodePort(options: { namespace: string; serviceLabelKey: string }): Promise<number> {
   const response = await k8sApi.listNamespacedService(
-    namespace,
+    options.namespace,
     undefined,
     false,
     undefined,
     undefined,
-    serviceLabelSelector,
+    options.serviceLabelKey,
   )
   const items = response.body.items
   if (items.length !== 1) {
@@ -179,19 +198,17 @@ async function getServiceNodePort(namespace: string, serviceLabelSelector: strin
   return nodePort
 }
 
-async function getAddressWithPortOfService(namespace: string, serviceLabelSelector: string): Promise<string> {
-  const [address, port] = await Promise.all([getMasterAddress(), getServiceNodePort(namespace, serviceLabelSelector)])
+async function getAddressWithPortOfService(options: { namespace: string; serviceLabelKey: string }): Promise<string> {
+  const [address, port] = await Promise.all([getMasterAddress(), getServiceNodePort(options)])
   return `${address}:${port}`
 }
 
 async function main() {
   try {
-    console.log(await getAddressWithPortOfService('default', 'service-key1'))
     // await deleteNamespace(namespace.metadata.name)
     // await createNamespace()
-    // await createDeployment('default', 'stav-deployment1')
-    // await listDeployments('default')
-    // await createService('default', 'stav-service1')
+    const result = await runImage('verdaccio/verdaccio', { namespace: 'default', containerPortToExpose: 4873 })
+    console.log(JSON.stringify(result, null, 2))
   } catch (e) {
     console.error(e.response?.body?.message || e)
   }

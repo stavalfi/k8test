@@ -19,7 +19,6 @@ const packagesAliases = Object.values(workspacesInfo)
 
 const config = {
   testRunner: 'jest-circus/runner',
-  testResultsProcessor: 'jest-teamcity',
   preset: 'ts-jest',
   testEnvironment: 'node',
   testRegex: [`./*.spec.ts$`],

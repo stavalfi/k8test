@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  labels:
+    app: k8test-redis-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app: k8test-redis-container
+  template:
+    metadata:
+      labels:
+        app: k8test-redis-container
+    spec:
+      containers:
+      - name: k8test-redis
+        image: redis
+        ports:
+        - containerPort: 6379
