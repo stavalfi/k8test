@@ -1,4 +1,6 @@
 import * as k8s from '@kubernetes/client-node'
+import { timeout } from '../utils'
+import _omit from 'lodash/omit'
 
 enum ResourceEventType {
   resourceAdded = 'ADDED',
@@ -45,7 +47,6 @@ export const waitUntilDeploymentDeleted = (
 ) =>
   waitForResource<k8s.V1Deployment>({
     watchClient: options.watchClient,
-    debug: true,
     api: `/apis/apps/v1/namespaces/${options.namespaceName}/deployments`,
     resouceName: deploymentName,
     namespaceName: options.namespaceName,
@@ -73,7 +74,6 @@ export const waitUntilServiceDeleted = (
     api: `/api/v1/namespaces/${options.namespaceName}/services`,
     resouceName: serviceName,
     namespaceName: options.namespaceName,
-    debug: true,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
   })
 
@@ -82,31 +82,47 @@ async function waitForResource<Resource extends { metadata?: { name?: string; na
   api: string
   resouceName: string
   namespaceName?: string
-  debug?: boolean
   predicate: (resourceEventType: ResourceEventType, resource: Resource) => boolean
-}): Promise<void> {
-  await new Promise((res, rej) => {
-    options.watchClient.watch(
-      options.api,
-      {},
-      (type, obj) => {
-        const resource = obj as Resource
-        if (options.debug) {
-          // eslint-disable-next-line no-console
-          console.log(type, JSON.stringify(resource, null, 2))
-        }
-        if (
-          (!('namespaceName' in options) || options.namespaceName === resource.metadata?.namespace) &&
-          resource.metadata?.name === options.resouceName
-        ) {
-          if (options.predicate(type as ResourceEventType, resource)) {
-            return res(resource)
-          }
-        }
-      },
-      err => {
-        return err ? rej(err) : rej('resource not found')
-      },
+}): Promise<Resource> {
+  let watchResult: { abort: () => void }
+  const TIMEOUT = 30_000
+  return timeout(
+    new Promise<Resource>((res, rej) => {
+      options.watchClient
+        .watch(
+          options.api,
+          {},
+          (type, obj) => {
+            const resource = obj as Resource
+            if (
+              (!('namespaceName' in options) || options.namespaceName === resource.metadata?.namespace) &&
+              resource.metadata?.name === options.resouceName
+            ) {
+              if (options.predicate(type as ResourceEventType, resource)) {
+                return res(resource)
+              }
+            }
+          },
+          err => (err ? rej(err) : rej('resource not found')),
+        )
+        .then(_watchResult => (watchResult = _watchResult))
+    }),
+    TIMEOUT,
+  )
+    .catch(e =>
+      e === 'timeout'
+        ? Promise.reject(
+            `timeout: resource not found or did not meet the predicate. params: ${JSON.stringify(
+              _omit(options, ['watchClient']),
+              null,
+              2,
+            )}.`,
+          )
+        : Promise.reject(e),
     )
-  })
+    .finally(async () => {
+      if (watchResult) {
+        watchResult.abort()
+      }
+    })
 }
