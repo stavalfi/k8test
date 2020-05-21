@@ -86,7 +86,7 @@ async function waitForResource<Resource extends { metadata?: { name?: string; na
   predicate: (resourceEventType: ResourceEventType, resource: Resource) => boolean
 }): Promise<Resource> {
   let watchResult: { abort: () => void }
-  const TIMEOUT = 30_000
+  const TIMEOUT = 60_000
   return timeout(
     new Promise<Resource>((res, rej) => {
       options.watchClient

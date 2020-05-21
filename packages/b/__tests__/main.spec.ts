@@ -1,27 +1,20 @@
-import got from 'got'
-import { subscribe } from './utils'
+import { subscribe, redisClient } from './utils'
+import { timeout } from '../src/index'
 
 describe('reach endpoints in the cluster', () => {
   test('endpoint is only available while the endpoint has active subscription', async () => {
-    const { unsubscribe, getDeployedImageUrl } = await subscribe('verdaccio/verdaccio', {
-      containerPortToExpose: 4873,
+    const { unsubscribe, getDeployedImageAddress, getDeployedImagePort } = await subscribe('redis', {
+      containerPortToExpose: 6379,
     })
 
-    const deployedImageUrl = await getDeployedImageUrl()
+    const redis = redisClient(await getDeployedImageAddress(), await getDeployedImagePort())
 
-    await expect(got.get(deployedImageUrl)).resolves.toEqual(
-      expect.objectContaining({
-        statusCode: 200,
-      }),
-    )
+    await expect(redis.ping()).resolves.toEqual('PONG')
 
     await unsubscribe()
 
-    await expect(got.get(deployedImageUrl)).rejects.toEqual(
-      expect.objectContaining({
-        name: 'RequestError',
-        code: 'ECONNREFUSED',
-      }),
-    )
+    await expect(timeout(redis.ping(), 50)).rejects.toEqual(expect.stringContaining('timeout'))
+
+    redis.forceClose()
   })
 })

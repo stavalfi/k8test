@@ -2,16 +2,19 @@ import redis from 'redis'
 import { promisify } from 'util'
 import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from 'b/src'
 
-export function redisClient(
-  address: string,
-  port: number,
-): { set: (a: string, b: string) => Promise<unknown>; get: (a: string) => Promise<string> } {
+export function redisClient(address: string, port: number) {
   const client = redis.createClient({ host: address, port })
 
   const set = promisify(client.set).bind(client)
   const get = promisify(client.get).bind(client)
+  const ping = promisify(client.ping).bind(client)
+  const forceClose = () => client.end(false)
 
-  return { set, get }
+  // workaround to avoid sending errors to stdio
+  client.on('error', () => {})
+  client.unsubscribe('error')
+
+  return { set, get, ping, forceClose }
 }
 
 export const subscribe: Subscribe = (imageName, options) =>

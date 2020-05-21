@@ -11,6 +11,7 @@ import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions }
 
 export { Namespace, NamespaceStrategy, Subscribe, Subscription } from './types'
 export { deleteNamespaceIfExist } from './k8s-api'
+export { timeout } from './utils'
 
 export const baseSubscribe: BaseSubscribe = async options => {
   assertOptions(options)
@@ -32,6 +33,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     containerPortToExpose: options.containerPortToExpose,
     isReadyPredicate: options.isReadyPredicate,
   })
+
   return {
     deploymentName: deployedImage.deploymentName,
     serviceName: deployedImage.serviceName,
