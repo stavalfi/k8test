@@ -81,6 +81,7 @@ async function waitForResource<Resource extends { metadata?: { name?: string; na
   watchClient: k8s.Watch
   api: string
   resouceName: string
+  debug?: boolean
   namespaceName?: string
   predicate: (resourceEventType: ResourceEventType, resource: Resource) => boolean
 }): Promise<Resource> {
@@ -94,6 +95,10 @@ async function waitForResource<Resource extends { metadata?: { name?: string; na
           {},
           (type, obj) => {
             const resource = obj as Resource
+            if (options.debug) {
+              // eslint-disable-next-line no-console
+              console.log(type, JSON.stringify(resource, null, 2))
+            }
             if (
               (!('namespaceName' in options) || options.namespaceName === resource.metadata?.namespace) &&
               resource.metadata?.name === options.resouceName

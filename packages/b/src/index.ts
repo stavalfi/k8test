@@ -38,7 +38,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     getDeployedImageUrl: deployedImage.getDeployedImageUrl,
     getDeployedImageAddress: deployedImage.getDeployedImageAddress,
     getDeployedImagePort: deployedImage.getDeployedImagePort,
-    unsubscribe: () =>
+    unsubscribe: async () =>
       deleteAllImageResources({
         apiClient: k8sClients.apiClient,
         appsApiClient: k8sClients.appsApiClient,
@@ -46,6 +46,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
         namespaceName,
         deploymentName: deployedImage.deploymentName,
         serviceName: deployedImage.serviceName,
+        deployedImageUrl: await deployedImage.getDeployedImageUrl(),
       }),
   }
 }

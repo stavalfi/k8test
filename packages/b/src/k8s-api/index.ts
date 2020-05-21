@@ -1,6 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import { createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
+import got from 'got'
 
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
@@ -101,6 +102,7 @@ export async function deleteAllImageResources(options: {
   namespaceName: string
   deploymentName: string
   serviceName: string
+  deployedImageUrl: string
 }): Promise<void> {
   await deleteService({
     apiClient: options.apiClient,
@@ -114,6 +116,25 @@ export async function deleteAllImageResources(options: {
     namespaceName: options.namespaceName,
     deploymentName: options.deploymentName,
   })
+  await waitUntilDeploymentNotReachable(options.deployedImageUrl, 100)
+}
+
+// this function exists because k8s sucks:
+// the deployement is still reachable even after k8s
+// notified (by events) that all the deployement resources are deleted.
+async function waitUntilDeploymentNotReachable(deployedImageUrl: string, interval: number) {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      // todo: need to have a better check.
+      await got.get(deployedImageUrl)
+    } catch (e) {
+      if (e.name === 'RequestError') {
+        return
+      }
+    }
+    new Promise(res => setTimeout(res, interval))
+  }
 }
 
 export type GetDeployedImageUrl = (options: {

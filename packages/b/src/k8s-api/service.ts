@@ -46,7 +46,7 @@ export async function deleteService(options: {
   serviceName: string
 }) {
   const [, response] = await Promise.all([
-    await waitUntilServiceDeleted(options.serviceName, {
+    waitUntilServiceDeleted(options.serviceName, {
       watchClient: options.watchClient,
       namespaceName: options.namespaceName,
     }),
