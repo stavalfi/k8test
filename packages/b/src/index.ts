@@ -9,7 +9,7 @@ import {
 } from './k8s-api'
 import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions } from './types'
 
-export { Namespace, NamespaceStrategy, Subscribe, Subscription } from './types'
+export { Namespace, NamespaceStrategy, Subscribe, Subscription, SubscribeCreatorOptions } from './types'
 export { deleteNamespaceIfExist } from './k8s-api'
 export { timeout } from './utils'
 

@@ -1,20 +1,12 @@
-import redis from 'redis'
-import { promisify } from 'util'
-import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from 'b/src'
+import Redis from 'ioredis'
+import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from '../src/'
 
-export function redisClient(address: string, port: number) {
-  const client = redis.createClient({ host: address, port })
-
-  const set = promisify(client.set).bind(client)
-  const get = promisify(client.get).bind(client)
-  const ping = promisify(client.ping).bind(client)
-  const forceClose = () => client.end(false)
-
-  // workaround to avoid sending errors to stdio
-  client.on('error', () => {})
-  client.unsubscribe('error')
-
-  return { set, get, ping, forceClose }
+export function redisClient(options: Redis.RedisOptions) {
+  const redis = new Redis({
+    maxRetriesPerRequest: 1,
+    ...options,
+  })
+  return redis
 }
 
 export const subscribe: Subscribe = (imageName, options) =>
@@ -26,3 +18,14 @@ export const subscribe: Subscribe = (imageName, options) =>
     },
     ...options,
   })
+
+export function cleanupAfterEach() {
+  const cleanups: (() => Promise<void> | void)[] = []
+
+  afterEach(async () => {
+    await Promise.all(cleanups.map(cleanup => cleanup()))
+    cleanups.splice(0, cleanups.length)
+  })
+
+  return cleanups
+}
