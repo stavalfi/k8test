@@ -7,14 +7,12 @@ describe('reach endpoints in the cluster', () => {
     const { unsubscribe, getDeployedImageAddress, getDeployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
-
     cleanups.push(unsubscribe)
 
     const redis = redisClient({
       host: await getDeployedImageAddress(),
       port: await getDeployedImagePort(),
     })
-
     cleanups.push(() => redis.disconnect())
 
     await expect(redis.ping()).resolves.toEqual('PONG')
@@ -29,7 +27,6 @@ describe('reach endpoints in the cluster', () => {
       host: await getDeployedImageAddress(),
       port: await getDeployedImagePort(),
     })
-
     cleanups.push(() => redis.disconnect())
 
     await unsubscribe()
