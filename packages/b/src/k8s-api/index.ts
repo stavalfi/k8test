@@ -32,6 +32,7 @@ export async function deployImageAndExposePort(options: {
     deployedImagePort: number,
   ) => Promise<void>
   dontFailIfExistAndExposed?: boolean
+  isSingelton?: boolean
 }): Promise<DeployedImage> {
   const service = await createService({
     appId: options.appId,
@@ -101,13 +102,12 @@ export async function deployImageAndExposePort(options: {
   }
 }
 
-async function waitUntilReady(isReadyPredicate: () => Promise<void>) {
+async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
   try {
-    await isReadyPredicate()
-    return
+    return isReadyPredicate()
   } catch {
     await new Promise(res => setTimeout(res, 1000))
-    waitUntilReady(isReadyPredicate)
+    return waitUntilReady(isReadyPredicate)
   }
 }
 

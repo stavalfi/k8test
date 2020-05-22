@@ -33,7 +33,7 @@ export async function makeSureRedisIsDeployedAndExposed(options: {
         port,
         lazyConnect: true, // because i will try to connect manually in the next line
       })
-      return redis.connect()
+      return redis.connect().finally(() => redis.disconnect())
     },
     exposeStrategy,
     dontFailIfExistAndExposed: true,

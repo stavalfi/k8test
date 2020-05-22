@@ -9,7 +9,7 @@ import {
   ExposeStrategy,
 } from './k8s-api'
 import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions } from './types'
-// import { makeSureRedisIsDeployedAndExposed } from './redis'
+import { makeSureRedisIsDeployedAndExposed } from './redis'
 
 export { Namespace, NamespaceStrategy, Subscribe, Subscription, SubscribeCreatorOptions } from './types'
 export { deleteNamespaceIfExist } from './k8s-api'
@@ -27,13 +27,13 @@ export const baseSubscribe: BaseSubscribe = async options => {
     namespace: options.namespace,
   })
 
-  // await makeSureRedisIsDeployedAndExposed({
-  //   appId: options.appId,
-  //   apiClient: k8sClients.apiClient,
-  //   appsApiClient: k8sClients.appsApiClient,
-  //   watchClient: k8sClients.watchClient,
-  //   namespaceName,
-  // })
+  const exposedRedis = await makeSureRedisIsDeployedAndExposed({
+    appId: options.appId,
+    apiClient: k8sClients.apiClient,
+    appsApiClient: k8sClients.appsApiClient,
+    watchClient: k8sClients.watchClient,
+    namespaceName,
+  })
 
   const deployedImage = await deployImageAndExposePort({
     appId: options.appId,
