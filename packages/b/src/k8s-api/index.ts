@@ -32,7 +32,6 @@ export async function deployImageAndExposePort(options: {
     deployedImagePort: number,
   ) => Promise<void>
   dontFailIfExistAndExposed?: boolean
-  isSingelton?: boolean
 }): Promise<DeployedImage> {
   const service = await createService({
     appId: options.appId,
