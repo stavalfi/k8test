@@ -1,11 +1,13 @@
 import * as k8s from '@kubernetes/client-node'
-import { createDeployment, deleteDeployment, ExposeStrategy } from './deployment'
+import { createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
+import { ExposeStrategy } from './types'
 
+export { generateDeploymentName, isDeploymentExist } from './deployment'
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
-export { generateDeploymentName, isDeploymentExist, ExposeStrategy } from './deployment'
 export { generateServicetName, getDeployedImagePort } from './service'
+export { ExposeStrategy } from './types'
 
 export type DeployedImage = {
   deploymentName: string
@@ -29,28 +31,30 @@ export async function deployImageAndExposePort(options: {
     deployedImageAddress: string,
     deployedImagePort: number,
   ) => Promise<void>
+  dontFailIfExistAndExposed?: boolean
 }): Promise<DeployedImage> {
-  const serviceResult = await createService({
+  const service = await createService({
     appId: options.appId,
     apiClient: options.apiClient,
     watchClient: options.watchClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
+    dontFailIfExist: Boolean(options.dontFailIfExistAndExposed),
   })
-  const containerLabels = serviceResult.body.spec?.selector
+  const containerLabels = service.spec?.selector
   if (!containerLabels) {
     throw new Error(
       `failed to create a service for image: ${options.imageName} - container-labels are missing after creating them.`,
     )
   }
-  const serviceName = serviceResult.body.metadata?.name
+  const serviceName = service.metadata?.name
   if (!serviceName) {
     throw new Error(
       `failed to create a service for image: ${options.imageName} - service-name is missing after creating it.`,
     )
   }
-  const deploymentResult = await createDeployment({
+  const deployment = await createDeployment({
     appId: options.appId,
     appsApiClient: options.appsApiClient,
     watchClient: options.watchClient,
@@ -59,8 +63,9 @@ export async function deployImageAndExposePort(options: {
     containerPortToExpose: options.containerPortToExpose,
     containerLabels,
     exposeStrategy: options.exposeStrategy,
+    dontFailIfExist: Boolean(options.dontFailIfExistAndExposed),
   })
-  const deploymentName = deploymentResult.body.metadata?.name
+  const deploymentName = deployment.metadata?.name
   if (!deploymentName) {
     throw new Error(
       `failed to create a deployment for image: ${options.imageName} - deployment-name is missing after creating it.`,
@@ -75,6 +80,7 @@ export async function deployImageAndExposePort(options: {
         apiClient: options.apiClient,
         namespaceName: options.namespaceName,
         serviceName,
+        exposeStrategy: options.exposeStrategy,
       }),
     getDeployedImageAddress: () =>
       getMasterAddress({
@@ -84,6 +90,7 @@ export async function deployImageAndExposePort(options: {
       getDeployedImagePort(serviceName, {
         apiClient: options.apiClient,
         namespaceName: options.namespaceName,
+        exposeStrategy: options.exposeStrategy,
       }),
   }
 
@@ -137,6 +144,7 @@ export type GetDeployedImageUrl = (options: {
   apiClient: k8s.CoreV1Api
   namespaceName: string
   serviceName: string
+  exposeStrategy: ExposeStrategy
 }) => Promise<string>
 
 export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
@@ -145,6 +153,7 @@ export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
     getDeployedImagePort(options.serviceName, {
       apiClient: options.apiClient,
       namespaceName: options.namespaceName,
+      exposeStrategy: options.exposeStrategy,
     }),
   ])
   return `http://${address}:${port}`

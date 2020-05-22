@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
-import { generateString } from './utils'
+import { generateString, ignoreAlreadyExistError } from './utils'
+import { ExposeStrategy } from './types'
 
 export const generateServicetName = (appId: string, imageName: string) =>
   generateString(appId, imageName, { postfix: 'service' })
@@ -13,11 +14,11 @@ export async function createService(options: {
   namespaceName: string
   imageName: string
   podPortToExpose: number
-}) {
+  dontFailIfExist: boolean
+}): Promise<k8s.V1Service> {
   const serviceName = generateServicetName(options.appId, options.imageName)
-  const [, response] = await Promise.all([
-    waitUntilServiceCreated(serviceName, { watchClient: options.watchClient, namespaceName: options.namespaceName }),
-    options.apiClient.createNamespacedService(options.namespaceName, {
+  await options.apiClient
+    .createNamespacedService(options.namespaceName, {
       apiVersion: 'v1',
       kind: 'Service',
       metadata: {
@@ -37,9 +38,13 @@ export async function createService(options: {
           },
         ],
       },
-    }),
-  ])
-  return response
+    })
+    .catch(ignoreAlreadyExistError(options.dontFailIfExist))
+
+  return waitUntilServiceCreated(serviceName, {
+    watchClient: options.watchClient,
+    namespaceName: options.namespaceName,
+  })
 }
 
 export async function deleteService(options: {
@@ -64,6 +69,7 @@ export type GetDeployedImagePort = (
   options: {
     apiClient: k8s.CoreV1Api
     namespaceName: string
+    exposeStrategy: ExposeStrategy
   },
 ) => Promise<number>
 
@@ -89,11 +95,20 @@ export const getDeployedImagePort: GetDeployedImagePort = async (serviceName, op
       )}`,
     )
   }
-  const nodePort = ports[0].nodePort
-  if (!nodePort) {
-    throw new Error(
-      `could not find a the node port in the service. port instance: ${JSON.stringify(ports[0], null, 2)}`,
-    )
+  switch (options.exposeStrategy) {
+    case ExposeStrategy.userMachine: {
+      const nodePort = ports[0].nodePort
+      if (!nodePort) {
+        throw new Error(
+          `could not find a the node port in the service. port instance: ${JSON.stringify(ports[0], null, 2)}`,
+        )
+      }
+      return nodePort
+    }
+    case ExposeStrategy.insideCluster: {
+      throw new Error(`enum not supported: ${options.exposeStrategy}`)
+    }
+    default:
+      throw new Error(`enum not supported: ${options.exposeStrategy}`)
   }
-  return nodePort
 }

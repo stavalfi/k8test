@@ -1,12 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
-import { Labels } from './types'
-import { waitUntilDeploymentReady, waitUntilDeploymentDeleted } from './watch-resources'
-import { generateString } from './utils'
-
-export enum ExposeStrategy {
-  insideCluster = 'insideCluster',
-  userMachine = 'userMachine',
-}
+import { Labels, ExposeStrategy } from './types'
+import { generateString, ignoreAlreadyExistError } from './utils'
+import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 
 export async function isDeploymentExist(
   deploymentName: string,
@@ -31,14 +26,11 @@ export async function createDeployment(options: {
   containerPortToExpose: number
   containerLabels: Labels
   exposeStrategy: ExposeStrategy
-}) {
+  dontFailIfExist: boolean
+}): Promise<k8s.V1Deployment> {
   const deploymentName = generateDeploymentName(options.appId, options.imageName)
-  const [, response] = await Promise.all([
-    waitUntilDeploymentReady(deploymentName, {
-      watchClient: options.watchClient,
-      namespaceName: options.namespaceName,
-    }),
-    options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
+  await options.appsApiClient
+    .createNamespacedDeployment(options.namespaceName, {
       apiVersion: 'apps/v1',
       kind: 'Deployment',
       metadata: {
@@ -72,9 +64,13 @@ export async function createDeployment(options: {
           },
         },
       },
-    }),
-  ])
-  return response
+    })
+    .catch(ignoreAlreadyExistError(options.dontFailIfExist))
+
+  return waitUntilDeploymentReady(deploymentName, {
+    watchClient: options.watchClient,
+    namespaceName: options.namespaceName,
+  })
 }
 
 export async function deleteDeployment(options: {

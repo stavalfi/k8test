@@ -17,9 +17,14 @@
   },
   "dependencies": {
     "chance": "^1.1.5",
+    "fs-extra": "^9.0.0",
     "ioredis": "^4.17.1",
     "live-mutex": "^0.2.24",
     "lodash": "^4.17.15",
+    "proper-lockfile": "^4.1.1",
     "source-map-support": "^0.5.16"
+  },
+  "devDependencies": {
+    "@types/proper-lockfile": "^4.1.1"
   }
 }

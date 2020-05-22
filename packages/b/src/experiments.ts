@@ -207,23 +207,23 @@
 // async function main() {
 //   try {
 //     // await deleteNamespace(namespace.metadata.name)
-//     // await createNamespace()
-//     // const result = await runImage('verdaccio/verdaccio', { namespace: 'default', containerPortToExpose: 4873 })
+//     // await Promise.all([createNamespace(), createNamespace()])
+//     await runImage('verdaccio/verdaccio', { namespace: 'default', containerPortToExpose: 4873 })
 //     // console.log(JSON.stringify(result, null, 2))
-//     watch.watch(
-//       `/api/v1/namespaces/k8test/services`,
-//       {},
-//       (a, b) => console.log(a, JSON.stringify(b, null, 2)),
-//       error => console.log(error),
-//     )
-//     watch.watch(
-//       `/apis/apps/v1/namespaces/k8test/deployments`,
-//       {},
-//       (a, b) => console.log(a, JSON.stringify(b, null, 2)),
-//       error => console.log(error),
-//     )
+//     // watch.watch(
+//     //   `/api/v1/namespaces/k8test/services`,
+//     //   {},
+//     //   (a, b) => console.log(a, JSON.stringify(b, null, 2)),
+//     //   error => console.log(error),
+//     // )
+//     // watch.watch(
+//     //   `/apis/apps/v1/namespaces/k8test/deployments`,
+//     //   {},
+//     //   (a, b) => console.log(a, JSON.stringify(b, null, 2)),
+//     //   error => console.log(error),
+//     // )
 //   } catch (e) {
-//     console.error(e.response?.body?.message || e)
+//     console.error(JSON.stringify(e, null, 2))
 //   }
 // }
 
