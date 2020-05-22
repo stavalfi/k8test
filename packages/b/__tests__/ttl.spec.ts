@@ -16,14 +16,14 @@ describe('test ttl option', () => {
         ttlMs,
       })
 
-    const { unsubscribe, getDeployedImageAddress, getDeployedImagePort } = await subscribe('redis', {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
     cleanups.push(unsubscribe)
 
     const redis = redisClient({
-      host: await getDeployedImageAddress(),
-      port: await getDeployedImagePort(),
+      host: deployedImageAddress,
+      port: deployedImagePort,
     })
     cleanups.push(() => redis.disconnect())
 

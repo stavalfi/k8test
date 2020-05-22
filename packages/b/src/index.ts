@@ -19,7 +19,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
   assertOptions(options)
 
   const k8sClients = createeK8sClient()
-  // todo: to prevent multiple process that are creating the same namespace multiple times, we need to lock here, also.
+
   const namespaceName = await extractNamespaceName({
     appId: options.appId,
     apiClient: k8sClients.apiClient,
@@ -50,9 +50,9 @@ export const baseSubscribe: BaseSubscribe = async options => {
   return {
     deploymentName: deployedImage.deploymentName,
     serviceName: deployedImage.serviceName,
-    getDeployedImageUrl: deployedImage.getDeployedImageUrl,
-    getDeployedImageAddress: deployedImage.getDeployedImageAddress,
-    getDeployedImagePort: deployedImage.getDeployedImagePort,
+    deployedImageUrl: deployedImage.deployedImageUrl,
+    deployedImageAddress: deployedImage.deployedImageAddress,
+    deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () =>
       deleteAllImageResources({
         apiClient: k8sClients.apiClient,
@@ -61,7 +61,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
         namespaceName,
         deploymentName: deployedImage.deploymentName,
         serviceName: deployedImage.serviceName,
-        deployedImageUrl: await deployedImage.getDeployedImageUrl(),
+        deployedImageUrl: deployedImage.deployedImageUrl,
       }),
   }
 }

@@ -12,9 +12,9 @@ export { ExposeStrategy } from './types'
 export type DeployedImage = {
   deploymentName: string
   serviceName: string
-  getDeployedImageUrl: () => Promise<string>
-  getDeployedImageAddress: () => Promise<string>
-  getDeployedImagePort: () => Promise<number>
+  deployedImageUrl: string
+  deployedImageAddress: string
+  deployedImagePort: number
 }
 
 export async function deployImageAndExposePort(options: {
@@ -72,37 +72,33 @@ export async function deployImageAndExposePort(options: {
     )
   }
 
-  const result: DeployedImage = {
+  const deployedImageUrl = await getDeployedImageUrl({
+    apiClient: options.apiClient,
+    namespaceName: options.namespaceName,
+    serviceName,
+    exposeStrategy: options.exposeStrategy,
+  })
+  const deployedImageAddress = await getMasterAddress({
+    apiClient: options.apiClient,
+  })
+  const deployedImagePort = await getDeployedImagePort(serviceName, {
+    apiClient: options.apiClient,
+    namespaceName: options.namespaceName,
+    exposeStrategy: options.exposeStrategy,
+  })
+
+  const { isReadyPredicate } = options
+  if (isReadyPredicate) {
+    await waitUntilReady(() => isReadyPredicate(deployedImageUrl, deployedImageAddress, deployedImagePort))
+  }
+
+  return {
     serviceName,
     deploymentName,
-    getDeployedImageUrl: () =>
-      getDeployedImageUrl({
-        apiClient: options.apiClient,
-        namespaceName: options.namespaceName,
-        serviceName,
-        exposeStrategy: options.exposeStrategy,
-      }),
-    getDeployedImageAddress: () =>
-      getMasterAddress({
-        apiClient: options.apiClient,
-      }),
-    getDeployedImagePort: () =>
-      getDeployedImagePort(serviceName, {
-        apiClient: options.apiClient,
-        namespaceName: options.namespaceName,
-        exposeStrategy: options.exposeStrategy,
-      }),
+    deployedImageUrl,
+    deployedImageAddress,
+    deployedImagePort,
   }
-
-  if (options.isReadyPredicate) {
-    const url = await result.getDeployedImageUrl()
-    const host = await result.getDeployedImageAddress()
-    const port = await result.getDeployedImagePort()
-    const { isReadyPredicate } = options
-    await waitUntilReady(() => isReadyPredicate(url, host, port))
-  }
-
-  return result
 }
 
 async function waitUntilReady(isReadyPredicate: () => Promise<void>) {

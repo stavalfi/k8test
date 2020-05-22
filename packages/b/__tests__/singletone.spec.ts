@@ -12,8 +12,8 @@ describe('test singletone option', () => {
     cleanups.push(subscription1.unsubscribe)
 
     const client1 = redisClient({
-      host: await subscription1.getDeployedImageAddress(),
-      port: await subscription1.getDeployedImagePort(),
+      host: subscription1.deployedImageAddress,
+      port: subscription1.deployedImagePort,
     })
     cleanups.push(() => client1.disconnect())
 
@@ -26,8 +26,8 @@ describe('test singletone option', () => {
     cleanups.push(subscription2.unsubscribe)
 
     const client2 = redisClient({
-      host: await subscription2.getDeployedImageAddress(),
-      port: await subscription2.getDeployedImagePort(),
+      host: subscription2.deployedImageAddress,
+      port: subscription2.deployedImagePort,
     })
     cleanups.push(() => client2.disconnect())
 
@@ -43,8 +43,8 @@ describe('test singletone option', () => {
     cleanups.push(subscription1.unsubscribe)
 
     const client1 = redisClient({
-      host: await subscription1.getDeployedImageAddress(),
-      port: await subscription1.getDeployedImagePort(),
+      host: subscription1.deployedImageAddress,
+      port: subscription1.deployedImagePort,
     })
     cleanups.push(() => client1.disconnect())
 
@@ -57,8 +57,8 @@ describe('test singletone option', () => {
     cleanups.push(subscription2.unsubscribe)
 
     const client2 = redisClient({
-      host: await subscription2.getDeployedImageAddress(),
-      port: await subscription2.getDeployedImagePort(),
+      host: subscription2.deployedImageAddress,
+      port: subscription2.deployedImagePort,
     })
     cleanups.push(() => client2.disconnect())
 

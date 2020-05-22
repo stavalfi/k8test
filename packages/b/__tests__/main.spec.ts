@@ -4,14 +4,14 @@ describe('reach endpoints in the cluster', () => {
   let cleanups = cleanupAfterEach()
 
   test('endpoint is available while the endpoint has active subscription', async () => {
-    const { unsubscribe, getDeployedImageAddress, getDeployedImagePort } = await subscribe('redis', {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
     cleanups.push(unsubscribe)
 
     const redis = redisClient({
-      host: await getDeployedImageAddress(),
-      port: await getDeployedImagePort(),
+      host: deployedImageAddress,
+      port: deployedImagePort,
     })
     cleanups.push(() => redis.disconnect())
 
@@ -19,13 +19,13 @@ describe('reach endpoints in the cluster', () => {
   })
 
   test('endpoint is not available after unsbscribe', async () => {
-    const { unsubscribe, getDeployedImageAddress, getDeployedImagePort } = await subscribe('redis', {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
     })
 
     const redis = redisClient({
-      host: await getDeployedImageAddress(),
-      port: await getDeployedImagePort(),
+      host: deployedImageAddress,
+      port: deployedImagePort,
     })
     cleanups.push(() => redis.disconnect())
 

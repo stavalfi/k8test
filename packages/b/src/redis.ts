@@ -18,7 +18,8 @@ export async function makeSureRedisIsDeployedAndExposed(options: {
   const imageName = 'redis'
   const containerPortToExpose = 6379
   const exposeStrategy = ExposeStrategy.userMachine
-  const deployedRedis = await deployImageAndExposePort({
+
+  return deployImageAndExposePort({
     appId: K8TEST_INTERNAL_REsOURCES_APP_ID,
     apiClient: options.apiClient,
     appsApiClient: options.appsApiClient,
@@ -37,10 +38,4 @@ export async function makeSureRedisIsDeployedAndExposed(options: {
     exposeStrategy,
     dontFailIfExistAndExposed: true,
   })
-
-  return {
-    deployedImageUrl: await deployedRedis.getDeployedImageUrl(),
-    deployedImageAddress: await deployedRedis.getDeployedImageAddress(),
-    deployedImagePort: await deployedRedis.getDeployedImagePort(),
-  }
 }

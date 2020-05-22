@@ -10,9 +10,9 @@ export type Namespace =
   | { namespaceStrategy: NamespaceStrategy.custom; namespace: string }
 
 export type Subscription = {
-  getDeployedImageUrl: () => Promise<string>
-  getDeployedImageAddress: () => Promise<string>
-  getDeployedImagePort: () => Promise<number>
+  deployedImageUrl: string
+  deployedImageAddress: string
+  deployedImagePort: number
   unsubscribe: () => Promise<void>
 }
 
