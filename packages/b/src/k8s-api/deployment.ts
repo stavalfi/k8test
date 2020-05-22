@@ -3,6 +3,25 @@ import { Labels } from './types'
 import { waitUntilDeploymentReady, waitUntilDeploymentDeleted } from './watch-resources'
 import { generateString } from './utils'
 
+export enum ExposeStrategy {
+  insideCluster = 'insideCluster',
+  userMachine = 'userMachine',
+}
+
+export async function isDeploymentExist(
+  deploymentName: string,
+  options: {
+    appsApiClient: k8s.AppsV1Api
+    namespaceName: string
+  },
+) {
+  const deployments = await options.appsApiClient.listNamespacedDeployment(options.namespaceName)
+  return deployments.body.items.some(deployment => deployment.metadata?.name === deploymentName)
+}
+
+export const generateDeploymentName = (appId: string, imageName: string) =>
+  generateString(appId, imageName, { postfix: 'depmloyment' })
+
 export async function createDeployment(options: {
   appId: string
   appsApiClient: k8s.AppsV1Api
@@ -11,8 +30,9 @@ export async function createDeployment(options: {
   imageName: string
   containerPortToExpose: number
   containerLabels: Labels
+  exposeStrategy: ExposeStrategy
 }) {
-  const deploymentName = generateString(options.appId, options.imageName, { postfix: 'depmloyment' })
+  const deploymentName = generateDeploymentName(options.appId, options.imageName)
   const [, response] = await Promise.all([
     waitUntilDeploymentReady(deploymentName, {
       watchClient: options.watchClient,

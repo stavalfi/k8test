@@ -396,6 +396,18 @@
     "@nodelib/fs.scandir" "2.1.3"
     fastq "^1.6.0"
 
+"@oresoftware/json-stream-parser@0.0.124":
+  version "0.0.124"
+  resolved "https://registry.yarnpkg.com/@oresoftware/json-stream-parser/-/json-stream-parser-0.0.124.tgz#2d2358f23a0d6a7ffd8d7a9df2fc2549ed4ce23e"
+  integrity sha512-b40qJ6iCoyC9myCe6CP/uQnp3xPbj/EEY2Lz7XoXGhc6NYPp6Grbis1qZ4dItHpk2cnv4qJNNVauBMEhuwF36A==
+
+"@oresoftware/linked-queue@0.1.106":
+  version "0.1.106"
+  resolved "https://registry.yarnpkg.com/@oresoftware/linked-queue/-/linked-queue-0.1.106.tgz#16f2f79161940c16c208de4a0848595e0cede851"
+  integrity sha512-k60Qz+XC+ERMuWYBib1bqCDuP1HXjUM22kF5fie/nj/R9qCbwi7xPre6w/YH1gx9I0tO0wZYnc9VVt66Cvjdxw==
+  dependencies:
+    chalk "^2.4.2"
+
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@samverschueren/stream-to-observable/-/stream-to-observable-0.3.0.tgz#ecdf48d532c58ea477acfcab80348424f8d0662f"
@@ -3589,6 +3601,17 @@ listr@^0.14.3:
     p-map "^2.0.0"
     rxjs "^6.3.3"
 
+live-mutex@^0.2.24:
+  version "0.2.24"
+  resolved "https://registry.yarnpkg.com/live-mutex/-/live-mutex-0.2.24.tgz#30608763a27a788d78c8ee3de71bb778d3f86e55"
+  integrity sha512-u7CM3daK4Nb3ATqNbq5l43HmedadW7Js4BUpnoaNEf48prvJHo6+2JjNM3DDVCGmDXjzGE/SLz8LmOst48yBzQ==
+  dependencies:
+    "@oresoftware/json-stream-parser" "0.0.124"
+    "@oresoftware/linked-queue" "0.1.106"
+    chalk "^2.4.2"
+    tcp-ping "^0.1.1"
+    uuid "^3.3.2"
+
 load-json-file@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/load-json-file/-/load-json-file-4.0.0.tgz#2f5f45ab91e33216234fd53adab668eb4ec0993b"
@@ -5351,6 +5374,11 @@ table@^5.2.3:
     lodash "^4.17.14"
     slice-ansi "^2.1.0"
     string-width "^3.0.0"
+
+tcp-ping@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/tcp-ping/-/tcp-ping-0.1.1.tgz#02dd7f42b5bf7d7cb78d5b7aacefa155fd8f7c0c"
+  integrity sha1-At1/QrW/fXy3jVt6rO+hVf2PfAw=
 
 test-exclude@^5.2.3:
   version "5.2.3"

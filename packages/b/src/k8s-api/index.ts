@@ -1,9 +1,11 @@
 import * as k8s from '@kubernetes/client-node'
-import { createDeployment, deleteDeployment } from './deployment'
+import { createDeployment, deleteDeployment, ExposeStrategy } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
 
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
+export { generateDeploymentName, isDeploymentExist, ExposeStrategy } from './deployment'
+export { generateServicetName, getDeployedImagePort } from './service'
 
 export type DeployedImage = {
   deploymentName: string
@@ -21,7 +23,12 @@ export async function deployImageAndExposePort(options: {
   namespaceName: string
   imageName: string
   containerPortToExpose: number
-  isReadyPredicate?: (deployedImageUrl: string) => Promise<void>
+  exposeStrategy: ExposeStrategy
+  isReadyPredicate?: (
+    deployedImageUrl: string,
+    deployedImageAddress: string,
+    deployedImagePort: number,
+  ) => Promise<void>
 }): Promise<DeployedImage> {
   const serviceResult = await createService({
     appId: options.appId,
@@ -37,13 +44,6 @@ export async function deployImageAndExposePort(options: {
       `failed to create a service for image: ${options.imageName} - container-labels are missing after creating them.`,
     )
   }
-  const serviceLabels = serviceResult.body.metadata?.labels
-  if (!serviceLabels || Object.keys(serviceLabels).length === 0) {
-    throw new Error(
-      `failed to create a service for image: ${options.imageName} - service-labels are missing after creating them.`,
-    )
-  }
-  const serviceLabelKey = Object.keys(serviceLabels)[0]
   const serviceName = serviceResult.body.metadata?.name
   if (!serviceName) {
     throw new Error(
@@ -58,6 +58,7 @@ export async function deployImageAndExposePort(options: {
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
     containerLabels,
+    exposeStrategy: options.exposeStrategy,
   })
   const deploymentName = deploymentResult.body.metadata?.name
   if (!deploymentName) {
@@ -73,25 +74,38 @@ export async function deployImageAndExposePort(options: {
       getDeployedImageUrl({
         apiClient: options.apiClient,
         namespaceName: options.namespaceName,
-        serviceLabelKey,
+        serviceName,
       }),
     getDeployedImageAddress: () =>
       getMasterAddress({
         apiClient: options.apiClient,
       }),
     getDeployedImagePort: () =>
-      getDeployedImagePort({
+      getDeployedImagePort(serviceName, {
         apiClient: options.apiClient,
         namespaceName: options.namespaceName,
-        serviceLabelKey,
       }),
   }
 
   if (options.isReadyPredicate) {
-    await options.isReadyPredicate(await result.getDeployedImageUrl())
+    const url = await result.getDeployedImageUrl()
+    const host = await result.getDeployedImageAddress()
+    const port = await result.getDeployedImagePort()
+    const { isReadyPredicate } = options
+    await waitUntilReady(() => isReadyPredicate(url, host, port))
   }
 
   return result
+}
+
+async function waitUntilReady(isReadyPredicate: () => Promise<void>) {
+  try {
+    await isReadyPredicate()
+    return
+  } catch {
+    await new Promise(res => setTimeout(res, 1000))
+    waitUntilReady(isReadyPredicate)
+  }
 }
 
 export async function deleteAllImageResources(options: {
@@ -122,16 +136,15 @@ export async function deleteAllImageResources(options: {
 export type GetDeployedImageUrl = (options: {
   apiClient: k8s.CoreV1Api
   namespaceName: string
-  serviceLabelKey: string
+  serviceName: string
 }) => Promise<string>
 
-const getDeployedImageUrl: GetDeployedImageUrl = async options => {
+export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
   const [address, port] = await Promise.all([
     getMasterAddress({ apiClient: options.apiClient }),
-    getDeployedImagePort({
+    getDeployedImagePort(options.serviceName, {
       apiClient: options.apiClient,
       namespaceName: options.namespaceName,
-      serviceLabelKey: options.serviceLabelKey,
     }),
   ])
   return `http://${address}:${port}`
@@ -139,7 +152,7 @@ const getDeployedImageUrl: GetDeployedImageUrl = async options => {
 
 export type GetMasterAddress = (options: { apiClient: k8s.CoreV1Api }) => Promise<string>
 
-const getMasterAddress: GetMasterAddress = async options => {
+export const getMasterAddress: GetMasterAddress = async options => {
   const response = await options.apiClient.listNode(
     undefined,
     false,

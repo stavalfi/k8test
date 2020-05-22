@@ -8,6 +8,8 @@ import {
   deleteAllImageResources,
 } from './k8s-api'
 import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions } from './types'
+import { ExposeStrategy } from './k8s-api/deployment'
+import { makeSureRedisIsDeployedAndExposed } from './redis'
 
 export { Namespace, NamespaceStrategy, Subscribe, Subscription, SubscribeCreatorOptions } from './types'
 export { deleteNamespaceIfExist } from './k8s-api'
@@ -17,12 +19,22 @@ export const baseSubscribe: BaseSubscribe = async options => {
   assertOptions(options)
 
   const k8sClients = createeK8sClient()
+  // todo: to prevent multiple process that are creating the same namespace multiple times, we need to lock here, also.
   const namespaceName = await extractNamespaceName({
     appId: options.appId,
     apiClient: k8sClients.apiClient,
     watchClient: k8sClients.watchClient,
     namespace: options.namespace,
   })
+
+  await makeSureRedisIsDeployedAndExposed({
+    appId: options.appId,
+    apiClient: k8sClients.apiClient,
+    appsApiClient: k8sClients.appsApiClient,
+    watchClient: k8sClients.watchClient,
+    namespaceName,
+  })
+
   const deployedImage = await deployImageAndExposePort({
     appId: options.appId,
     apiClient: k8sClients.apiClient,
@@ -32,6 +44,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
     isReadyPredicate: options.isReadyPredicate,
+    exposeStrategy: ExposeStrategy.userMachine,
   })
 
   return {

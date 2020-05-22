@@ -3,6 +3,9 @@ import * as k8s from '@kubernetes/client-node'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 import { generateString } from './utils'
 
+export const generateServicetName = (appId: string, imageName: string) =>
+  generateString(appId, imageName, { postfix: 'service' })
+
 export async function createService(options: {
   appId: string
   apiClient: k8s.CoreV1Api
@@ -11,7 +14,7 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
 }) {
-  const serviceName = generateString(options.appId, options.imageName, { postfix: 'service' })
+  const serviceName = generateServicetName(options.appId, options.imageName)
   const [, response] = await Promise.all([
     waitUntilServiceCreated(serviceName, { watchClient: options.watchClient, namespaceName: options.namespaceName }),
     options.apiClient.createNamespacedService(options.namespaceName, {
@@ -56,32 +59,27 @@ export async function deleteService(options: {
 }
 
 // get the port on the user machine that is pointing to the container port
-export type GetDeployedImagePort = (options: {
-  apiClient: k8s.CoreV1Api
-  namespaceName: string
-  serviceLabelKey: string
-}) => Promise<number>
+export type GetDeployedImagePort = (
+  serviceName: string,
+  options: {
+    apiClient: k8s.CoreV1Api
+    namespaceName: string
+  },
+) => Promise<number>
 
-export const getDeployedImagePort: GetDeployedImagePort = async options => {
-  const response = await options.apiClient.listNamespacedService(
-    options.namespaceName,
-    undefined,
-    false,
-    undefined,
-    undefined,
-    options.serviceLabelKey,
-  )
-  const items = response.body.items
-  if (items.length !== 1) {
+export const getDeployedImagePort: GetDeployedImagePort = async (serviceName, options) => {
+  const response = await options.apiClient.listNamespacedService(options.namespaceName)
+  const service = response.body.items.find(service => service.metadata?.name === serviceName)
+  if (!service) {
     throw new Error(
       `could not find a specific service to extract the node-port from him. the response contains the following services: ${JSON.stringify(
-        items,
+        response.body.items,
         null,
         2,
       )}`,
     )
   }
-  const ports = items[0].spec?.ports
+  const ports = service.spec?.ports
   if (!ports || ports.length !== 1) {
     throw new Error(
       `could not find a the node port in the service. I expect a single port instance. it maybe because the service was created without specifying the port to expose from the pods it is matching to in the deployment. ports: ${JSON.stringify(
