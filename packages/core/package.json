@@ -1,6 +1,6 @@
 {
   "name": "k8test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "files": [
@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "test": "jest"
+    "test": "jest",
+    "prepublish": "yarn test && yarn build"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
