@@ -1,11 +1,9 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
-import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
-import { generateString, ignoreAlreadyExistError } from './utils'
+import { SingletoneStrategy } from '../types'
 import { ExposeStrategy } from './types'
-
-export const generateServicetName = (appId: string, imageName: string) =>
-  generateString(appId, imageName, { postfix: 'service' })
+import { createResource, generateLabel } from './utils'
+import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 
 export async function createService(options: {
   appId: string
@@ -14,37 +12,58 @@ export async function createService(options: {
   namespaceName: string
   imageName: string
   podPortToExpose: number
-  dontFailIfExist: boolean
+  singletoneStrategy: SingletoneStrategy
 }): Promise<k8s.V1Service> {
-  const serviceName = generateServicetName(options.appId, options.imageName)
-  await options.apiClient
-    .createNamespacedService(options.namespaceName, {
-      apiVersion: 'v1',
-      kind: 'Service',
-      metadata: {
-        name: serviceName,
-        labels: {
-          [serviceName]: 'value1',
-        },
-      },
-      spec: {
-        type: 'NodePort',
-        selector: {
-          [generateString(options.appId, options.imageName, { postfix: 'container' })]: 'value2',
-        },
-        ports: [
-          {
-            port: options.podPortToExpose,
-          },
-        ],
-      },
-    })
-    .catch(ignoreAlreadyExistError(options.dontFailIfExist))
-
-  return waitUntilServiceCreated(serviceName, {
-    watchClient: options.watchClient,
+  return createResource({
+    appId: options.appId,
+    imageName: options.imageName,
     namespaceName: options.namespaceName,
+    singletoneStrategy: options.singletoneStrategy,
+    create: resourceName =>
+      options.apiClient.createNamespacedService(options.namespaceName, {
+        apiVersion: 'v1',
+        kind: 'Service',
+        metadata: {
+          name: resourceName,
+          labels: {
+            'app-id': options.appId,
+            'singletone-strategy': options.singletoneStrategy,
+          },
+        },
+        spec: {
+          type: 'NodePort',
+          selector: {
+            [generateLabel({ appId: options.appId, imageName: options.imageName, postfix: 'container' })]: 'value2',
+          },
+          ports: [
+            {
+              port: options.podPortToExpose,
+            },
+          ],
+        },
+      }),
+    find: resourceName =>
+      findService(resourceName, {
+        apiClient: options.apiClient,
+        namespaceName: options.namespaceName,
+      }),
+    waitUntilCreated: resourceName =>
+      waitUntilServiceCreated(resourceName, {
+        watchClient: options.watchClient,
+        namespaceName: options.namespaceName,
+      }),
   })
+}
+
+async function findService(
+  serviceName: string,
+  options: {
+    apiClient: k8s.CoreV1Api
+    namespaceName: string
+  },
+): Promise<k8s.V1Service> {
+  const service = await options.apiClient.readNamespacedService(serviceName, options.namespaceName)
+  return service.body
 }
 
 export async function deleteService(options: {

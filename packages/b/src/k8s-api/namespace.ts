@@ -1,22 +1,25 @@
 import * as k8s from '@kubernetes/client-node'
+import { isResourceAlreadyExistError } from './utils'
 import { waitUntilNamespaceCreated, waitUntilNamespaceDeleted } from './watch-resources'
-import { ignoreAlreadyExistError } from './utils'
 
-// synchromized opeation to create a new namespace in k8s
+// synchromized operation to create a new namespace in k8s
 export async function createNamespaceIfNotExist(options: {
   appId: string
   apiClient: k8s.CoreV1Api
   watchClient: k8s.Watch
   namespaceName: string
 }): Promise<k8s.V1Namespace> {
-  const dontFailIfExist = true
-  await options.apiClient
-    .createNamespace({
+  try {
+    await options.apiClient.createNamespace({
       metadata: {
         name: options.namespaceName,
       },
     })
-    .catch(ignoreAlreadyExistError(dontFailIfExist))
+  } catch (error) {
+    if (!isResourceAlreadyExistError(error)) {
+      throw error
+    }
+  }
   return waitUntilNamespaceCreated(options.namespaceName, {
     watchClient: options.watchClient,
   })

@@ -1,12 +1,12 @@
 import * as k8s from '@kubernetes/client-node'
+import { SingletoneStrategy } from '../types'
 import { createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
 import { ExposeStrategy } from './types'
 
-export { generateDeploymentName, isDeploymentExist } from './deployment'
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
-export { generateServicetName, getDeployedImagePort } from './service'
+export { getDeployedImagePort } from './service'
 export { ExposeStrategy } from './types'
 
 export type DeployedImage = {
@@ -26,12 +26,12 @@ export async function deployImageAndExposePort(options: {
   imageName: string
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
+  singletoneStrategy: SingletoneStrategy
   isReadyPredicate?: (
     deployedImageUrl: string,
     deployedImageAddress: string,
     deployedImagePort: number,
   ) => Promise<void>
-  dontFailIfExistAndExposed?: boolean
 }): Promise<DeployedImage> {
   const service = await createService({
     appId: options.appId,
@@ -40,7 +40,7 @@ export async function deployImageAndExposePort(options: {
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
-    dontFailIfExist: Boolean(options.dontFailIfExistAndExposed),
+    singletoneStrategy: options.singletoneStrategy,
   })
   const containerLabels = service.spec?.selector
   if (!containerLabels) {
@@ -63,7 +63,7 @@ export async function deployImageAndExposePort(options: {
     containerPortToExpose: options.containerPortToExpose,
     containerLabels,
     exposeStrategy: options.exposeStrategy,
-    dontFailIfExist: Boolean(options.dontFailIfExistAndExposed),
+    singletoneStrategy: options.singletoneStrategy,
   })
   const deploymentName = deployment.metadata?.name
   if (!deploymentName) {

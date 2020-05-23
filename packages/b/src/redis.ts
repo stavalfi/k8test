@@ -1,8 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import Redis from 'ioredis'
 import { deployImageAndExposePort, ExposeStrategy } from './k8s-api'
-
-const K8TEST_INTERNAL_REsOURCES_APP_ID = 'k8test-internal'
+import { SingletoneStrategy } from './types'
 
 export async function makeSureRedisIsDeployedAndExposed(options: {
   appId: string
@@ -20,7 +19,7 @@ export async function makeSureRedisIsDeployedAndExposed(options: {
   const exposeStrategy = ExposeStrategy.userMachine
 
   return deployImageAndExposePort({
-    appId: K8TEST_INTERNAL_REsOURCES_APP_ID,
+    appId: 'k8test-internal',
     apiClient: options.apiClient,
     appsApiClient: options.appsApiClient,
     watchClient: options.watchClient,
@@ -36,6 +35,6 @@ export async function makeSureRedisIsDeployedAndExposed(options: {
       return redis.connect().finally(() => redis.disconnect())
     },
     exposeStrategy,
-    dontFailIfExistAndExposed: true,
+    singletoneStrategy: SingletoneStrategy.namespace,
   })
 }

@@ -1,21 +1,8 @@
 import * as k8s from '@kubernetes/client-node'
-import { Labels, ExposeStrategy } from './types'
-import { generateString, ignoreAlreadyExistError } from './utils'
+import { SingletoneStrategy } from '../types'
+import { ExposeStrategy, Labels } from './types'
+import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
-
-export async function isDeploymentExist(
-  deploymentName: string,
-  options: {
-    appsApiClient: k8s.AppsV1Api
-    namespaceName: string
-  },
-) {
-  const deployments = await options.appsApiClient.listNamespacedDeployment(options.namespaceName)
-  return deployments.body.items.some(deployment => deployment.metadata?.name === deploymentName)
-}
-
-export const generateDeploymentName = (appId: string, imageName: string) =>
-  generateString(appId, imageName, { postfix: 'depmloyment' })
 
 export async function createDeployment(options: {
   appId: string
@@ -26,51 +13,82 @@ export async function createDeployment(options: {
   containerPortToExpose: number
   containerLabels: Labels
   exposeStrategy: ExposeStrategy
-  dontFailIfExist: boolean
+  singletoneStrategy: SingletoneStrategy
 }): Promise<k8s.V1Deployment> {
-  const deploymentName = generateDeploymentName(options.appId, options.imageName)
-  await options.appsApiClient
-    .createNamespacedDeployment(options.namespaceName, {
-      apiVersion: 'apps/v1',
-      kind: 'Deployment',
-      metadata: {
-        name: deploymentName,
-        labels: {
-          [deploymentName]: 'value3',
-        },
-      },
-      spec: {
-        replicas: 2,
-        selector: {
-          matchLabels: options.containerLabels,
-        },
-        template: {
-          metadata: {
-            name: generateString(options.appId, options.imageName, { postfix: 'container' }),
-            labels: options.containerLabels,
-          },
-          spec: {
-            containers: [
-              {
-                name: generateString(options.appId, options.imageName, { postfix: 'container' }),
-                image: options.imageName,
-                ports: [
-                  {
-                    containerPort: options.containerPortToExpose,
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    })
-    .catch(ignoreAlreadyExistError(options.dontFailIfExist))
-
-  return waitUntilDeploymentReady(deploymentName, {
-    watchClient: options.watchClient,
+  return createResource({
+    appId: options.appId,
+    imageName: options.imageName,
     namespaceName: options.namespaceName,
+    singletoneStrategy: options.singletoneStrategy,
+    create: resourceName =>
+      options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: {
+          name: resourceName,
+          labels: {
+            'app-id': options.appId,
+            'singletone-strategy': options.singletoneStrategy,
+          },
+        },
+        spec: {
+          replicas: 2,
+          selector: {
+            matchLabels: options.containerLabels,
+          },
+          template: {
+            metadata: {
+              name: generateResourceName({
+                appId: options.appId,
+                imageName: options.imageName,
+                namespaceName: options.namespaceName,
+                singletoneStrategy: options.singletoneStrategy,
+              }),
+              labels: options.containerLabels,
+            },
+            spec: {
+              containers: [
+                {
+                  name: generateResourceName({
+                    appId: options.appId,
+                    imageName: options.imageName,
+                    namespaceName: options.namespaceName,
+                    singletoneStrategy: options.singletoneStrategy,
+                  }),
+                  image: options.imageName,
+                  ports: [
+                    {
+                      containerPort: options.containerPortToExpose,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      }),
+    find: resourceName =>
+      findDeployment(resourceName, {
+        appsApiClient: options.appsApiClient,
+        namespaceName: options.namespaceName,
+      }),
+    waitUntilCreated: resourceName =>
+      waitUntilDeploymentReady(resourceName, {
+        watchClient: options.watchClient,
+        namespaceName: options.namespaceName,
+      }),
   })
+}
+
+async function findDeployment(
+  deploymentNAme: string,
+  options: {
+    appsApiClient: k8s.AppsV1Api
+    namespaceName: string
+  },
+): Promise<k8s.V1Deployment> {
+  const deployment = await options.appsApiClient.readNamespacedDeployment(deploymentNAme, options.namespaceName)
+  return deployment.body
 }
 
 export async function deleteDeployment(options: {

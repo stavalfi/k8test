@@ -1,18 +1,23 @@
-import 'source-map-support/register'
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
+import 'source-map-support/register'
 import {
   createeK8sClient,
   createNamespaceIfNotExist,
-  deployImageAndExposePort,
   deleteAllImageResources,
+  deployImageAndExposePort,
   ExposeStrategy,
 } from './k8s-api'
-import { Namespace, SubscribeCreator as BaseSubscribe, SubscribeCreatorOptions } from './types'
-import { makeSureRedisIsDeployedAndExposed } from './redis'
+import {
+  Namespace,
+  SubscribeCreator as BaseSubscribe,
+  SubscribeCreatorOptions,
+  SingletoneStrategy,
+  NamespaceStrategy,
+} from './types'
 
-export { Namespace, NamespaceStrategy, Subscribe, Subscription, SubscribeCreatorOptions } from './types'
 export { deleteNamespaceIfExist } from './k8s-api'
+export { Namespace, NamespaceStrategy, Subscribe, SubscribeCreatorOptions, Subscription } from './types'
 export { timeout } from './utils'
 
 export const baseSubscribe: BaseSubscribe = async options => {
@@ -27,13 +32,13 @@ export const baseSubscribe: BaseSubscribe = async options => {
     namespace: options.namespace,
   })
 
-  const exposedRedis = await makeSureRedisIsDeployedAndExposed({
-    appId: options.appId,
-    apiClient: k8sClients.apiClient,
-    appsApiClient: k8sClients.appsApiClient,
-    watchClient: k8sClients.watchClient,
-    namespaceName,
-  })
+  // const exposedRedis = await makeSureRedisIsDeployedAndExposed({
+  //   appId: options.appId,
+  //   apiClient: k8sClients.apiClient,
+  //   appsApiClient: k8sClients.appsApiClient,
+  //   watchClient: k8sClients.watchClient,
+  //   namespaceName,
+  // })
 
   const deployedImage = await deployImageAndExposePort({
     appId: options.appId,
@@ -45,7 +50,8 @@ export const baseSubscribe: BaseSubscribe = async options => {
     containerPortToExpose: options.containerPortToExpose,
     isReadyPredicate: options.isReadyPredicate,
     exposeStrategy: ExposeStrategy.userMachine,
-  })
+    singletoneStrategy: options.singletoneStrategy || SingletoneStrategy.many,
+  }).catch(e => (console.error(JSON.stringify(e, null, 2)), Promise.reject(e)))
 
   return {
     deploymentName: deployedImage.deploymentName,
@@ -87,30 +93,18 @@ async function extractNamespaceName(options: {
   watchClient: k8s.Watch
   namespace?: Namespace
 }): Promise<string> {
-  if (!options.namespace) {
+  if (!options.namespace || options.namespace.namespaceStrategy === NamespaceStrategy.default) {
     return 'default'
   }
-  switch (options.namespace.namespaceStrategy) {
-    case 'default':
-      return 'default'
-    case 'custom':
-      await createNamespaceIfNotExist({
-        appId: options.appId,
-        apiClient: options.apiClient,
-        watchClient: options.watchClient,
-        namespaceName: options.namespace.namespace,
-      })
-      return options.namespace.namespace
-    case 'k8test': {
-      const namespace = k8testNamespace()
-      await createNamespaceIfNotExist({
-        appId: options.appId,
-        apiClient: options.apiClient,
-        watchClient: options.watchClient,
-        namespaceName: namespace,
-      })
-      return namespace
-    }
-  }
-  throw new Error(`enum value is not supported: ${options.namespace.namespaceStrategy}`)
+  const namespaceName =
+    options.namespace.namespaceStrategy === NamespaceStrategy.custom ? options.namespace.namespace : k8testNamespace()
+
+  await createNamespaceIfNotExist({
+    appId: options.appId,
+    apiClient: options.apiClient,
+    watchClient: options.watchClient,
+    namespaceName,
+  })
+
+  return namespaceName
 }
