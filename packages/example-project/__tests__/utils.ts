@@ -20,8 +20,7 @@ export const isRedisReadyPredicate = (url: string, host: string, port: number) =
 export const subscribe: Subscribe = (imageName, options) =>
   baseSubscribe({
     imageName,
-    // eslint-disable-next-line no-process-env
-    appId: APP_ID as string, // IMPORTANT! the same random hash will make sure you will never use the same deployments from last tests!!!!!
+    appId: APP_ID, // IMPORTANT! the same random hash in all test files will make sure you will never use the same deployments from last tests!!!!!
     namespace: {
       namespaceStrategy: NamespaceStrategy.k8test,
     },

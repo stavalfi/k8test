@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { Subscription } from 'k8test'
+import { Subscription, SingletoneStrategy } from 'k8test'
 import { isRedisReadyPredicate, subscribe } from './utils'
 
 describe('simple use-case', () => {
@@ -10,6 +10,8 @@ describe('simple use-case', () => {
     exposedRedisInfo = await subscribe('redis', {
       containerPortToExpose: 6379,
       isReadyPredicate: isRedisReadyPredicate,
+      singletoneStrategy: SingletoneStrategy.appId,
+      ttlMs: 100_000_000,
     })
     redis = new Redis({
       host: exposedRedisInfo.deployedImageAddress, // this is the minikube cluster address on your machine

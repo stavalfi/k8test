@@ -18,6 +18,7 @@ export const generateResourceLabels = ({
   singletoneStrategy: SingletoneStrategy
   resourceScope: string
 }) => ({
+  k8test: 'true',
   'image-name': imageName,
   'app-id': appId,
   'singletone-strategy': singletoneStrategy,
