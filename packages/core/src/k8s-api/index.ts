@@ -135,7 +135,7 @@ export async function deleteAllImageResources(options: {
     deploymentName: options.deploymentName,
   })
   // k8s has a delay until the deployment is no-longer accessible.
-  await new Promise(res => setTimeout(res, 1000))
+  await new Promise(res => setTimeout(res, 3000))
 }
 
 export type GetDeployedImageUrl = (options: {

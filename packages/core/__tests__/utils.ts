@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from '../src/'
+import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from '../src'
 
 export const isRedisReadyPredicate = (url: string, host: string, port: number) => {
   const redis = new Redis({

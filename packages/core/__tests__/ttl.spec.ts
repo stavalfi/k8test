@@ -1,4 +1,4 @@
-import { baseSubscribe, randomAppId, Subscribe } from 'b/src'
+import { baseSubscribe, randomAppId, Subscribe } from '../src'
 import { cleanupAfterEach, redisClient, isRedisReadyPredicate } from './utils'
 
 describe('test ttl option', () => {

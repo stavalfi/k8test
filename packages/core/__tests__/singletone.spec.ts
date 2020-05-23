@@ -1,4 +1,4 @@
-import { randomAppId, SingletoneStrategy } from '../src/'
+import { randomAppId, SingletoneStrategy } from '../src'
 import { cleanupAfterEach, customSubscribe, redisClient, isRedisReadyPredicate } from './utils'
 
 describe('test singletone option', () => {

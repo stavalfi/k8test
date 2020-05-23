@@ -14,7 +14,7 @@
     "composite": true,
     "baseUrl": "packages",
     "paths": {
-      "b": ["b/src/index.ts"]
+      "k8test": ["core/src/index.ts"]
     }
   }
 }

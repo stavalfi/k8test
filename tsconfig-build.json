@@ -3,7 +3,13 @@
   "files": [],
   "references": [
     {
-      "path": "packages/b/tsconfig-build.json"
+      "path": "packages/core/tsconfig-build.json"
+    },
+    {
+      "path": "packages/scripts/tsconfig-build.json"
+    },
+    {
+      "path": "packages/example-project/tsconfig-build.json"
     }
   ]
 }
