@@ -36,7 +36,6 @@ From `packages/example-project`:
 ```javascript
 // jest.config.js
 
-
 module.exports = {
   globals: {
     // to make sure you will never use the same deployments from last tests
