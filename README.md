@@ -26,7 +26,7 @@ Use all k8s features to deploy and expose images during tests.
   - singletone in cluster (forever),
   - singletone is all tests-run (in the next test run, there will be new deployment)
   - not a singletone (each subscription will create new deployment)
-- Monitoring tests resources - you can safly stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
+- [wip] Monitoring tests resources - you can safly stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
 - There is no need to learn k8s. There are good defaults.
 
 ## Setup
