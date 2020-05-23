@@ -14,7 +14,7 @@
     "composite": true,
     "baseUrl": "packages",
     "paths": {
-      "a": ["a/src/index.ts"]
+      "b": ["b/src/index.ts"]
     }
   }
 }

@@ -1,6 +1,5 @@
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
-import 'source-map-support/register'
 import {
   createeK8sClient,
   createNamespaceIfNotExist,
@@ -17,7 +16,14 @@ import {
 } from './types'
 
 export { deleteNamespaceIfExist } from './k8s-api'
-export { Namespace, NamespaceStrategy, Subscribe, SubscribeCreatorOptions, Subscription } from './types'
+export {
+  Namespace,
+  NamespaceStrategy,
+  Subscribe,
+  SubscribeCreatorOptions,
+  Subscription,
+  SingletoneStrategy,
+} from './types'
 export { timeout } from './utils'
 
 export const baseSubscribe: BaseSubscribe = async options => {
@@ -32,14 +38,6 @@ export const baseSubscribe: BaseSubscribe = async options => {
     namespace: options.namespace,
   })
 
-  // const exposedRedis = await makeSureRedisIsDeployedAndExposed({
-  //   appId: options.appId,
-  //   apiClient: k8sClients.apiClient,
-  //   appsApiClient: k8sClients.appsApiClient,
-  //   watchClient: k8sClients.watchClient,
-  //   namespaceName,
-  // })
-
   const deployedImage = await deployImageAndExposePort({
     appId: options.appId,
     apiClient: k8sClients.apiClient,
@@ -51,7 +49,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     isReadyPredicate: options.isReadyPredicate,
     exposeStrategy: ExposeStrategy.userMachine,
     singletoneStrategy: options.singletoneStrategy || SingletoneStrategy.many,
-  }).catch(e => (console.error(JSON.stringify(e, null, 2)), Promise.reject(e)))
+  })
 
   return {
     deploymentName: deployedImage.deploymentName,

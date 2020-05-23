@@ -18,7 +18,6 @@ const packagesAliases = Object.values(workspacesInfo)
   .reduce((acc, obj) => ({ ...acc, ...obj }), {})
 
 const config = {
-  testRunner: 'jest-circus/runner',
   preset: 'ts-jest',
   testEnvironment: 'node',
   testRegex: [`./*.spec.ts$`],

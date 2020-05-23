@@ -1,4 +1,4 @@
-import { subscribe, redisClient, cleanupAfterEach } from './utils'
+import { subscribe, redisClient, cleanupAfterEach, isRedisReadyPredicate } from './utils'
 
 describe('reach endpoints in the cluster', () => {
   let cleanups = cleanupAfterEach()
@@ -6,6 +6,7 @@ describe('reach endpoints in the cluster', () => {
   test('endpoint is available while the endpoint has active subscription', async () => {
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
+      isReadyPredicate: isRedisReadyPredicate,
     })
     cleanups.push(unsubscribe)
 
@@ -21,6 +22,7 @@ describe('reach endpoints in the cluster', () => {
   test('endpoint is not available after unsbscribe', async () => {
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
+      isReadyPredicate: isRedisReadyPredicate,
     })
 
     const redis = redisClient({

@@ -5,7 +5,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
-    "test": "jest",
+    "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
     "build": "yarn tsc -b tsconfig-build.json"
   },
@@ -44,12 +44,10 @@
     "husky": "^4.2.5",
     "ignore": "^5.1.4",
     "jest": "24.8.0",
-    "jest-circus": "24.8.0",
     "lint-staged": "^9.5.0",
     "pkg": "^4.4.2",
     "prettier": "^1.18.0",
     "pretty-quick": "^1.11.0",
-    "source-map-support": "^0.5.16",
     "syncpack": "^5.0.1",
     "ts-jest": "24.3.0",
     "ts-node": "^8.10.1",

@@ -2,7 +2,7 @@
 import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
 import { ExposeStrategy } from './types'
-import { createResource, generateLabel } from './utils'
+import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 
 export async function createService(options: {
@@ -19,22 +19,17 @@ export async function createService(options: {
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletoneStrategy: options.singletoneStrategy,
-    create: resourceName =>
+    create: (resourceName, resourceLabels) =>
       options.apiClient.createNamespacedService(options.namespaceName, {
         apiVersion: 'v1',
         kind: 'Service',
         metadata: {
           name: resourceName,
-          labels: {
-            'app-id': options.appId,
-            'singletone-strategy': options.singletoneStrategy,
-          },
+          labels: resourceLabels,
         },
         spec: {
           type: 'NodePort',
-          selector: {
-            [generateLabel({ appId: options.appId, imageName: options.imageName, postfix: 'container' })]: 'value2',
-          },
+          selector: resourceLabels,
           ports: [
             {
               port: options.podPortToExpose,

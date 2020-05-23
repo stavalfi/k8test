@@ -102,11 +102,14 @@ export async function deployImageAndExposePort(options: {
 }
 
 async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
-  try {
-    return isReadyPredicate()
-  } catch {
-    await new Promise(res => setTimeout(res, 1000))
-    return waitUntilReady(isReadyPredicate)
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      await isReadyPredicate()
+      return
+    } catch (e) {
+      await new Promise(res => setTimeout(res, 1000))
+    }
   }
 }
 
@@ -132,7 +135,7 @@ export async function deleteAllImageResources(options: {
     deploymentName: options.deploymentName,
   })
   // k8s has a delay until the deployment is no-longer accessible.
-  await new Promise(res => setTimeout(res, 500))
+  await new Promise(res => setTimeout(res, 1000))
 }
 
 export type GetDeployedImageUrl = (options: {

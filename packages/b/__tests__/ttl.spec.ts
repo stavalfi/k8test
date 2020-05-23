@@ -1,10 +1,10 @@
 import { baseSubscribe, randomAppId, Subscribe } from 'b/src'
-import { cleanupAfterEach, redisClient } from './utils'
+import { cleanupAfterEach, redisClient, isRedisReadyPredicate } from './utils'
 
 describe('test ttl option', () => {
   let cleanups = cleanupAfterEach()
 
-  test('endpoint should not be available after ttl is reached', async () => {
+  test.skip('endpoint should not be available after ttl is reached', async () => {
     const ttlMs = 2000
     const delay = 1000
 
@@ -18,6 +18,7 @@ describe('test ttl option', () => {
 
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
       containerPortToExpose: 6379,
+      isReadyPredicate: isRedisReadyPredicate,
     })
     cleanups.push(unsubscribe)
 

@@ -20,19 +20,16 @@ export async function createDeployment(options: {
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletoneStrategy: options.singletoneStrategy,
-    create: resourceName =>
+    create: (resourceName, resourceLabels) =>
       options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
         apiVersion: 'apps/v1',
         kind: 'Deployment',
         metadata: {
           name: resourceName,
-          labels: {
-            'app-id': options.appId,
-            'singletone-strategy': options.singletoneStrategy,
-          },
+          labels: resourceLabels,
         },
         spec: {
-          replicas: 2,
+          replicas: 1,
           selector: {
             matchLabels: options.containerLabels,
           },
@@ -43,7 +40,7 @@ export async function createDeployment(options: {
                 imageName: options.imageName,
                 namespaceName: options.namespaceName,
                 singletoneStrategy: options.singletoneStrategy,
-              }),
+              }).resourceName,
               labels: options.containerLabels,
             },
             spec: {
@@ -54,7 +51,7 @@ export async function createDeployment(options: {
                     imageName: options.imageName,
                     namespaceName: options.namespaceName,
                     singletoneStrategy: options.singletoneStrategy,
-                  }),
+                  }).resourceName,
                   image: options.imageName,
                   ports: [
                     {
