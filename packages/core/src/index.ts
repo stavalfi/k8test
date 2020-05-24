@@ -3,8 +3,8 @@ import chance from 'chance'
 import {
   createeK8sClient,
   createNamespaceIfNotExist,
-  deleteAllImageResources,
-  deployImageAndExposePort,
+  unsubscribeFromImage,
+  subscribeToImage,
   ExposeStrategy,
 } from './k8s-api'
 import {
@@ -38,7 +38,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     namespace: options.namespace,
   })
 
-  const deployedImage = await deployImageAndExposePort({
+  const deployedImage = await subscribeToImage({
     appId: options.appId,
     apiClient: k8sClients.apiClient,
     appsApiClient: k8sClients.appsApiClient,
@@ -58,7 +58,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     deployedImageAddress: deployedImage.deployedImageAddress,
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () =>
-      deleteAllImageResources({
+      unsubscribeFromImage({
         apiClient: k8sClients.apiClient,
         appsApiClient: k8sClients.appsApiClient,
         watchClient: k8sClients.watchClient,

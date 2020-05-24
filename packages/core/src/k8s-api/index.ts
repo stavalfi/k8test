@@ -17,7 +17,7 @@ export type DeployedImage = {
   deployedImagePort: number
 }
 
-export async function deployImageAndExposePort(options: {
+export async function subscribeToImage(options: {
   appId: string
   appsApiClient: k8s.AppsV1Api
   apiClient: k8s.CoreV1Api
@@ -127,7 +127,7 @@ async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<vo
   }
 }
 
-export async function deleteAllImageResources(options: {
+export async function unsubscribeFromImage(options: {
   appsApiClient: k8s.AppsV1Api
   apiClient: k8s.CoreV1Api
   watchClient: k8s.Watch
