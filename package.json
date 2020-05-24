@@ -1,7 +1,7 @@
 {
   "name": "k8test-root",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "UNLICENSED",
   "scripts": {
     "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
