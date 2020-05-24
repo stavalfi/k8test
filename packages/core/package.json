@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
     "test": "jest",
-    "prepublish": "yarn test && yarn build && yarn version --minor"
+    "prepublish": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
