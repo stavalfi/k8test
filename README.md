@@ -1,5 +1,5 @@
 <h1 align="center">k8test</h1>
-<p align="center">Use docker images using k8s in tests</p>
+<p align="center">Run docker images using k8s in tests</p>
 
 ## Table of Contents
 
