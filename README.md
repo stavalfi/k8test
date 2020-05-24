@@ -18,16 +18,22 @@ yarn add --dev k8test
 
 ## Introduction
 
-Use all k8s features to deploy and expose images during tests.
+Use all k8s features to deploy and expose images during tests :heavy_check_mark:
 
 #### Benefits
 
-- Faster tests - deploying an image is slow. k8test deployments has a scope:
-  - singletone in cluster (forever),
+- Faster tests - deploying an image is slow. k8test deployments added a scope property to the game:
+  - singletone in cluster (a single resource will be available at most in the cluster),
   - singletone is all tests-run (in the next test run, there will be new deployment)
   - not a singletone (each subscription will create new deployment)
 - [wip] Monitoring tests resources - you can safly stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
 - There is no need to learn k8s. There are good defaults.
+
+#### No Surprises
+
+- :hankey: No external resources are allocated on your machine
+- :surfer: No external synchronization is used (your file-system/network/...)
+- :rocket: No pulling: Event based implementation (https://github.com/kubernetes-client/javascript)
 
 ## Setup
 

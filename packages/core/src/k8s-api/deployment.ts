@@ -1,8 +1,9 @@
 import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
-import { ExposeStrategy, Labels } from './types'
+import { ExposeStrategy, Labels, SubscriptionOperation } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
+import chance from 'chance'
 
 export async function createDeployment(options: {
   appId: string
@@ -14,7 +15,7 @@ export async function createDeployment(options: {
   containerLabels: Labels
   exposeStrategy: ExposeStrategy
   singletoneStrategy: SingletoneStrategy
-}): Promise<k8s.V1Deployment> {
+}): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
   return createResource({
     appId: options.appId,
     imageName: options.imageName,
@@ -26,7 +27,7 @@ export async function createDeployment(options: {
         kind: 'Deployment',
         metadata: {
           name: resourceName,
-          labels: resourceLabels,
+          labels: { ...resourceLabels, ...getSubscriptionLabel(SubscriptionOperation.subscribe) },
         },
         spec: {
           replicas: 1,
@@ -77,14 +78,64 @@ export async function createDeployment(options: {
   })
 }
 
+function getSubscriptionLabel(operation: SubscriptionOperation) {
+  return {
+    [`subscription-${chance()
+      .hash()
+      .slice(0, 10)}`]: operation,
+  }
+}
+
+function isSubscriptionLabel(key: string, value: string): boolean {
+  return (
+    key.startsWith('subscription-') &&
+    (value === SubscriptionOperation.subscribe || value === SubscriptionOperation.unsubscribe)
+  )
+}
+
+type UpdatedBalance = number
+export async function addSubscriptionsLabel(
+  deploymentName: string,
+  options: {
+    appsApiClient: k8s.AppsV1Api
+    namespaceName: string
+    operation: SubscriptionOperation
+  },
+): Promise<UpdatedBalance> {
+  // workaround: https://github.com/kubernetes-client/javascript/issues/19#issuecomment-582886605
+  const headers = { 'content-type': 'application/strategic-merge-patch+json' }
+  const { body } = await options.appsApiClient.patchNamespacedDeployment(
+    deploymentName,
+    options.namespaceName,
+    {
+      metadata: {
+        labels: {
+          ...getSubscriptionLabel(options.operation),
+        },
+      },
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    { headers },
+  )
+
+  return Object.entries(body.metadata?.labels || {})
+    .filter(([key, value]) => isSubscriptionLabel(key, value))
+    .map(([, value]) => value)
+    .map(value => (value === SubscriptionOperation.subscribe ? 1 : -1))
+    .reduce((acc, value) => acc + value, 0)
+}
+
 async function findDeployment(
-  deploymentNAme: string,
+  deploymentName: string,
   options: {
     appsApiClient: k8s.AppsV1Api
     namespaceName: string
   },
 ): Promise<k8s.V1Deployment> {
-  const deployment = await options.appsApiClient.readNamespacedDeployment(deploymentNAme, options.namespaceName)
+  const deployment = await options.appsApiClient.readNamespacedDeployment(deploymentName, options.namespaceName)
   return deployment.body
 }
 

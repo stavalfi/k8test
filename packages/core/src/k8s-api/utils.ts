@@ -89,7 +89,7 @@ export async function createResource<Resource extends k8s.V1Service | k8s.V1Depl
   }>
   find: (resourceName: string) => Promise<Resource>
   waitUntilCreated: (resourceName: string) => Promise<Resource>
-}): Promise<Resource> {
+}): Promise<{ resource: Resource; isNewResource: boolean }> {
   const { resourceName, resourceScope } = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
@@ -107,13 +107,19 @@ export async function createResource<Resource extends k8s.V1Service | k8s.V1Depl
       }),
     )
   } catch (error) {
-    return shouldIgnoreAlreadyExistError({
-      singletoneStrategy: options.singletoneStrategy,
-      findResource: () => options.find(resourceName),
-      error,
-    })
+    return {
+      resource: await shouldIgnoreAlreadyExistError({
+        singletoneStrategy: options.singletoneStrategy,
+        findResource: () => options.find(resourceName),
+        error,
+      }),
+      isNewResource: false,
+    }
   }
-  return options.waitUntilCreated(resourceName)
+  return {
+    resource: await options.waitUntilCreated(resourceName),
+    isNewResource: true,
+  }
 }
 
 export function isResourceAlreadyExistError(error: any): boolean {

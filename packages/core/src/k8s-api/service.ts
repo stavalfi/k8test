@@ -13,7 +13,7 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
   singletoneStrategy: SingletoneStrategy
-}): Promise<k8s.V1Service> {
+}): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
   return createResource({
     appId: options.appId,
     imageName: options.imageName,

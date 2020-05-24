@@ -1,8 +1,8 @@
 import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
-import { createDeployment, deleteDeployment } from './deployment'
+import { createDeployment, deleteDeployment, addSubscriptionsLabel } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
-import { ExposeStrategy } from './types'
+import { ExposeStrategy, SubscriptionOperation } from './types'
 
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
@@ -33,7 +33,7 @@ export async function deployImageAndExposePort(options: {
     deployedImagePort: number,
   ) => Promise<void>
 }): Promise<DeployedImage> {
-  const service = await createService({
+  const serviceResult = await createService({
     appId: options.appId,
     apiClient: options.apiClient,
     watchClient: options.watchClient,
@@ -42,19 +42,19 @@ export async function deployImageAndExposePort(options: {
     podPortToExpose: options.containerPortToExpose,
     singletoneStrategy: options.singletoneStrategy,
   })
-  const containerLabels = service.spec?.selector
+  const containerLabels = serviceResult.resource.spec?.selector
   if (!containerLabels) {
     throw new Error(
       `failed to create a service for image: ${options.imageName} - container-labels are missing after creating them.`,
     )
   }
-  const serviceName = service.metadata?.name
+  const serviceName = serviceResult.resource.metadata?.name
   if (!serviceName) {
     throw new Error(
       `failed to create a service for image: ${options.imageName} - service-name is missing after creating it.`,
     )
   }
-  const deployment = await createDeployment({
+  const deploymentResult = await createDeployment({
     appId: options.appId,
     appsApiClient: options.appsApiClient,
     watchClient: options.watchClient,
@@ -65,11 +65,25 @@ export async function deployImageAndExposePort(options: {
     exposeStrategy: options.exposeStrategy,
     singletoneStrategy: options.singletoneStrategy,
   })
-  const deploymentName = deployment.metadata?.name
+  const deploymentName = deploymentResult.resource.metadata?.name
   if (!deploymentName) {
     throw new Error(
       `failed to create a deployment for image: ${options.imageName} - deployment-name is missing after creating it.`,
     )
+  }
+
+  if (serviceResult.isNewResource !== deploymentResult.isNewResource) {
+    throw new Error(
+      `k8test detected inconsistent cluster state. some resources that k8test created were deleted (manually?). please remove all k8test resources. if it's allocated on namespace "k8test", please run the following command and start what you were doing again: "kubectl delete namespace k8test"`,
+    )
+  }
+
+  if (!deploymentResult.isNewResource) {
+    await addSubscriptionsLabel(deploymentName, {
+      appsApiClient: options.appsApiClient,
+      namespaceName: options.namespaceName,
+      operation: SubscriptionOperation.subscribe,
+    })
   }
 
   const deployedImageUrl = await getDeployedImageUrl({
@@ -122,20 +136,27 @@ export async function deleteAllImageResources(options: {
   serviceName: string
   deployedImageUrl: string
 }): Promise<void> {
-  await deleteService({
-    apiClient: options.apiClient,
-    watchClient: options.watchClient,
-    namespaceName: options.namespaceName,
-    serviceName: options.serviceName,
-  })
-  await deleteDeployment({
+  const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
     appsApiClient: options.appsApiClient,
-    watchClient: options.watchClient,
     namespaceName: options.namespaceName,
-    deploymentName: options.deploymentName,
+    operation: SubscriptionOperation.unsubscribe,
   })
-  // k8s has a delay until the deployment is no-longer accessible.
-  await new Promise(res => setTimeout(res, 3000))
+  if (updatedBalance === 0) {
+    await deleteService({
+      apiClient: options.apiClient,
+      watchClient: options.watchClient,
+      namespaceName: options.namespaceName,
+      serviceName: options.serviceName,
+    })
+    await deleteDeployment({
+      appsApiClient: options.appsApiClient,
+      watchClient: options.watchClient,
+      namespaceName: options.namespaceName,
+      deploymentName: options.deploymentName,
+    })
+    // k8s has a delay until the deployment is no-longer accessible.
+    await new Promise(res => setTimeout(res, 3000))
+  }
 }
 
 export type GetDeployedImageUrl = (options: {

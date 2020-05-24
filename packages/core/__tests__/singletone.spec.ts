@@ -107,6 +107,59 @@ describe('test singletone option', () => {
       expect(subscription1.deployedImageUrl).toEqual(subscription2.deployedImageUrl)
       await expect(client2.get('x')).resolves.toEqual('1')
     })
+    test('2 subscriptions and the endpoint is still available after unsbscribe', async () => {
+      const appId = randomAppId()
+
+      const subscription1 = await customSubscribe(appId)('redis', {
+        containerPortToExpose: 6379,
+        isReadyPredicate: isRedisReadyPredicate,
+        singletoneStrategy: SingletoneStrategy.appId,
+      })
+
+      const subscription2 = await customSubscribe(appId)('redis', {
+        containerPortToExpose: 6379,
+        isReadyPredicate: isRedisReadyPredicate,
+        singletoneStrategy: SingletoneStrategy.appId,
+      })
+      cleanups.push(() => subscription2.unsubscribe())
+
+      await subscription1.unsubscribe()
+
+      const redis = redisClient({
+        host: subscription1.deployedImageAddress,
+        port: subscription1.deployedImagePort,
+      })
+      cleanups.push(() => redis.disconnect())
+
+      await expect(redis.ping()).resolves.toEqual('PONG')
+    })
+
+    test('endpoint is not available after all unsubscribed', async () => {
+      const appId = randomAppId()
+
+      const subscription1 = await customSubscribe(appId)('redis', {
+        containerPortToExpose: 6379,
+        isReadyPredicate: isRedisReadyPredicate,
+        singletoneStrategy: SingletoneStrategy.appId,
+      })
+
+      const subscription2 = await customSubscribe(appId)('redis', {
+        containerPortToExpose: 6379,
+        isReadyPredicate: isRedisReadyPredicate,
+        singletoneStrategy: SingletoneStrategy.appId,
+      })
+
+      await subscription1.unsubscribe()
+      await subscription2.unsubscribe()
+
+      const redis = redisClient({
+        host: subscription1.deployedImageAddress,
+        port: subscription1.deployedImagePort,
+      })
+      cleanups.push(() => redis.disconnect())
+
+      await expect(redis.ping()).rejects.toThrow(expect.objectContaining({ name: 'MaxRetriesPerRequestError' }))
+    })
   })
 
   describe('multiple singletone options', () => {
