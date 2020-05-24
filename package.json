@@ -8,7 +8,7 @@
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
     "build": "yarn tsc -b tsconfig-build.json",
-    "publish": "yarn workspace k8test publish"
+    "publish:core": "yarn workspace k8test publish"
   },
   "workspaces": [
     "packages/*"
