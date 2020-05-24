@@ -7,8 +7,7 @@
     "lint": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
-    "build": "yarn tsc -b tsconfig-build.json",
-    "publish:core": "yarn workspace k8test publish"
+    "build": "yarn tsc -b tsconfig-build.json"
   },
   "workspaces": [
     "packages/*"
