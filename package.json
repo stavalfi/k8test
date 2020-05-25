@@ -6,8 +6,7 @@
   "scripts": {
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
-    "lint:types": "yarn tsc -b tsconfig-lint.json",
-    "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn lint:types && yarn lint:versions",
+    "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
     "build": "yarn tsc -b tsconfig-build.json"
