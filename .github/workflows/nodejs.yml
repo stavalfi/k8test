@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: kubectl --cluster-info
+      - run: kubectl cluster-info
       - run: kubectl get pods
       # - run: yarn install
       # - run: yarn build
