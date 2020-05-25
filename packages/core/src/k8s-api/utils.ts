@@ -1,8 +1,7 @@
-import { SingletoneStrategy } from '../types'
 import chance from 'chance'
-import * as k8s from '@kubernetes/client-node'
 import http from 'http'
-import { Labels } from './types'
+import { SingletoneStrategy } from '../types'
+import { K8sResource, Labels } from './types'
 
 export const generateString = ({ resourceScope, imageName }: { resourceScope: string; imageName: string }) =>
   `${resourceScope}-${imageName.replace('/', '-')}`
@@ -75,7 +74,7 @@ export const generateResourceName = ({
   }
 }
 
-export async function createResource<Resource extends k8s.V1Service | k8s.V1Deployment>(options: {
+export async function createResource<Resource extends K8sResource>(options: {
   appId: string
   namespaceName: string
   imageName: string
@@ -126,9 +125,7 @@ export function isResourceAlreadyExistError(error: any): boolean {
   return error?.response?.statusCode === 409 && error?.response?.body?.reason === 'AlreadyExists'
 }
 
-export async function shouldIgnoreAlreadyExistError<
-  Resource extends k8s.V1Service | k8s.V1Deployment | k8s.V1Namespace
->({
+export async function shouldIgnoreAlreadyExistError<Resource extends K8sResource>({
   singletoneStrategy,
   findResource,
   error,

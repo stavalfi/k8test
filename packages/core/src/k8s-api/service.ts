@@ -1,14 +1,13 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
-import { ExposeStrategy } from './types'
+import { ExposeStrategy, K8sClient } from './types'
 import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 
 export async function createService(options: {
   appId: string
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
   imageName: string
   podPortToExpose: number
@@ -20,7 +19,7 @@ export async function createService(options: {
     namespaceName: options.namespaceName,
     singletoneStrategy: options.singletoneStrategy,
     create: (resourceName, resourceLabels) =>
-      options.apiClient.createNamespacedService(options.namespaceName, {
+      options.k8sClient.apiClient.createNamespacedService(options.namespaceName, {
         apiVersion: 'v1',
         kind: 'Service',
         metadata: {
@@ -39,12 +38,12 @@ export async function createService(options: {
       }),
     find: resourceName =>
       findService(resourceName, {
-        apiClient: options.apiClient,
+        k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
     waitUntilCreated: resourceName =>
       waitUntilServiceCreated(resourceName, {
-        watchClient: options.watchClient,
+        k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
@@ -53,26 +52,21 @@ export async function createService(options: {
 async function findService(
   serviceName: string,
   options: {
-    apiClient: k8s.CoreV1Api
+    k8sClient: K8sClient
     namespaceName: string
   },
 ): Promise<k8s.V1Service> {
-  const service = await options.apiClient.readNamespacedService(serviceName, options.namespaceName)
+  const service = await options.k8sClient.apiClient.readNamespacedService(serviceName, options.namespaceName)
   return service.body
 }
 
-export async function deleteService(options: {
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
-  namespaceName: string
-  serviceName: string
-}) {
+export async function deleteService(options: { k8sClient: K8sClient; namespaceName: string; serviceName: string }) {
   const [, response] = await Promise.all([
     waitUntilServiceDeleted(options.serviceName, {
-      watchClient: options.watchClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
     }),
-    options.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName),
+    options.k8sClient.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName),
   ])
   return response
 }
@@ -81,14 +75,14 @@ export async function deleteService(options: {
 export type GetDeployedImagePort = (
   serviceName: string,
   options: {
-    apiClient: k8s.CoreV1Api
+    k8sClient: K8sClient
     namespaceName: string
     exposeStrategy: ExposeStrategy
   },
 ) => Promise<number>
 
 export const getDeployedImagePort: GetDeployedImagePort = async (serviceName, options) => {
-  const response = await options.apiClient.listNamespacedService(options.namespaceName)
+  const response = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
   const service = response.body.items.find(service => service.metadata?.name === serviceName)
   if (!service) {
     throw new Error(

@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
+import { K8sClient } from './types'
 
-export const createeK8sClient = () => {
+export const createeK8sClient = (): K8sClient => {
   const kc = new k8s.KubeConfig()
   kc.loadFromDefault()
 

@@ -1,6 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import { timeout } from '../utils'
 import _omit from 'lodash/omit'
+import { K8sClient, K8sResource } from './types'
 
 enum ResourceEventType {
   resourceAdded = 'ADDED',
@@ -8,17 +9,17 @@ enum ResourceEventType {
   resourceDeleted = 'DELETED',
 }
 
-export const waitUntilNamespaceCreated = (namespaceName: string, options: { watchClient: k8s.Watch }) =>
+export const waitUntilNamespaceCreated = (namespaceName: string, options: { k8sClient: K8sClient }) =>
   waitForResource<k8s.V1Namespace>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/api/v1/namespaces`,
     resouceName: namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
 
-export const waitUntilNamespaceDeleted = (namespaceName: string, options: { watchClient: k8s.Watch }) =>
+export const waitUntilNamespaceDeleted = (namespaceName: string, options: { k8sClient: K8sClient }) =>
   waitForResource<k8s.V1Namespace>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/api/v1/namespaces`,
     resouceName: namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
@@ -26,10 +27,10 @@ export const waitUntilNamespaceDeleted = (namespaceName: string, options: { watc
 
 export const waitUntilDeploymentReady = (
   deploymentName: string,
-  options: { watchClient: k8s.Watch; namespaceName: string },
+  options: { k8sClient: K8sClient; namespaceName: string },
 ) =>
   waitForResource<k8s.V1Deployment>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/apis/apps/v1/namespaces/${options.namespaceName}/deployments`,
     resouceName: deploymentName,
     namespaceName: options.namespaceName,
@@ -43,10 +44,10 @@ export const waitUntilDeploymentReady = (
 
 export const waitUntilDeploymentDeleted = (
   deploymentName: string,
-  options: { watchClient: k8s.Watch; namespaceName: string },
+  options: { k8sClient: K8sClient; namespaceName: string },
 ) =>
   waitForResource<k8s.V1Deployment>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/apis/apps/v1/namespaces/${options.namespaceName}/deployments`,
     resouceName: deploymentName,
     namespaceName: options.namespaceName,
@@ -55,10 +56,10 @@ export const waitUntilDeploymentDeleted = (
 
 export const waitUntilServiceCreated = (
   serviceName: string,
-  options: { watchClient: k8s.Watch; namespaceName: string },
+  options: { k8sClient: K8sClient; namespaceName: string },
 ) =>
   waitForResource<k8s.V1Service>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/api/v1/namespaces/${options.namespaceName}/services`,
     resouceName: serviceName,
     namespaceName: options.namespaceName,
@@ -67,18 +68,18 @@ export const waitUntilServiceCreated = (
 
 export const waitUntilServiceDeleted = (
   serviceName: string,
-  options: { watchClient: k8s.Watch; namespaceName: string },
+  options: { k8sClient: K8sClient; namespaceName: string },
 ) =>
   waitForResource<k8s.V1Service>({
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     api: `/api/v1/namespaces/${options.namespaceName}/services`,
     resouceName: serviceName,
     namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
   })
 
-async function waitForResource<Resource extends { metadata?: { name?: string; namespace?: string } }>(options: {
-  watchClient: k8s.Watch
+async function waitForResource<Resource extends K8sResource>(options: {
+  k8sClient: K8sClient
   api: string
   resouceName: string
   debug?: boolean
@@ -89,7 +90,7 @@ async function waitForResource<Resource extends { metadata?: { name?: string; na
   const TIMEOUT = 60_000
   return timeout(
     new Promise<Resource>((res, rej) => {
-      options.watchClient
+      options.k8sClient.watchClient
         .watch(
           options.api,
           {},

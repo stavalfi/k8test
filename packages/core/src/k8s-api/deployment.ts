@@ -1,14 +1,13 @@
 import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
-import { ExposeStrategy, Labels, SubscriptionOperation } from './types'
+import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 import chance from 'chance'
 
 export async function createDeployment(options: {
   appId: string
-  appsApiClient: k8s.AppsV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
   imageName: string
   containerPortToExpose: number
@@ -22,7 +21,7 @@ export async function createDeployment(options: {
     namespaceName: options.namespaceName,
     singletoneStrategy: options.singletoneStrategy,
     create: (resourceName, resourceLabels) =>
-      options.appsApiClient.createNamespacedDeployment(options.namespaceName, {
+      options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, {
         apiVersion: 'apps/v1',
         kind: 'Deployment',
         metadata: {
@@ -67,12 +66,12 @@ export async function createDeployment(options: {
       }),
     find: resourceName =>
       findDeployment(resourceName, {
-        appsApiClient: options.appsApiClient,
+        k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
     waitUntilCreated: resourceName =>
       waitUntilDeploymentReady(resourceName, {
-        watchClient: options.watchClient,
+        k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
@@ -97,14 +96,14 @@ type UpdatedBalance = number
 export async function addSubscriptionsLabel(
   deploymentName: string,
   options: {
-    appsApiClient: k8s.AppsV1Api
+    k8sClient: K8sClient
     namespaceName: string
     operation: SubscriptionOperation
   },
 ): Promise<UpdatedBalance> {
   // workaround: https://github.com/kubernetes-client/javascript/issues/19#issuecomment-582886605
   const headers = { 'content-type': 'application/strategic-merge-patch+json' }
-  const { body } = await options.appsApiClient.patchNamespacedDeployment(
+  const { body } = await options.k8sClient.appsApiClient.patchNamespacedDeployment(
     deploymentName,
     options.namespaceName,
     {
@@ -131,26 +130,28 @@ export async function addSubscriptionsLabel(
 async function findDeployment(
   deploymentName: string,
   options: {
-    appsApiClient: k8s.AppsV1Api
+    k8sClient: K8sClient
     namespaceName: string
   },
 ): Promise<k8s.V1Deployment> {
-  const deployment = await options.appsApiClient.readNamespacedDeployment(deploymentName, options.namespaceName)
+  const deployment = await options.k8sClient.appsApiClient.readNamespacedDeployment(
+    deploymentName,
+    options.namespaceName,
+  )
   return deployment.body
 }
 
 export async function deleteDeployment(options: {
-  appsApiClient: k8s.AppsV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
 }) {
   const [, response] = await Promise.all([
     waitUntilDeploymentDeleted(options.deploymentName, {
-      watchClient: options.watchClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
     }),
-    options.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName),
+    options.k8sClient.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName),
   ])
   return response
 }

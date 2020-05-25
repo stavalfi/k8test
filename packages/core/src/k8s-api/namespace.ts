@@ -1,16 +1,16 @@
 import * as k8s from '@kubernetes/client-node'
 import { isResourceAlreadyExistError } from './utils'
 import { waitUntilNamespaceCreated, waitUntilNamespaceDeleted } from './watch-resources'
+import { K8sClient } from './types'
 
 // synchromized operation to create a new namespace in k8s
 export async function createNamespaceIfNotExist(options: {
   appId: string
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
 }): Promise<k8s.V1Namespace> {
   try {
-    await options.apiClient.createNamespace({
+    await options.k8sClient.apiClient.createNamespace({
       metadata: {
         name: options.namespaceName,
       },
@@ -21,22 +21,21 @@ export async function createNamespaceIfNotExist(options: {
     }
   }
   return waitUntilNamespaceCreated(options.namespaceName, {
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
   })
 }
 
 export async function deleteNamespaceIfExist(options: {
   appId: string
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
 }): Promise<void> {
-  const namespacesResult = await options.apiClient.listNamespace()
+  const namespacesResult = await options.k8sClient.apiClient.listNamespace()
   const namespace = namespacesResult.body.items.find(namespace => namespace.metadata?.name === options.namespaceName)
   if (namespace) {
-    await options.apiClient.deleteNamespace(options.namespaceName)
+    await options.k8sClient.apiClient.deleteNamespace(options.namespaceName)
     await waitUntilNamespaceDeleted(options.namespaceName, {
-      watchClient: options.watchClient,
+      k8sClient: options.k8sClient,
     })
   }
 }
