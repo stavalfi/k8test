@@ -7,7 +7,7 @@ export enum NamespaceStrategy {
 export type Namespace =
   | { namespaceStrategy: NamespaceStrategy.default }
   | { namespaceStrategy: NamespaceStrategy.k8test }
-  | { namespaceStrategy: NamespaceStrategy.custom; namespace: string }
+  | { namespaceStrategy: NamespaceStrategy.custom; namespaceName: string }
 
 export type Subscription = {
   deployedImageUrl: string

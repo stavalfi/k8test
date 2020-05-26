@@ -1,4 +1,3 @@
-import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
 import {
   createeK8sClient,
@@ -14,6 +13,7 @@ import {
   SingletoneStrategy,
   NamespaceStrategy,
 } from './types'
+import { K8sClient } from './k8s-api/types'
 
 export { deleteNamespaceIfExist } from './k8s-api'
 export {
@@ -29,20 +29,17 @@ export { timeout } from './utils'
 export const baseSubscribe: BaseSubscribe = async options => {
   assertOptions(options)
 
-  const k8sClients = createeK8sClient()
+  const k8sClient = createeK8sClient()
 
   const namespaceName = await extractNamespaceName({
     appId: options.appId,
-    apiClient: k8sClients.apiClient,
-    watchClient: k8sClients.watchClient,
+    k8sClient,
     namespace: options.namespace,
   })
 
   const deployedImage = await subscribeToImage({
     appId: options.appId,
-    apiClient: k8sClients.apiClient,
-    appsApiClient: k8sClients.appsApiClient,
-    watchClient: k8sClients.watchClient,
+    k8sClient,
     namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
@@ -59,9 +56,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () =>
       unsubscribeFromImage({
-        apiClient: k8sClients.apiClient,
-        appsApiClient: k8sClients.appsApiClient,
-        watchClient: k8sClients.watchClient,
+        k8sClient,
         namespaceName,
         deploymentName: deployedImage.deploymentName,
         serviceName: deployedImage.serviceName,
@@ -87,20 +82,20 @@ function assertOptions(options: SubscribeCreatorOptions): void {
 
 async function extractNamespaceName(options: {
   appId: string
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespace?: Namespace
 }): Promise<string> {
   if (!options.namespace || options.namespace.namespaceStrategy === NamespaceStrategy.default) {
     return 'default'
   }
   const namespaceName =
-    options.namespace.namespaceStrategy === NamespaceStrategy.custom ? options.namespace.namespace : k8testNamespace()
+    options.namespace.namespaceStrategy === NamespaceStrategy.custom
+      ? options.namespace.namespaceName
+      : k8testNamespace()
 
   await createNamespaceIfNotExist({
     appId: options.appId,
-    apiClient: options.apiClient,
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     namespaceName,
   })
 

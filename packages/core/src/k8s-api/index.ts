@@ -1,8 +1,7 @@
-import * as k8s from '@kubernetes/client-node'
 import { SingletoneStrategy } from '../types'
-import { createDeployment, deleteDeployment, addSubscriptionsLabel } from './deployment'
+import { addSubscriptionsLabel, createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
-import { ExposeStrategy, SubscriptionOperation } from './types'
+import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 
 export { createeK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
@@ -19,9 +18,7 @@ export type DeployedImage = {
 
 export async function subscribeToImage(options: {
   appId: string
-  appsApiClient: k8s.AppsV1Api
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
   imageName: string
   containerPortToExpose: number
@@ -35,8 +32,7 @@ export async function subscribeToImage(options: {
 }): Promise<DeployedImage> {
   const serviceResult = await createService({
     appId: options.appId,
-    apiClient: options.apiClient,
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
@@ -56,8 +52,7 @@ export async function subscribeToImage(options: {
   }
   const deploymentResult = await createDeployment({
     appId: options.appId,
-    appsApiClient: options.appsApiClient,
-    watchClient: options.watchClient,
+    k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
@@ -80,23 +75,23 @@ export async function subscribeToImage(options: {
 
   if (!deploymentResult.isNewResource) {
     await addSubscriptionsLabel(deploymentName, {
-      appsApiClient: options.appsApiClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
       operation: SubscriptionOperation.subscribe,
     })
   }
 
   const deployedImageUrl = await getDeployedImageUrl({
-    apiClient: options.apiClient,
+    k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     serviceName,
     exposeStrategy: options.exposeStrategy,
   })
   const deployedImageAddress = await getMasterAddress({
-    apiClient: options.apiClient,
+    k8sClient: options.k8sClient,
   })
   const deployedImagePort = await getDeployedImagePort(serviceName, {
-    apiClient: options.apiClient,
+    k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     exposeStrategy: options.exposeStrategy,
   })
@@ -128,29 +123,25 @@ async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<vo
 }
 
 export async function unsubscribeFromImage(options: {
-  appsApiClient: k8s.AppsV1Api
-  apiClient: k8s.CoreV1Api
-  watchClient: k8s.Watch
+  k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
   serviceName: string
   deployedImageUrl: string
 }): Promise<void> {
   const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
-    appsApiClient: options.appsApiClient,
+    k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     operation: SubscriptionOperation.unsubscribe,
   })
   if (updatedBalance === 0) {
     await deleteService({
-      apiClient: options.apiClient,
-      watchClient: options.watchClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
       serviceName: options.serviceName,
     })
     await deleteDeployment({
-      appsApiClient: options.appsApiClient,
-      watchClient: options.watchClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
       deploymentName: options.deploymentName,
     })
@@ -160,7 +151,7 @@ export async function unsubscribeFromImage(options: {
 }
 
 export type GetDeployedImageUrl = (options: {
-  apiClient: k8s.CoreV1Api
+  k8sClient: K8sClient
   namespaceName: string
   serviceName: string
   exposeStrategy: ExposeStrategy
@@ -168,9 +159,9 @@ export type GetDeployedImageUrl = (options: {
 
 export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
   const [address, port] = await Promise.all([
-    getMasterAddress({ apiClient: options.apiClient }),
+    getMasterAddress({ k8sClient: options.k8sClient }),
     getDeployedImagePort(options.serviceName, {
-      apiClient: options.apiClient,
+      k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
       exposeStrategy: options.exposeStrategy,
     }),
@@ -178,10 +169,10 @@ export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
   return `http://${address}:${port}`
 }
 
-export type GetMasterAddress = (options: { apiClient: k8s.CoreV1Api }) => Promise<string>
+export type GetMasterAddress = (options: { k8sClient: K8sClient }) => Promise<string>
 
 export const getMasterAddress: GetMasterAddress = async options => {
-  const response = await options.apiClient.listNode(
+  const response = await options.k8sClient.apiClient.listNode(
     undefined,
     false,
     undefined,
