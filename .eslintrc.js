@@ -13,7 +13,7 @@ module.exports = {
   rules: {
     'no-process-exit': 'error',
     'no-process-env': 'error',
-    'no-console': 'error',
+    'no-console': 'off',
     'prettier/prettier': 'error',
     'no-unused-vars': 'off', // it is the same as @typescript-eslint/no-unused-vars which is on
     'jest/no-disabled-tests': 'off',

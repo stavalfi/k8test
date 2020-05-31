@@ -10,6 +10,9 @@
     },
     {
       "path": "packages/example-project/tsconfig-build.json"
+    },
+    {
+      "path": "packages/interview/tsconfig-build.json"
     }
   ]
 }
