@@ -96,6 +96,19 @@ export async function subscribeToImage(options: {
     exposeStrategy: options.exposeStrategy,
   })
 
+  async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        console.log('trying...', deploymentResult.resource.metadata?.name)
+        await isReadyPredicate()
+        return
+      } catch (e) {
+        await new Promise(res => setTimeout(res, 1000))
+      }
+    }
+  }
+
   const { isReadyPredicate } = options
   if (isReadyPredicate) {
     await waitUntilReady(() => isReadyPredicate(deployedImageUrl, deployedImageAddress, deployedImagePort))
@@ -107,18 +120,6 @@ export async function subscribeToImage(options: {
     deployedImageUrl,
     deployedImageAddress,
     deployedImagePort,
-  }
-}
-
-async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    try {
-      await isReadyPredicate()
-      return
-    } catch (e) {
-      await new Promise(res => setTimeout(res, 1000))
-    }
   }
 }
 

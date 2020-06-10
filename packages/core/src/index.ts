@@ -8,7 +8,7 @@ import {
 } from './k8s-api'
 import {
   Namespace,
-  SubscribeCreator as BaseSubscribe,
+  SubscribeCreator as Subscribe,
   SubscribeCreatorOptions,
   SingletonStrategy,
   NamespaceStrategy,
@@ -16,29 +16,24 @@ import {
 import { K8sClient } from './k8s-api/types'
 
 export { deleteNamespaceIfExist } from './k8s-api'
-export {
-  Namespace,
-  NamespaceStrategy,
-  Subscribe,
-  SubscribeCreatorOptions,
-  Subscription,
-  SingletonStrategy,
-} from './types'
+export { Namespace, NamespaceStrategy, SubscribeCreatorOptions, Subscription, SingletonStrategy } from './types'
 export { timeout } from './utils'
 
-export const baseSubscribe: BaseSubscribe = async options => {
+export const subscribe: Subscribe = async options => {
   assertOptions(options)
+
+  const appId = getAppId(options.appId)
 
   const k8sClient = createK8sClient()
 
   const namespaceName = await extractNamespaceName({
-    appId: options.appId,
+    appId,
     k8sClient,
     namespace: options.namespace,
   })
 
   const deployedImage = await subscribeToImage({
-    appId: options.appId,
+    appId,
     k8sClient,
     namespaceName,
     imageName: options.imageName,
@@ -73,7 +68,7 @@ export const randomAppId = () =>
 export const k8testNamespace = () => `k8test`
 
 function assertOptions(options: SubscribeCreatorOptions): void {
-  if (options.appId.length !== randomAppId().length) {
+  if (options.appId && options.appId.length !== randomAppId().length) {
     throw new Error(
       'please use `randomAppId` function for generating the appId. k8s apis expect specific length when we use `appId` to generate k8s resources names.',
     )
@@ -100,4 +95,25 @@ async function extractNamespaceName(options: {
   })
 
   return namespaceName
+}
+
+function getAppId(appId?: string): string {
+  const error = new Error(`APP_ID can't be falsy`)
+  if (appId) {
+    return appId
+  }
+  // eslint-disable-next-line no-process-env
+  const appIdEnv = process.env['APP_ID']
+  if (appIdEnv) {
+    return appIdEnv
+  }
+  if ('APP_ID' in global && global['APP_ID']) {
+    return global['APP_ID']
+  }
+  // @ts-ignore
+  const appIdGlobal = globalThis['APP_ID']
+  if (appIdGlobal) {
+    return appIdGlobal
+  }
+  throw error
 }

@@ -17,13 +17,13 @@ export type Subscription = {
 }
 
 export enum SingletonStrategy {
-  many = 'many', // (default) multiple instance are allowed
-  namespace = 'one-per-namesapce', // one instance per namespace - e.g. k8test-internal-redis
+  many = 'many', // (default) always new container
+  namespace = 'one-per-namespace', // one instance per namespace - e.g. k8test-internal-redis
   appId = 'one-per-app-id', // one instance per appId - e.g. user images
 }
 
 export type SubscribeCreatorOptions = {
-  appId: string
+  appId?: string
   namespace?: Namespace
   ttlMs?: number
   imageName: string
@@ -37,8 +37,3 @@ export type SubscribeCreatorOptions = {
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>
-
-export type Subscribe = (
-  imageName: string,
-  options: Pick<SubscribeCreatorOptions, 'singletonStrategy' | 'containerPortToExpose' | 'ttlMs' | 'isReadyPredicate'>,
-) => Promise<Subscription>

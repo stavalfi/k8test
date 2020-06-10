@@ -1,11 +1,11 @@
 import Redis from 'ioredis'
-import { baseSubscribe, randomAppId, Subscribe, NamespaceStrategy } from '../src'
 
 export const isRedisReadyPredicate = (url: string, host: string, port: number) => {
   const redis = new Redis({
     host,
     port,
-    lazyConnect: true, // because i will try to connect manually in the next line
+    lazyConnect: true, // because i will try to connect manually in the next line,
+    connectTimeout: 1000,
   })
 
   return redis.connect().finally(() => {
@@ -19,30 +19,11 @@ export const isRedisReadyPredicate = (url: string, host: string, port: number) =
 export function redisClient(options: Redis.RedisOptions) {
   const redis = new Redis({
     maxRetriesPerRequest: 1,
+    connectTimeout: 1000,
     ...options,
   })
   return redis
 }
-
-export const subscribe: Subscribe = (imageName, options) =>
-  baseSubscribe({
-    imageName,
-    appId: randomAppId(),
-    namespace: {
-      namespaceStrategy: NamespaceStrategy.k8test,
-    },
-    ...options,
-  })
-
-export const customSubscribe = (appId: string): Subscribe => (imageName, options) =>
-  baseSubscribe({
-    imageName,
-    appId,
-    namespace: {
-      namespaceStrategy: NamespaceStrategy.k8test,
-    },
-    ...options,
-  })
 
 export function cleanupAfterEach() {
   const cleanups: (() => Promise<void> | void)[] = []
