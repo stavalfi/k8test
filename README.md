@@ -135,7 +135,7 @@ await subscribe('redis', {
       }
     })
   },
-  singletoneStrategy: SingletoneStrategy.appId,
+  SingletonStrategy: SingletonStrategy.appId,
   ttlMs: 100_000_000,
 })
 ```

@@ -7,7 +7,7 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ['@typescript-eslint', 'json', 'prettier', 'jest'],
+  plugins: ['@typescript-eslint', 'json', 'prettier', 'jest', 'spellcheck'],
   extends: ['eslint:recommended', 'plugin:json/recommended', 'prettier', 'plugin:jest/recommended'],
   globals: {},
   rules: {

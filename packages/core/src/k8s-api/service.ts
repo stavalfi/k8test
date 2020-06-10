@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
-import { SingletoneStrategy } from '../types'
+import { SingletonStrategy } from '../types'
 import { ExposeStrategy, K8sClient } from './types'
 import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
@@ -11,13 +11,13 @@ export async function createService(options: {
   namespaceName: string
   imageName: string
   podPortToExpose: number
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
 }): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
   return createResource({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
-    singletoneStrategy: options.singletoneStrategy,
+    singletonStrategy: options.singletonStrategy,
     create: (resourceName, resourceLabels) =>
       options.k8sClient.apiClient.createNamespacedService(options.namespaceName, {
         apiVersion: 'v1',

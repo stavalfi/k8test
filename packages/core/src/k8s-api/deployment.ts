@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node'
-import { SingletoneStrategy } from '../types'
+import { SingletonStrategy } from '../types'
 import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
@@ -13,13 +13,13 @@ export async function createDeployment(options: {
   containerPortToExpose: number
   containerLabels: Labels
   exposeStrategy: ExposeStrategy
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
 }): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
   return createResource({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
-    singletoneStrategy: options.singletoneStrategy,
+    singletonStrategy: options.singletonStrategy,
     create: (resourceName, resourceLabels) =>
       options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, {
         apiVersion: 'apps/v1',
@@ -39,7 +39,7 @@ export async function createDeployment(options: {
                 appId: options.appId,
                 imageName: options.imageName,
                 namespaceName: options.namespaceName,
-                singletoneStrategy: options.singletoneStrategy,
+                singletonStrategy: options.singletonStrategy,
               }).resourceName,
               labels: options.containerLabels,
             },
@@ -50,7 +50,7 @@ export async function createDeployment(options: {
                     appId: options.appId,
                     imageName: options.imageName,
                     namespaceName: options.namespaceName,
-                    singletoneStrategy: options.singletoneStrategy,
+                    singletonStrategy: options.singletonStrategy,
                   }).resourceName,
                   image: options.imageName,
                   ports: [

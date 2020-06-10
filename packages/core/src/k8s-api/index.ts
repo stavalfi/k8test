@@ -1,9 +1,9 @@
-import { SingletoneStrategy } from '../types'
+import { SingletonStrategy } from '../types'
 import { addSubscriptionsLabel, createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 
-export { createeK8sClient } from './k8s-client'
+export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy } from './types'
@@ -23,7 +23,7 @@ export async function subscribeToImage(options: {
   imageName: string
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
   isReadyPredicate?: (
     deployedImageUrl: string,
     deployedImageAddress: string,
@@ -36,7 +36,7 @@ export async function subscribeToImage(options: {
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
-    singletoneStrategy: options.singletoneStrategy,
+    singletonStrategy: options.singletonStrategy,
   })
   const containerLabels = serviceResult.resource.spec?.selector
   if (!containerLabels) {
@@ -58,7 +58,7 @@ export async function subscribeToImage(options: {
     containerPortToExpose: options.containerPortToExpose,
     containerLabels,
     exposeStrategy: options.exposeStrategy,
-    singletoneStrategy: options.singletoneStrategy,
+    singletonStrategy: options.singletonStrategy,
   })
   const deploymentName = deploymentResult.resource.metadata?.name
   if (!deploymentName) {

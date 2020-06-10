@@ -38,6 +38,7 @@
     "eslint-plugin-jest": "22.6.4",
     "eslint-plugin-json": "^2.0.1",
     "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-spellcheck": "^0.0.17",
     "execa": "^4.0.1",
     "fast-glob": "^3.2.2",
     "fs-extra": "^9.0.0",
