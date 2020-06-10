@@ -1,4 +1,4 @@
-import { randomAppId, SingletoneStrategy } from '../src'
+import { randomAppId, SingletonStrategy } from '../src'
 import { cleanupAfterEach, customSubscribe, redisClient, isRedisReadyPredicate } from './utils'
 
 describe('test singletone option', () => {
@@ -10,7 +10,7 @@ describe('test singletone option', () => {
 
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.many,
+        singletonStrategy: SingletonStrategy.many,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -25,7 +25,7 @@ describe('test singletone option', () => {
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.many,
+        singletonStrategy: SingletonStrategy.many,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription2.unsubscribe)
@@ -45,7 +45,7 @@ describe('test singletone option', () => {
 
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -60,7 +60,7 @@ describe('test singletone option', () => {
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -79,7 +79,7 @@ describe('test singletone option', () => {
 
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.namespace,
+        singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -94,7 +94,7 @@ describe('test singletone option', () => {
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.namespace,
+        singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -113,13 +113,13 @@ describe('test singletone option', () => {
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
         isReadyPredicate: isRedisReadyPredicate,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
       })
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
         isReadyPredicate: isRedisReadyPredicate,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
       })
       cleanups.push(() => subscription2.unsubscribe())
 
@@ -140,13 +140,13 @@ describe('test singletone option', () => {
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
         isReadyPredicate: isRedisReadyPredicate,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
       })
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
         isReadyPredicate: isRedisReadyPredicate,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
       })
 
       await subscription1.unsubscribe()
@@ -168,7 +168,7 @@ describe('test singletone option', () => {
 
       const subscription1 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.many,
+        singletonStrategy: SingletonStrategy.many,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -183,7 +183,7 @@ describe('test singletone option', () => {
 
       const subscription2 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.appId,
+        singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription2.unsubscribe)
@@ -198,7 +198,7 @@ describe('test singletone option', () => {
 
       const subscription3 = await customSubscribe(appId)('redis', {
         containerPortToExpose: 6379,
-        singletoneStrategy: SingletoneStrategy.namespace,
+        singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription3.unsubscribe)

@@ -1,6 +1,6 @@
 import chance from 'chance'
 import http from 'http'
-import { SingletoneStrategy } from '../types'
+import { SingletonStrategy } from '../types'
 import { K8sResource, Labels } from './types'
 
 export const generateString = ({ resourceScope, imageName }: { resourceScope: string; imageName: string }) =>
@@ -8,19 +8,19 @@ export const generateString = ({ resourceScope, imageName }: { resourceScope: st
 
 export const generateResourceLabels = ({
   appId,
-  singletoneStrategy,
+  singletonStrategy,
   imageName,
   resourceScope,
 }: {
   appId: string
   imageName: string
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
   resourceScope: string
 }) => ({
   k8test: 'true',
   'image-name': imageName,
   'app-id': appId,
-  'singletone-strategy': singletoneStrategy,
+  'singletone-strategy': singletonStrategy,
   'resourse-scope': resourceScope,
 })
 
@@ -28,15 +28,15 @@ export const generateResourceName = ({
   appId,
   imageName,
   namespaceName,
-  singletoneStrategy,
+  singletonStrategy,
 }: {
   appId: string
   namespaceName: string
   imageName: string
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
 }): { resourceName: string; resourceScope: string } => {
-  switch (singletoneStrategy) {
-    case SingletoneStrategy.many: {
+  switch (singletonStrategy) {
+    case SingletonStrategy.many: {
       const resourceScope = `${chance()
         .letter()
         .toLocaleLowerCase()}${chance()
@@ -51,7 +51,7 @@ export const generateResourceName = ({
         resourceScope,
       }
     }
-    case SingletoneStrategy.namespace: {
+    case SingletonStrategy.namespace: {
       const resourceScope = `${namespaceName}-${appId}`
       return {
         resourceName: generateString({
@@ -61,7 +61,7 @@ export const generateResourceName = ({
         resourceScope,
       }
     }
-    case SingletoneStrategy.appId: {
+    case SingletonStrategy.appId: {
       const resourceScope = appId
       return {
         resourceName: generateString({
@@ -78,7 +78,7 @@ export async function createResource<Resource extends K8sResource>(options: {
   appId: string
   namespaceName: string
   imageName: string
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
   create: (
     resourceName: string,
     labels: Labels,
@@ -93,7 +93,7 @@ export async function createResource<Resource extends K8sResource>(options: {
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
-    singletoneStrategy: options.singletoneStrategy,
+    singletonStrategy: options.singletonStrategy,
   })
   try {
     await options.create(
@@ -102,13 +102,13 @@ export async function createResource<Resource extends K8sResource>(options: {
         appId: options.appId,
         imageName: options.imageName,
         resourceScope: resourceScope,
-        singletoneStrategy: options.singletoneStrategy,
+        singletonStrategy: options.singletonStrategy,
       }),
     )
   } catch (error) {
     return {
       resource: await shouldIgnoreAlreadyExistError({
-        singletoneStrategy: options.singletoneStrategy,
+        singletonStrategy: options.singletonStrategy,
         findResource: () => options.find(resourceName),
         error,
       }),
@@ -126,26 +126,26 @@ export function isResourceAlreadyExistError(error: any): boolean {
 }
 
 export async function shouldIgnoreAlreadyExistError<Resource extends K8sResource>({
-  singletoneStrategy,
+  singletonStrategy,
   findResource,
   error,
 }: {
-  singletoneStrategy: SingletoneStrategy
+  singletonStrategy: SingletonStrategy
   findResource: () => Promise<Resource>
   error: any
 }): Promise<Resource> {
   if (isResourceAlreadyExistError(error)) {
-    if (singletoneStrategy === SingletoneStrategy.many) {
+    if (singletonStrategy === SingletonStrategy.many) {
       throw new Error(
         'there is a bug in the code. we should be here: it looks like we generated 2 resources names with the same random-identifier. wierd.',
       )
     } else {
       const resource = await findResource()
-      if (resource.metadata?.labels?.['singletone-strategy'] === singletoneStrategy) {
+      if (resource.metadata?.labels?.['singletone-strategy'] === singletonStrategy) {
         return resource
       } else {
         throw new Error(
-          `there is a bug in the code. we should be here: it looks like we created a resource with "SingletoneStrategy.namespace" but its label tells us it has a different SingletoneStrategy: ${resource.metadata?.labels?.['singletone-strategy']}`,
+          `there is a bug in the code. we should be here: it looks like we created a resource with "SingletonStrategy.namespace" but its label tells us it has a different SingletonStrategy: ${resource.metadata?.labels?.['singletone-strategy']}`,
         )
       }
     }

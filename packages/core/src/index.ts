@@ -1,6 +1,6 @@
 import chance from 'chance'
 import {
-  createeK8sClient,
+  createK8sClient,
   createNamespaceIfNotExist,
   unsubscribeFromImage,
   subscribeToImage,
@@ -10,7 +10,7 @@ import {
   Namespace,
   SubscribeCreator as BaseSubscribe,
   SubscribeCreatorOptions,
-  SingletoneStrategy,
+  SingletonStrategy,
   NamespaceStrategy,
 } from './types'
 import { K8sClient } from './k8s-api/types'
@@ -22,14 +22,14 @@ export {
   Subscribe,
   SubscribeCreatorOptions,
   Subscription,
-  SingletoneStrategy,
+  SingletonStrategy,
 } from './types'
 export { timeout } from './utils'
 
 export const baseSubscribe: BaseSubscribe = async options => {
   assertOptions(options)
 
-  const k8sClient = createeK8sClient()
+  const k8sClient = createK8sClient()
 
   const namespaceName = await extractNamespaceName({
     appId: options.appId,
@@ -45,7 +45,7 @@ export const baseSubscribe: BaseSubscribe = async options => {
     containerPortToExpose: options.containerPortToExpose,
     isReadyPredicate: options.isReadyPredicate,
     exposeStrategy: ExposeStrategy.userMachine,
-    singletoneStrategy: options.singletoneStrategy || SingletoneStrategy.many,
+    singletonStrategy: options.singletonStrategy || SingletonStrategy.many,
   })
 
   return {

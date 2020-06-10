@@ -16,7 +16,7 @@ export type Subscription = {
   unsubscribe: () => Promise<void>
 }
 
-export enum SingletoneStrategy {
+export enum SingletonStrategy {
   many = 'many', // (default) multiple instance are allowed
   namespace = 'one-per-namesapce', // one instance per namespace - e.g. k8test-internal-redis
   appId = 'one-per-app-id', // one instance per appId - e.g. user images
@@ -27,7 +27,7 @@ export type SubscribeCreatorOptions = {
   namespace?: Namespace
   ttlMs?: number
   imageName: string
-  singletoneStrategy?: SingletoneStrategy
+  singletonStrategy?: SingletonStrategy
   containerPortToExpose: number
   isReadyPredicate?: (
     deployedImageUrl: string,
@@ -40,5 +40,5 @@ export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Sub
 
 export type Subscribe = (
   imageName: string,
-  options: Pick<SubscribeCreatorOptions, 'singletoneStrategy' | 'containerPortToExpose' | 'ttlMs' | 'isReadyPredicate'>,
+  options: Pick<SubscribeCreatorOptions, 'singletonStrategy' | 'containerPortToExpose' | 'ttlMs' | 'isReadyPredicate'>,
 ) => Promise<Subscription>
