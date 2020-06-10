@@ -1,2 +1,1 @@
-function main() {}
-main()
+console.log('hi')
