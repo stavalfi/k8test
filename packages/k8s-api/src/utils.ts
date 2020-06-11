@@ -3,25 +3,19 @@ import http from 'http'
 import { SingletonStrategy } from './types'
 import { K8sResource, Labels } from './types'
 
-export const generateString = ({ resourceScope, imageName }: { resourceScope: string; imageName: string }) =>
-  `${resourceScope}-${imageName.replace('/', '-')}`
-
 export const generateResourceLabels = ({
   appId,
   singletonStrategy,
   imageName,
-  resourceScope,
 }: {
   appId: string
   imageName: string
   singletonStrategy: SingletonStrategy
-  resourceScope: string
 }) => ({
   k8test: 'true',
   'image-name': imageName,
   'app-id': appId,
   'singleton-strategy': singletonStrategy,
-  'resource-scope': resourceScope,
 })
 
 export const generateResourceName = ({
@@ -34,43 +28,24 @@ export const generateResourceName = ({
   namespaceName: string
   imageName: string
   singletonStrategy: SingletonStrategy
-}): { resourceName: string; resourceScope: string } => {
+}): string => {
+  const validImageName = imageName.replace('/', '-')
+
+  const letter = chance()
+    .letter()
+    .toLocaleLowerCase()
+  const hash = chance()
+    .hash()
+    .toLocaleLowerCase()
+    .slice(0, 5)
+
   switch (singletonStrategy) {
-    case SingletonStrategy.many: {
-      const resourceScope = `${chance()
-        .letter()
-        .toLocaleLowerCase()}${chance()
-        .hash()
-        .toLocaleLowerCase()
-        .slice(0, 5)}-${appId}`
-      return {
-        resourceName: generateString({
-          resourceScope,
-          imageName,
-        }),
-        resourceScope,
-      }
-    }
-    case SingletonStrategy.namespace: {
-      const resourceScope = `${namespaceName}-${appId}`
-      return {
-        resourceName: generateString({
-          resourceScope,
-          imageName,
-        }),
-        resourceScope,
-      }
-    }
-    case SingletonStrategy.appId: {
-      const resourceScope = appId
-      return {
-        resourceName: generateString({
-          resourceScope,
-          imageName,
-        }),
-        resourceScope,
-      }
-    }
+    case SingletonStrategy.oneInCluster:
+      return `${namespaceName}-${validImageName}`
+    case SingletonStrategy.oneInAppId:
+      return `${appId}-${validImageName}`
+    case SingletonStrategy.manyInAppId:
+      return `${letter}${hash}-${appId}-${validImageName}`
   }
 }
 
@@ -89,7 +64,7 @@ export async function createResource<Resource extends K8sResource>(options: {
   find: (resourceName: string) => Promise<Resource>
   waitUntilCreated: (resourceName: string) => Promise<Resource>
 }): Promise<{ resource: Resource; isNewResource: boolean }> {
-  const { resourceName, resourceScope } = generateResourceName({
+  const resourceName = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
@@ -101,7 +76,6 @@ export async function createResource<Resource extends K8sResource>(options: {
       generateResourceLabels({
         appId: options.appId,
         imageName: options.imageName,
-        resourceScope: resourceScope,
         singletonStrategy: options.singletonStrategy,
       }),
     )
@@ -135,7 +109,7 @@ export async function shouldIgnoreAlreadyExistError<Resource extends K8sResource
   error: any
 }): Promise<Resource> {
   if (isResourceAlreadyExistError(error)) {
-    if (singletonStrategy === SingletonStrategy.many) {
+    if (singletonStrategy === SingletonStrategy.manyInAppId) {
       throw new Error(
         'there is a bug in the code. we should not be here: it looks like we generated 2 resources names with the same random-identifier. wierd.',
       )

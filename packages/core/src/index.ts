@@ -1,16 +1,19 @@
-import chance from 'chance'
+import got from 'got'
 import {
   createK8sClient,
   createNamespaceIfNotExist,
+  DeployedImage,
   ExposeStrategy,
+  internalK8testResourcesAppId,
+  k8testNamespaceName,
+  randomAppId,
   SingletonStrategy,
   subscribeToImage,
-  unsubscribeFromImage,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 
-export { deleteNamespaceIfExist } from 'k8s-api'
-export { SingletonStrategy, SubscribeCreatorOptions, Subscription } from './types'
+export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
+export { SubscribeCreatorOptions, Subscription } from './types'
 
 export const subscribe: Subscribe = async options => {
   assertOptions(options)
@@ -19,27 +22,65 @@ export const subscribe: Subscribe = async options => {
 
   const k8sClient = createK8sClient()
 
-  const namespaceName =
-    options.singletonStrategy === SingletonStrategy.namespace ? k8testNamespaceName() : randomNamespaceName(appId)
+  const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
 
-  await createNamespaceIfNotExist({
-    appId,
+  const namespaceName = k8testNamespaceName()
+
+  await Promise.all(
+    [
+      createNamespaceIfNotExist({
+        appId,
+        k8sClient,
+        namespaceName,
+      }),
+    ].concat(
+      namespaceName !== k8testNamespaceName()
+        ? [
+            createNamespaceIfNotExist({
+              appId,
+              k8sClient,
+              namespaceName: k8testNamespaceName(),
+            }),
+          ]
+        : [],
+    ),
+  )
+
+  const monitoringDeployedImage = await subscribeToImage({
+    appId: internalK8testResourcesAppId(),
     k8sClient,
-    namespaceName,
-  })
-
-  const singletonStrategy = options.singletonStrategy || SingletonStrategy.many
-
-  const deployedImage = await subscribeToImage({
-    appId,
-    k8sClient,
-    namespaceName,
-    imageName: options.imageName,
-    containerPortToExpose: options.containerPortToExpose,
-    isReadyPredicate: options.isReadyPredicate,
+    namespaceName: k8testNamespaceName(),
+    imageName: 'k8test-monitoring',
+    containerPortToExpose: 80,
     exposeStrategy: ExposeStrategy.userMachine,
-    singletonStrategy,
+    singletonStrategy: SingletonStrategy.oneInCluster,
   })
+
+  const { body: deployedImage } = await got.get<DeployedImage>(
+    `${monitoringDeployedImage.deployedImageUrl}/subscribe`,
+    {
+      json: {
+        appId,
+        k8sClient,
+        namespaceName,
+        imageName: options.imageName,
+        containerPortToExpose: options.containerPortToExpose,
+        exposeStrategy: ExposeStrategy.userMachine,
+        singletonStrategy,
+      },
+    },
+  )
+
+  const { isReadyPredicate } = options
+  if (isReadyPredicate) {
+    await waitUntilReady(() =>
+      isReadyPredicate(
+        deployedImage.deployedImageUrl,
+        deployedImage.deployedImageAddress,
+        deployedImage.deployedImagePort,
+      ),
+    )
+  }
 
   return {
     deploymentName: deployedImage.deploymentName,
@@ -48,25 +89,32 @@ export const subscribe: Subscribe = async options => {
     deployedImageAddress: deployedImage.deployedImageAddress,
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () =>
-      unsubscribeFromImage({
-        k8sClient,
-        namespaceName,
-        singletonStrategy,
-        deploymentName: deployedImage.deploymentName,
-        serviceName: deployedImage.serviceName,
-        deployedImageUrl: deployedImage.deployedImageUrl,
-      }),
+      got
+        .get(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
+          json: {
+            k8sClient,
+            namespaceName,
+            singletonStrategy,
+            deploymentName: deployedImage.deploymentName,
+            serviceName: deployedImage.serviceName,
+            deployedImageUrl: deployedImage.deployedImageUrl,
+          },
+        })
+        .then(() => {}),
   }
 }
 
-export const randomAppId = () =>
-  `app-id-${chance()
-    .hash()
-    .slice(0, 10)}`
-
-export const k8testNamespaceName = () => `k8test`
-
-export const randomNamespaceName = (appId: string) => `k8test-${appId}`
+async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      await isReadyPredicate()
+      return
+    } catch (e) {
+      await new Promise(res => setTimeout(res, 1000))
+    }
+  }
+}
 
 function assertOptions(options: SubscribeCreatorOptions): void {
   if (options.appId && options.appId.length !== randomAppId().length) {

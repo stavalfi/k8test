@@ -4,7 +4,7 @@ import { SingletonStrategy } from './types'
 import { ExposeStrategy, K8sClient } from './types'
 import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
-
+import { Address4 } from 'ip-address'
 export async function createService(options: {
   appId: string
   k8sClient: K8sClient
@@ -31,7 +31,9 @@ export async function createService(options: {
           selector: resourceLabels,
           ports: [
             {
-              port: options.podPortToExpose,
+              // docs: https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
+              port: options.podPortToExpose, // other pods on the cluster can access to this service using this port and this service will direct the request to the relevant pods
+              targetPort: Object(options.podPortToExpose), // this service will forward requests to pods in this port. those ports are expected to expose this port
             },
           ],
         },
@@ -71,7 +73,29 @@ export async function deleteService(options: { k8sClient: K8sClient; namespaceNa
   return response
 }
 
-// get the port on the user machine that is pointing to the container port
+export async function deleteAllTempServices(options: { k8sClient: K8sClient; namespaceName: string }) {
+  const services = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
+  await Promise.all(
+    services.body.items
+      .filter(service => {
+        const singletonStrategy = service.metadata?.labels?.['singleton-strategy']
+        switch (singletonStrategy) {
+          case SingletonStrategy.oneInCluster:
+            return false
+          case SingletonStrategy.manyInAppId:
+          case SingletonStrategy.oneInAppId:
+            return true
+          default:
+            return true
+        }
+      })
+      .map(service => service.metadata?.name || '')
+      .map(serviceName =>
+        deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),
+      ),
+  )
+}
+
 export type GetDeployedImagePort = (
   serviceName: string,
   options: {
@@ -114,9 +138,45 @@ export const getDeployedImagePort: GetDeployedImagePort = async (serviceName, op
       return nodePort
     }
     case ExposeStrategy.insideCluster: {
-      throw new Error(`enum not supported: ${options.exposeStrategy}`)
+      const port = ports[0].port
+      if (!port) {
+        throw new Error(`could not find a the port in the service. port instance: ${JSON.stringify(ports[0], null, 2)}`)
+      }
+      return port
     }
     default:
       throw new Error(`enum not supported: ${options.exposeStrategy}`)
   }
+}
+
+export type GetServiceAddress = (
+  serviceName: string,
+  options: {
+    k8sClient: K8sClient
+    namespaceName: string
+  },
+) => Promise<string>
+
+export const getServiceIp: GetServiceAddress = async (serviceName, options) => {
+  const response = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
+  const service = response.body.items.find(service => service.metadata?.name === serviceName)
+  if (!service) {
+    throw new Error(
+      `could not find a specific service to extract the node-port from him. the response contains the following services: ${JSON.stringify(
+        response.body.items,
+        null,
+        2,
+      )}`,
+    )
+  }
+  const serviceIp = service.spec?.clusterIP
+  if (!serviceIp) {
+    throw new Error(`could not find a the service ip. service: ${JSON.stringify(service, null, 2)}`)
+  }
+  if (!new Address4(serviceIp).isValid()) {
+    throw new Error(
+      `service does not have ip that is exposed inside the cluster. service-ip: ${JSON.stringify(serviceIp, null, 2)}`,
+    )
+  }
+  return serviceIp
 }

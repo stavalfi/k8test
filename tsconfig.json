@@ -15,7 +15,7 @@
     "baseUrl": "packages",
     "paths": {
       "k8test": ["core/src/index.ts"],
-      "monitoring-service": ["monitoring-service/src/index.ts"],
+      "k8test-monitoring": ["k8test-monitoring/src/index.ts"],
       "k8s-api": ["k8s-api/src/index.ts"]
     }
   }

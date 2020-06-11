@@ -155,3 +155,26 @@ export async function deleteDeployment(options: {
   ])
   return response
 }
+
+export async function deleteAllTempDeployments(options: { k8sClient: K8sClient; namespaceName: string }) {
+  const deployments = await options.k8sClient.appsApiClient.listNamespacedDeployment(options.namespaceName)
+  await Promise.all(
+    deployments.body.items
+      .filter(deployment => {
+        const singletonStrategy = deployment.metadata?.labels?.['singleton-strategy']
+        switch (singletonStrategy) {
+          case SingletonStrategy.oneInCluster:
+            return false
+          case SingletonStrategy.manyInAppId:
+          case SingletonStrategy.oneInAppId:
+            return true
+          default:
+            return true
+        }
+      })
+      .map(deployment => deployment.metadata?.name || '')
+      .map(deploymentName =>
+        deleteDeployment({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, deploymentName }),
+      ),
+  )
+}

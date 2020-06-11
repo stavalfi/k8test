@@ -1,12 +1,13 @@
 import { SingletonStrategy } from './types'
-import { addSubscriptionsLabel, createDeployment, deleteDeployment } from './deployment'
-import { createService, deleteService, getDeployedImagePort } from './service'
+import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTempDeployments } from './deployment'
+import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
+import chance from 'chance'
 
 export { createK8sClient } from './k8s-client'
-export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
+export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
-export { ExposeStrategy, SingletonStrategy } from './types'
+export { ExposeStrategy, SingletonStrategy, K8sClient } from './types'
 
 export type DeployedImage = {
   deploymentName: string
@@ -16,7 +17,7 @@ export type DeployedImage = {
   deployedImagePort: number
 }
 
-export async function subscribeToImage(options: {
+export type SubscribeToImageOptions = {
   appId: string
   k8sClient: K8sClient
   namespaceName: string
@@ -24,12 +25,9 @@ export async function subscribeToImage(options: {
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
-  isReadyPredicate?: (
-    deployedImageUrl: string,
-    deployedImageAddress: string,
-    deployedImagePort: number,
-  ) => Promise<void>
-}): Promise<DeployedImage> {
+}
+
+export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
   const serviceResult = await createService({
     appId: options.appId,
     k8sClient: options.k8sClient,
@@ -81,37 +79,18 @@ export async function subscribeToImage(options: {
     })
   }
 
-  const deployedImageUrl = await getDeployedImageUrl({
-    k8sClient: options.k8sClient,
-    namespaceName: options.namespaceName,
-    serviceName,
-    exposeStrategy: options.exposeStrategy,
-  })
-  const deployedImageAddress = await getMasterAddress({
-    k8sClient: options.k8sClient,
-  })
-  const deployedImagePort = await getDeployedImagePort(serviceName, {
-    k8sClient: options.k8sClient,
-    namespaceName: options.namespaceName,
-    exposeStrategy: options.exposeStrategy,
-  })
+  const [deployedImageAddress, deployedImagePort] = await Promise.all([
+    options.exposeStrategy === ExposeStrategy.userMachine
+      ? getMasterIp({ k8sClient: options.k8sClient })
+      : getServiceIp(serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
+    getDeployedImagePort(serviceName, {
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      exposeStrategy: options.exposeStrategy,
+    }),
+  ])
 
-  async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        await isReadyPredicate()
-        return
-      } catch (e) {
-        await new Promise(res => setTimeout(res, 1000))
-      }
-    }
-  }
-
-  const { isReadyPredicate } = options
-  if (isReadyPredicate) {
-    await waitUntilReady(() => isReadyPredicate(deployedImageUrl, deployedImageAddress, deployedImagePort))
-  }
+  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
 
   return {
     serviceName,
@@ -122,15 +101,17 @@ export async function subscribeToImage(options: {
   }
 }
 
-export async function unsubscribeFromImage(options: {
+export type UnsubscribeFromImageOptions = {
   k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
   serviceName: string
   deployedImageUrl: string
   singletonStrategy: SingletonStrategy
-}): Promise<void> {
-  if ([SingletonStrategy.appId, SingletonStrategy.many].includes(options.singletonStrategy)) {
+}
+
+export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions): Promise<void> {
+  if ([SingletonStrategy.oneInAppId, SingletonStrategy.manyInAppId].includes(options.singletonStrategy)) {
     const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
       k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
@@ -153,28 +134,16 @@ export async function unsubscribeFromImage(options: {
   }
 }
 
-export type GetDeployedImageUrl = (options: {
-  k8sClient: K8sClient
-  namespaceName: string
-  serviceName: string
-  exposeStrategy: ExposeStrategy
-}) => Promise<string>
+export const randomAppId = () =>
+  `app-id-${chance()
+    .hash()
+    .slice(0, 10)}`
 
-export const getDeployedImageUrl: GetDeployedImageUrl = async options => {
-  const [address, port] = await Promise.all([
-    getMasterAddress({ k8sClient: options.k8sClient }),
-    getDeployedImagePort(options.serviceName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      exposeStrategy: options.exposeStrategy,
-    }),
-  ])
-  return `http://${address}:${port}`
-}
+export const internalK8testResourcesAppId = () => 'app-id-internal-k8test-resources'
 
 export type GetMasterAddress = (options: { k8sClient: K8sClient }) => Promise<string>
 
-export const getMasterAddress: GetMasterAddress = async options => {
+export const getMasterIp: GetMasterAddress = async options => {
   const response = await options.k8sClient.apiClient.listNode(
     undefined,
     false,
@@ -191,4 +160,15 @@ export const getMasterAddress: GetMasterAddress = async options => {
     throw new Error(`could not find the address of the master node. master node: ${JSON.stringify(items[0], null, 0)}`)
   }
   return result.address
+}
+
+export async function deleteAllTempResources({
+  k8sClient,
+  namespaceName,
+}: {
+  k8sClient: K8sClient
+  namespaceName: string
+}) {
+  await deleteAllTempServices({ k8sClient, namespaceName })
+  await deleteAllTempDeployments({ k8sClient, namespaceName })
 }

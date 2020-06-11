@@ -50,7 +50,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -67,7 +67,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -88,7 +88,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.namespace,
+        singletonStrategy: SingletonStrategy.oneInCluster,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -105,7 +105,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.namespace,
+        singletonStrategy: SingletonStrategy.oneInCluster,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -125,7 +125,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -133,7 +133,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(() => subscription2.unsubscribe())
@@ -156,7 +156,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -164,7 +164,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -189,7 +189,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.many,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -206,7 +206,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.appId,
+        singletonStrategy: SingletonStrategy.manyInAppId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription2.unsubscribe)
@@ -223,7 +223,7 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        singletonStrategy: SingletonStrategy.namespace,
+        singletonStrategy: SingletonStrategy.oneInCluster,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription3.unsubscribe)

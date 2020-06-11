@@ -15,7 +15,7 @@
       "path": "packages/k8s-api/tsconfig-build.json"
     },
     {
-      "path": "packages/monitoring-service/tsconfig-build.json"
+      "path": "packages/monitoring/tsconfig-build.json"
     }
   ]
 }

@@ -8,16 +8,17 @@
     "__tests__",
     "dist"
   ],
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
     "test": "jest",
-    "prepublish": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
+    "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "chance": "^1.1.5",
+    "got": "^11.3.0",
     "k8s-api": "^1.0.0"
   }
 }
