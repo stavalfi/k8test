@@ -1,4 +1,4 @@
-import { subscribe, NamespaceStrategy, randomAppId } from '../src'
+import { randomAppId, subscribe } from '../src'
 import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
 describe('test ttl option', () => {
@@ -12,9 +12,6 @@ describe('test ttl option', () => {
       imageName: 'redis',
       containerPortToExpose: 6379,
       appId: randomAppId(),
-      namespace: {
-        namespaceStrategy: NamespaceStrategy.k8test,
-      },
       isReadyPredicate: isRedisReadyPredicate,
     })
     cleanups.push(unsubscribe)

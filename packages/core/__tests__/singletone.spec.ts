@@ -1,4 +1,4 @@
-import { subscribe, NamespaceStrategy, randomAppId, SingletonStrategy } from '../src'
+import { subscribe, randomAppId, SingletonStrategy } from '../src'
 import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
 describe('test singleton option', () => {
@@ -12,9 +12,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -31,9 +28,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         isReadyPredicate: isRedisReadyPredicate,
       })
 
@@ -56,9 +50,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -76,9 +67,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -100,9 +88,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -120,9 +105,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -143,9 +125,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -154,9 +133,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -180,9 +156,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -191,9 +164,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -219,9 +189,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.many,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -239,9 +206,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -259,9 +223,6 @@ describe('test singleton option', () => {
         imageName: 'redis',
         containerPortToExpose: 6379,
         appId,
-        namespace: {
-          namespaceStrategy: NamespaceStrategy.k8test,
-        },
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })

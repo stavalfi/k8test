@@ -57,7 +57,7 @@ module.exports = {
 import Redis from 'ioredis'
 import { Subscription } from 'k8test'
 import { subscribe } from './utils'
-import { subscribe, NamespaceStrategy, Subscribe } from 'k8test'
+import { subscribe, Subscribe } from 'k8test'
 
 describe('simple use-case', () => {
   let exposedRedisInfo: Subscription
@@ -66,11 +66,7 @@ describe('simple use-case', () => {
     exposedRedisInfo = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,
-      namespace: {
-        namespaceStrategy: NamespaceStrategy.k8test,
-      },
     })
-
   })
 
   afterEach(async () => {
@@ -92,15 +88,12 @@ describe('simple use-case', () => {
 ## Api
 
 ```typescript
-import { subscribe, NamespaceStrategy, Subscribe } from 'k8test'
+import { subscribe, Subscribe } from 'k8test'
 
 await subscribe('redis', {
   imageName: 'redis',
   containerPortToExpose: 6379,
   appId: 'your APP_ID',
-  namespace: {
-      namespaceStrategy: NamespaceStrategy.k8test,
-  },
   isReadyPredicate: (url, host, port) => {
     const redis = new Redis({
       host,
@@ -126,9 +119,9 @@ await subscribe('redis', {
 
 > How do I manually remove all the tests resources?
 
-Depends on the namespace you chose to deploy all the tests resources to. it's its `k8test` namespace: `kubectl delete namesapce k8test`. That easy.
+Depends on the namespace you chose to deploy all the tests resources to. it's its `k8test` namespace: `kubectl delete namespace k8test`. That easy.
 
-If it's a custom namesapce (or default), you will need to search for all the resources with the label `k8test=true` and delete them.
+If it's a custom namespace (or default), you will need to search for all the resources with the label `k8test=true` and delete them.
 
 ## Core Team
 

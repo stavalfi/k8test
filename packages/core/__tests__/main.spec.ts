@@ -1,4 +1,4 @@
-import { subscribe, NamespaceStrategy, randomAppId } from '../src'
+import { subscribe, randomAppId } from '../src'
 import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
 describe('reach endpoints in the cluster', () => {
@@ -9,9 +9,6 @@ describe('reach endpoints in the cluster', () => {
       imageName: 'redis',
       containerPortToExpose: 6379,
       appId: randomAppId(),
-      namespace: {
-        namespaceStrategy: NamespaceStrategy.k8test,
-      },
       isReadyPredicate: isRedisReadyPredicate,
     })
 
@@ -31,9 +28,6 @@ describe('reach endpoints in the cluster', () => {
       imageName: 'redis',
       containerPortToExpose: 6379,
       appId: randomAppId(),
-      namespace: {
-        namespaceStrategy: NamespaceStrategy.k8test,
-      },
       isReadyPredicate: isRedisReadyPredicate,
     })
 

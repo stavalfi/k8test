@@ -1,14 +1,3 @@
-export enum NamespaceStrategy {
-  default = 'default',
-  k8test = 'k8test',
-  custom = 'custom',
-}
-
-export type Namespace =
-  | { namespaceStrategy: NamespaceStrategy.default }
-  | { namespaceStrategy: NamespaceStrategy.k8test }
-  | { namespaceStrategy: NamespaceStrategy.custom; namespaceName: string }
-
 export type Subscription = {
   deployedImageUrl: string
   deployedImageAddress: string
@@ -24,7 +13,6 @@ export enum SingletonStrategy {
 
 export type SubscribeCreatorOptions = {
   appId?: string
-  namespace?: Namespace
   ttlMs?: number
   imageName: string
   singletonStrategy?: SingletonStrategy
