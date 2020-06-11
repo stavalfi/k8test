@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
-import { SingletonStrategy } from '../types'
+import { SingletonStrategy } from './types'
 import { ExposeStrategy, K8sClient } from './types'
 import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'

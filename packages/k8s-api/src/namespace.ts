@@ -3,7 +3,6 @@ import { isResourceAlreadyExistError } from './utils'
 import { waitUntilNamespaceCreated, waitUntilNamespaceDeleted } from './watch-resources'
 import { K8sClient } from './types'
 
-// synchromized operation to create a new namespace in k8s
 export async function createNamespaceIfNotExist(options: {
   appId: string
   k8sClient: K8sClient

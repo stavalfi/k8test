@@ -1,4 +1,4 @@
-import { SingletonStrategy } from '../types'
+import { SingletonStrategy } from './types'
 import { addSubscriptionsLabel, createDeployment, deleteDeployment } from './deployment'
 import { createService, deleteService, getDeployedImagePort } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
@@ -6,7 +6,7 @@ import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist } from './namespace'
 export { getDeployedImagePort } from './service'
-export { ExposeStrategy } from './types'
+export { ExposeStrategy, SingletonStrategy } from './types'
 
 export type DeployedImage = {
   deploymentName: string

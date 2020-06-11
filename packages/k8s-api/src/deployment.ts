@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node'
-import { SingletonStrategy } from '../types'
+import { SingletonStrategy } from './types'
 import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'

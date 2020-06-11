@@ -1,6 +1,6 @@
 import chance from 'chance'
 import http from 'http'
-import { SingletonStrategy } from '../types'
+import { SingletonStrategy } from './types'
 import { K8sResource, Labels } from './types'
 
 export const generateString = ({ resourceScope, imageName }: { resourceScope: string; imageName: string }) =>
@@ -20,8 +20,8 @@ export const generateResourceLabels = ({
   k8test: 'true',
   'image-name': imageName,
   'app-id': appId,
-  'singletone-strategy': singletonStrategy,
-  'resourse-scope': resourceScope,
+  'singleton-strategy': singletonStrategy,
+  'resource-scope': resourceScope,
 })
 
 export const generateResourceName = ({
@@ -137,19 +137,37 @@ export async function shouldIgnoreAlreadyExistError<Resource extends K8sResource
   if (isResourceAlreadyExistError(error)) {
     if (singletonStrategy === SingletonStrategy.many) {
       throw new Error(
-        'there is a bug in the code. we should be here: it looks like we generated 2 resources names with the same random-identifier. wierd.',
+        'there is a bug in the code. we should not be here: it looks like we generated 2 resources names with the same random-identifier. wierd.',
       )
     } else {
       const resource = await findResource()
-      if (resource.metadata?.labels?.['singletone-strategy'] === singletonStrategy) {
+      if (resource.metadata?.labels?.['singleton-strategy'] === singletonStrategy) {
         return resource
       } else {
         throw new Error(
-          `there is a bug in the code. we should be here: it looks like we created a resource with "SingletonStrategy.namespace" but its label tells us it has a different SingletonStrategy: ${resource.metadata?.labels?.['singletone-strategy']}`,
+          `there is a bug in the code. we should not be here: it looks like we created a resource with "SingletonStrategy.namespace" but its label tells us it has a different SingletonStrategy: ${resource.metadata?.labels?.['singleton-strategy']}`,
         )
       }
     }
   } else {
     throw error
   }
+}
+
+// improved promise-based timeout to ensure that if there was no timeout,
+// the event loop will be drained so the program will exit and won't be holded until the timeout finish.
+export async function timeout<T>(promise1: Promise<T>, timeoutMs: number) {
+  let timeoutId: NodeJS.Timeout
+  let res: () => void
+  await Promise.race([promise1, new Promise((res, rej) => (timeoutId = setTimeout(() => rej(`timeout`), timeoutMs)))])
+  // @ts-ignore
+  if (timeoutId) {
+    clearTimeout(timeoutId)
+  }
+  // @ts-ignore
+  if (res) {
+    res()
+  }
+  // If there is timeout, I won't come here
+  return promise1
 }

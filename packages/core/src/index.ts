@@ -3,14 +3,14 @@ import {
   createK8sClient,
   createNamespaceIfNotExist,
   ExposeStrategy,
+  SingletonStrategy,
   subscribeToImage,
   unsubscribeFromImage,
-} from './k8s-api'
-import { SingletonStrategy, SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
+} from 'k8s-api'
+import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 
-export { deleteNamespaceIfExist } from './k8s-api'
+export { deleteNamespaceIfExist } from 'k8s-api'
 export { SingletonStrategy, SubscribeCreatorOptions, Subscription } from './types'
-export { timeout } from './utils'
 
 export const subscribe: Subscribe = async options => {
   assertOptions(options)

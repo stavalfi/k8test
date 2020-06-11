@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node'
-import { timeout } from '../utils'
+import { timeout } from './utils'
 import _omit from 'lodash/omit'
 import { K8sClient, K8sResource } from './types'
 
@@ -13,7 +13,7 @@ export const waitUntilNamespaceCreated = (namespaceName: string, options: { k8sC
   waitForResource<k8s.V1Namespace>({
     k8sClient: options.k8sClient,
     api: `/api/v1/namespaces`,
-    resouceName: namespaceName,
+    resourceName: namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
 
@@ -21,7 +21,7 @@ export const waitUntilNamespaceDeleted = (namespaceName: string, options: { k8sC
   waitForResource<k8s.V1Namespace>({
     k8sClient: options.k8sClient,
     api: `/api/v1/namespaces`,
-    resouceName: namespaceName,
+    resourceName: namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
   })
 
@@ -32,7 +32,7 @@ export const waitUntilDeploymentReady = (
   waitForResource<k8s.V1Deployment>({
     k8sClient: options.k8sClient,
     api: `/apis/apps/v1/namespaces/${options.namespaceName}/deployments`,
-    resouceName: deploymentName,
+    resourceName: deploymentName,
     namespaceName: options.namespaceName,
     predicate: (resourceEventType, deployment) =>
       (resourceEventType === ResourceEventType.resourceAdded ||
@@ -49,7 +49,7 @@ export const waitUntilDeploymentDeleted = (
   waitForResource<k8s.V1Deployment>({
     k8sClient: options.k8sClient,
     api: `/apis/apps/v1/namespaces/${options.namespaceName}/deployments`,
-    resouceName: deploymentName,
+    resourceName: deploymentName,
     namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
   })
@@ -61,7 +61,7 @@ export const waitUntilServiceCreated = (
   waitForResource<k8s.V1Service>({
     k8sClient: options.k8sClient,
     api: `/api/v1/namespaces/${options.namespaceName}/services`,
-    resouceName: serviceName,
+    resourceName: serviceName,
     namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
@@ -73,7 +73,7 @@ export const waitUntilServiceDeleted = (
   waitForResource<k8s.V1Service>({
     k8sClient: options.k8sClient,
     api: `/api/v1/namespaces/${options.namespaceName}/services`,
-    resouceName: serviceName,
+    resourceName: serviceName,
     namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
   })
@@ -81,7 +81,7 @@ export const waitUntilServiceDeleted = (
 async function waitForResource<Resource extends K8sResource>(options: {
   k8sClient: K8sClient
   api: string
-  resouceName: string
+  resourceName: string
   debug?: boolean
   namespaceName?: string
   predicate: (resourceEventType: ResourceEventType, resource: Resource) => boolean
@@ -102,7 +102,7 @@ async function waitForResource<Resource extends K8sResource>(options: {
             }
             if (
               (!('namespaceName' in options) || options.namespaceName === resource.metadata?.namespace) &&
-              resource.metadata?.name === options.resouceName
+              resource.metadata?.name === options.resourceName
             ) {
               if (options.predicate(type as ResourceEventType, resource)) {
                 return res(resource)
