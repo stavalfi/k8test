@@ -1,5 +1,5 @@
-import { baseSubscribe, randomAppId, Subscribe } from '../src'
-import { cleanupAfterEach, redisClient, isRedisReadyPredicate } from './utils'
+import { randomAppId, subscribe } from '../src'
+import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
 describe('test ttl option', () => {
   let cleanups = cleanupAfterEach()
@@ -8,16 +8,10 @@ describe('test ttl option', () => {
     const ttlMs = 2000
     const delay = 1000
 
-    const subscribe: Subscribe = (imageName, options) =>
-      baseSubscribe({
-        ...options,
-        imageName,
-        appId: randomAppId(),
-        ttlMs,
-      })
-
-    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
+      imageName: 'redis',
       containerPortToExpose: 6379,
+      appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
     })
     cleanups.push(unsubscribe)

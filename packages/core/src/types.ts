@@ -1,14 +1,3 @@
-export enum NamespaceStrategy {
-  default = 'default',
-  k8test = 'k8test',
-  custom = 'custom',
-}
-
-export type Namespace =
-  | { namespaceStrategy: NamespaceStrategy.default }
-  | { namespaceStrategy: NamespaceStrategy.k8test }
-  | { namespaceStrategy: NamespaceStrategy.custom; namespaceName: string }
-
 export type Subscription = {
   deployedImageUrl: string
   deployedImageAddress: string
@@ -17,14 +6,13 @@ export type Subscription = {
 }
 
 export enum SingletonStrategy {
-  many = 'many', // (default) multiple instance are allowed
-  namespace = 'one-per-namesapce', // one instance per namespace - e.g. k8test-internal-redis
+  many = 'many-per-app-id', // (default) always new container
+  namespace = 'one-per-namespace', // one instance per namespace - e.g. k8test-internal-redis
   appId = 'one-per-app-id', // one instance per appId - e.g. user images
 }
 
 export type SubscribeCreatorOptions = {
-  appId: string
-  namespace?: Namespace
+  appId?: string
   ttlMs?: number
   imageName: string
   singletonStrategy?: SingletonStrategy
@@ -37,8 +25,3 @@ export type SubscribeCreatorOptions = {
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>
-
-export type Subscribe = (
-  imageName: string,
-  options: Pick<SubscribeCreatorOptions, 'singletonStrategy' | 'containerPortToExpose' | 'ttlMs' | 'isReadyPredicate'>,
-) => Promise<Subscription>

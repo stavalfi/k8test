@@ -1,21 +1,24 @@
 import Redis from 'ioredis'
-import { Subscription, SingletonStrategy } from 'k8test'
-import { isRedisReadyPredicate, subscribe } from './utils'
+import { SingletonStrategy, subscribe, Subscription } from 'k8test'
+import { isRedisReadyPredicate } from './utils'
 
 describe('simple use-case', () => {
   let redis: Redis.Redis
   let exposedRedisInfo: Subscription
 
   beforeEach(async () => {
-    exposedRedisInfo = await subscribe('redis', {
+    exposedRedisInfo = await subscribe({
+      imageName: 'redis',
       containerPortToExpose: 6379,
       isReadyPredicate: isRedisReadyPredicate,
       singletonStrategy: SingletonStrategy.appId,
       ttlMs: 100_000_000,
     })
+
     redis = new Redis({
       host: exposedRedisInfo.deployedImageAddress, // this is the minikube cluster address on your machine
       port: exposedRedisInfo.deployedImagePort, // this can be any available port on your machine
+      connectTimeout: 1000,
     })
   })
 

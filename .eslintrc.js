@@ -9,7 +9,9 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'json', 'prettier', 'jest', 'spellcheck'],
   extends: ['eslint:recommended', 'plugin:json/recommended', 'prettier', 'plugin:jest/recommended'],
-  globals: {},
+  globals: {
+    globalThis: false, // means it is not writeable
+  },
   rules: {
     'no-process-exit': 'error',
     'no-process-env': 'error',

@@ -1,13 +1,17 @@
-import { subscribe, redisClient, cleanupAfterEach, isRedisReadyPredicate } from './utils'
+import { subscribe, randomAppId } from '../src'
+import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
 describe('reach endpoints in the cluster', () => {
   let cleanups = cleanupAfterEach()
 
   test('endpoint is available while the endpoint has active subscription', async () => {
-    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
+      imageName: 'redis',
       containerPortToExpose: 6379,
+      appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
     })
+
     cleanups.push(unsubscribe)
 
     const redis = redisClient({
@@ -19,9 +23,11 @@ describe('reach endpoints in the cluster', () => {
     await expect(redis.ping()).resolves.toEqual('PONG')
   })
 
-  test('endpoint is not available after unsbscribe', async () => {
-    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe('redis', {
+  test('endpoint is not available after unsubscribe', async () => {
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
+      imageName: 'redis',
       containerPortToExpose: 6379,
+      appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
     })
 

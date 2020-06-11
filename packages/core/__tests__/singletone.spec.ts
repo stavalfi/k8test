@@ -1,16 +1,17 @@
-import { randomAppId, SingletonStrategy } from '../src'
-import { cleanupAfterEach, customSubscribe, redisClient, isRedisReadyPredicate } from './utils'
+import { subscribe, randomAppId, SingletonStrategy } from '../src'
+import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
 
-describe('test singletone option', () => {
+describe('test singleton option', () => {
   let cleanups = cleanupAfterEach()
 
-  describe('all use same singletone option', () => {
-    test('endpoint should be different when we do not use singletone option', async () => {
+  describe('all use same singleton option', () => {
+    test('endpoint should be different when we do not use singleton option', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        singletonStrategy: SingletonStrategy.many,
+        appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(subscription1.unsubscribe)
@@ -23,11 +24,13 @@ describe('test singletone option', () => {
 
       await client1.set('x', '1')
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        singletonStrategy: SingletonStrategy.many,
+        appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
+
       cleanups.push(subscription2.unsubscribe)
 
       const client2 = redisClient({
@@ -43,8 +46,10 @@ describe('test singletone option', () => {
     test('endpoint should be the same when we share instance per app-id', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -58,8 +63,10 @@ describe('test singletone option', () => {
 
       await client1.set('x', '1')
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -77,8 +84,10 @@ describe('test singletone option', () => {
     test('endpoint should be the same when we share instance per namespace', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -92,8 +101,10 @@ describe('test singletone option', () => {
 
       await client1.set('x', '1')
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -107,19 +118,23 @@ describe('test singletone option', () => {
       expect(subscription1.deployedImageUrl).toEqual(subscription2.deployedImageUrl)
       await expect(client2.get('x')).resolves.toEqual('1')
     })
-    test('2 subscriptions and the endpoint is still available after unsbscribe', async () => {
+    test('2 subscriptions and the endpoint is still available after unsubscribe', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        isReadyPredicate: isRedisReadyPredicate,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
+        isReadyPredicate: isRedisReadyPredicate,
       })
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        isReadyPredicate: isRedisReadyPredicate,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
+        isReadyPredicate: isRedisReadyPredicate,
       })
       cleanups.push(() => subscription2.unsubscribe())
 
@@ -137,16 +152,20 @@ describe('test singletone option', () => {
     test('endpoint is not available after all unsubscribed', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        isReadyPredicate: isRedisReadyPredicate,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
+        isReadyPredicate: isRedisReadyPredicate,
       })
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
-        isReadyPredicate: isRedisReadyPredicate,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
+        isReadyPredicate: isRedisReadyPredicate,
       })
 
       await subscription1.unsubscribe()
@@ -162,12 +181,14 @@ describe('test singletone option', () => {
     })
   })
 
-  describe('multiple singletone options', () => {
-    test('endpoint should be different when we do use different singletone options: none,appId,namespace', async () => {
+  describe('multiple singleton options', () => {
+    test('endpoint should be different when we do use different singleton options: none,appId,namespace', async () => {
       const appId = randomAppId()
 
-      const subscription1 = await customSubscribe(appId)('redis', {
+      const subscription1 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.many,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -181,8 +202,10 @@ describe('test singletone option', () => {
 
       await client1.set('x', '1')
 
-      const subscription2 = await customSubscribe(appId)('redis', {
+      const subscription2 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.appId,
         isReadyPredicate: isRedisReadyPredicate,
       })
@@ -196,8 +219,10 @@ describe('test singletone option', () => {
 
       await client2.set('y', '2')
 
-      const subscription3 = await customSubscribe(appId)('redis', {
+      const subscription3 = await subscribe({
+        imageName: 'redis',
         containerPortToExpose: 6379,
+        appId,
         singletonStrategy: SingletonStrategy.namespace,
         isReadyPredicate: isRedisReadyPredicate,
       })

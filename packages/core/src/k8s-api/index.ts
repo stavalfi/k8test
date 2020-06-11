@@ -96,6 +96,18 @@ export async function subscribeToImage(options: {
     exposeStrategy: options.exposeStrategy,
   })
 
+  async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        await isReadyPredicate()
+        return
+      } catch (e) {
+        await new Promise(res => setTimeout(res, 1000))
+      }
+    }
+  }
+
   const { isReadyPredicate } = options
   if (isReadyPredicate) {
     await waitUntilReady(() => isReadyPredicate(deployedImageUrl, deployedImageAddress, deployedImagePort))
@@ -110,43 +122,34 @@ export async function subscribeToImage(options: {
   }
 }
 
-async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    try {
-      await isReadyPredicate()
-      return
-    } catch (e) {
-      await new Promise(res => setTimeout(res, 1000))
-    }
-  }
-}
-
 export async function unsubscribeFromImage(options: {
   k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
   serviceName: string
   deployedImageUrl: string
+  singletonStrategy: SingletonStrategy
 }): Promise<void> {
-  const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
-    k8sClient: options.k8sClient,
-    namespaceName: options.namespaceName,
-    operation: SubscriptionOperation.unsubscribe,
-  })
-  if (updatedBalance === 0) {
-    await deleteService({
+  if ([SingletonStrategy.appId, SingletonStrategy.many].includes(options.singletonStrategy)) {
+    const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
       k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
-      serviceName: options.serviceName,
+      operation: SubscriptionOperation.unsubscribe,
     })
-    await deleteDeployment({
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      deploymentName: options.deploymentName,
-    })
-    // k8s has a delay until the deployment is no-longer accessible.
-    await new Promise(res => setTimeout(res, 3000))
+    if (updatedBalance === 0) {
+      await deleteService({
+        k8sClient: options.k8sClient,
+        namespaceName: options.namespaceName,
+        serviceName: options.serviceName,
+      })
+      await deleteDeployment({
+        k8sClient: options.k8sClient,
+        namespaceName: options.namespaceName,
+        deploymentName: options.deploymentName,
+      })
+      // k8s has a delay until the deployment is no-longer accessible.
+      await new Promise(res => setTimeout(res, 3000))
+    }
   }
 }
 

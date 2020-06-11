@@ -23,10 +23,10 @@ Use all k8s features to deploy and expose images during tests :heavy_check_mark:
 #### Benefits
 
 - Faster tests - deploying an image is slow. k8test deployments added a scope property to the game:
-  - singletone in cluster (a single resource will be available at most in the cluster),
-  - singletone is all tests-run (in the next test run, there will be new deployment)
-  - not a singletone (each subscription will create new deployment)
-- [wip] Monitoring tests resources - you can safly stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
+  - singleton in cluster (a single resource will be available at most in the cluster),
+  - singleton is all tests-run (in the next test run, there will be new deployment)
+  - not a singleton (each subscription will create new deployment)
+- [wip] Monitoring tests resources - you can safely stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
 - There is no need to learn k8s. There are good defaults.
 
 #### No Surprises
@@ -41,35 +41,14 @@ From `packages/example-project`:
 
 ```javascript
 // jest.config.js
+const k8test = require('k8test')
 
 module.exports = {
   globals: {
-    // to make sure you will never use the same deployments from last tests
+    // to differentiate k8s resources between different runs of test-runners
     APP_ID: k8test.randomAppId(),
   },
 })
-```
-
-```typescript
-// __tests__/globals.d.ts
-
-declare const APP_ID: string
-```
-
-```typescript
-// __tests__/utils.ts
-
-import { baseSubscribe, NamespaceStrategy, Subscribe } from 'k8test'
-
-export const subscribe: Subscribe = (imageName, options) =>
-  baseSubscribe({
-    imageName,
-    appId: APP_ID,
-    namespace: {
-      namespaceStrategy: NamespaceStrategy.k8test,
-    },
-    ...options,
-  })
 ```
 
 ```typescript
@@ -78,12 +57,14 @@ export const subscribe: Subscribe = (imageName, options) =>
 import Redis from 'ioredis'
 import { Subscription } from 'k8test'
 import { subscribe } from './utils'
+import { subscribe, Subscribe } from 'k8test'
 
 describe('simple use-case', () => {
   let exposedRedisInfo: Subscription
 
   beforeEach(async () => {
-    exposedRedisInfo = await subscribe('redis', {
+    exposedRedisInfo = await subscribe({
+      imageName: 'redis',
       containerPortToExpose: 6379,
     })
   })
@@ -96,6 +77,7 @@ describe('simple use-case', () => {
     const redis = new Redis({
       host: exposedRedisInfo.deployedImageAddress,
       port: exposedRedisInfo.deployedImagePort,
+      connectTimeout: 1000,
     })
     await expect(redis.ping()).resolves.toEqual('PONG')
     redis.disconnect()
@@ -106,25 +88,18 @@ describe('simple use-case', () => {
 ## Api
 
 ```typescript
-import { baseSubscribe, NamespaceStrategy, Subscribe } from 'k8test'
-
-export const subscribe: Subscribe = (imageName, options) =>
-  baseSubscribe({
-    imageName,
-    appId: APP_ID,
-    namespace: {
-      namespaceStrategy: NamespaceStrategy.k8test,
-    },
-    ...options,
-  })
+import { subscribe, Subscribe } from 'k8test'
 
 await subscribe('redis', {
+  imageName: 'redis',
   containerPortToExpose: 6379,
+  appId: 'your APP_ID',
   isReadyPredicate: (url, host, port) => {
     const redis = new Redis({
       host,
       port,
       lazyConnect: true, // because i will try to connect manually in the next line
+      connectTimeout: 1000,
     })
 
     return redis.connect().finally(() => {
@@ -144,9 +119,9 @@ await subscribe('redis', {
 
 > How do I manually remove all the tests resources?
 
-Depends on the namespace you chose to deploy all the tests resources to. it's its `k8test` namespace: `kubectl delete namesapce k8test`. That easy.
+Depends on the namespace you chose to deploy all the tests resources to. it's its `k8test` namespace: `kubectl delete namespace k8test`. That easy.
 
-If it's a custom namesapce (or default), you will need to search for all the resources with the label `k8test=true` and delete them.
+If it's a custom namespace (or default), you will need to search for all the resources with the label `k8test=true` and delete them.
 
 ## Core Team
 
