@@ -28,6 +28,8 @@ export const subscribe: Subscribe = async options => {
     namespaceName,
   })
 
+  const singletonStrategy = options.singletonStrategy || SingletonStrategy.many
+
   const deployedImage = await subscribeToImage({
     appId,
     k8sClient,
@@ -36,7 +38,7 @@ export const subscribe: Subscribe = async options => {
     containerPortToExpose: options.containerPortToExpose,
     isReadyPredicate: options.isReadyPredicate,
     exposeStrategy: ExposeStrategy.userMachine,
-    singletonStrategy: options.singletonStrategy || SingletonStrategy.many,
+    singletonStrategy,
   })
 
   return {
@@ -49,6 +51,7 @@ export const subscribe: Subscribe = async options => {
       unsubscribeFromImage({
         k8sClient,
         namespaceName,
+        singletonStrategy,
         deploymentName: deployedImage.deploymentName,
         serviceName: deployedImage.serviceName,
         deployedImageUrl: deployedImage.deployedImageUrl,

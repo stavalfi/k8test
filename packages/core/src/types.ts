@@ -6,7 +6,7 @@ export type Subscription = {
 }
 
 export enum SingletonStrategy {
-  many = 'many', // (default) always new container
+  many = 'many-per-app-id', // (default) always new container
   namespace = 'one-per-namespace', // one instance per namespace - e.g. k8test-internal-redis
   appId = 'one-per-app-id', // one instance per appId - e.g. user images
 }
