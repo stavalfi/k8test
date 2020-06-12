@@ -9,10 +9,10 @@ import {
   randomAppId,
   SingletonStrategy,
   subscribeToImage,
+  ConnectFrom,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
-import { setupInternalRedis } from './setup-internal-redis'
 
 export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
@@ -24,7 +24,7 @@ export const subscribe: Subscribe = async options => {
 
   const appId = getAppId(options.appId)
 
-  const k8sClient = createK8sClient()
+  const k8sClient = createK8sClient(ConnectFrom.outsideCluster)
 
   const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
 
@@ -50,16 +50,17 @@ export const subscribe: Subscribe = async options => {
     ),
   )
 
-  await setupInternalRedis(k8sClient)
-
   const monitoringDeployedImage = await subscribeToImage({
     appId: internalK8testResourcesAppId(),
     k8sClient,
     namespaceName: k8testNamespaceName(),
-    imageName: 'k8test-monitoring',
+    imageName: 'stavalfi/k8test-monitoring',
     containerPortToExpose: 80,
     exposeStrategy: ExposeStrategy.userMachine,
     singletonStrategy: SingletonStrategy.oneInCluster,
+    // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
+    // eslint-disable-next-line no-process-env
+    ...(process.env['K8TEST_TEST_MODE'] && { containerOptions: { imagePullPolicy: 'Never' } }),
   })
 
   await waitUntilReady(() =>
@@ -85,6 +86,7 @@ export const subscribe: Subscribe = async options => {
         containerPortToExpose: options.containerPortToExpose,
         exposeStrategy: ExposeStrategy.userMachine,
         singletonStrategy,
+        containerOptions: options.containerOptions,
       },
     },
   )
@@ -150,23 +152,20 @@ function assertOptions(options: SubscribeCreatorOptions): void {
   }
 }
 
-function getAppId(appId?: string): string {
-  const error = new Error(`APP_ID can't be falsy`)
-  if (appId) {
-    return appId
+const getAppId = (appId?: string): string => {
+  const result = [
+    appId,
+    // eslint-disable-next-line no-process-env
+    process.env['APP_ID'],
+    // @ts-ignore
+    this['APP_ID'],
+    // @ts-ignore
+    global['APP_ID'],
+    // @ts-ignore
+    globalThis['APP_ID'],
+  ].find(Boolean)
+  if (result) {
+    return result
   }
-  // eslint-disable-next-line no-process-env
-  const appIdEnv = process.env['APP_ID']
-  if (appIdEnv) {
-    return appIdEnv
-  }
-  if ('APP_ID' in global && global['APP_ID']) {
-    return global['APP_ID']
-  }
-  // @ts-ignore
-  const appIdGlobal = globalThis['APP_ID']
-  if (appIdGlobal) {
-    return appIdGlobal
-  }
-  throw error
+  throw new Error(`APP_ID can't be falsy`)
 }

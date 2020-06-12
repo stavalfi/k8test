@@ -25,3 +25,5 @@ export enum SingletonStrategy {
 }
 
 export type K8sResource = k8s.V1Service | k8s.V1Deployment | k8s.V1beta1CronJob | k8s.V1Namespace
+
+export type ContainerOptions = Omit<k8s.V1Container, 'name' | 'image' | 'ports'>

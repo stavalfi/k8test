@@ -1,4 +1,5 @@
 import { SingletonStrategy } from 'k8s-api'
+import { ContainerOptions } from 'k8s-api/src/types'
 
 export type Subscription = {
   deployedImageUrl: string
@@ -13,6 +14,7 @@ export type SubscribeCreatorOptions = {
   imageName: string
   singletonStrategy?: SingletonStrategy
   containerPortToExpose: number
+  containerOptions?: ContainerOptions
   isReadyPredicate?: (
     deployedImageUrl: string,
     deployedImageAddress: string,

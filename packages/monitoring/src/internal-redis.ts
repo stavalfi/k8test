@@ -1,10 +1,11 @@
 import Redis from 'ioredis'
 import {
-  generateResourceName,
   internalK8testResourcesAppId,
   K8sClient,
   k8testNamespaceName,
   SingletonStrategy,
+  ExposeStrategy,
+  subscribeToImage,
 } from 'k8s-api'
 import Redlock from 'redlock'
 import k8testLog from 'k8test-log'
@@ -43,15 +44,19 @@ const isRedisReadyPredicate = (host: string, port: number) => {
 export type Lock = (lockIdentifier: string) => Promise<{ unlock: () => Promise<void> }>
 
 export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisClient: Redis.Redis; lock: Lock }> {
-  const internalRedisServiceName = generateResourceName({
+  log('setting up redis for k8test internal use inside namespace "%s"', k8testNamespaceName())
+  const redisDeployment = await subscribeToImage({
+    k8sClient,
     appId: internalK8testResourcesAppId(),
-    imageName: 'redis',
     namespaceName: k8testNamespaceName(),
+    imageName: 'redis',
+    containerPortToExpose: 4873,
+    exposeStrategy: ExposeStrategy.insideCluster,
     singletonStrategy: SingletonStrategy.oneInCluster,
   })
 
-  const host = `${internalRedisServiceName}.${k8testNamespaceName()}.svc.cluster.local`
-  const port = 6379
+  const host = redisDeployment.deployedImageAddress
+  const port = redisDeployment.deployedImagePort
 
   await waitUntilReady(() => isRedisReadyPredicate(host, port))
   log('image "%s". is reachable using the url: "%s" from inside the cluster', 'redis', `${host}:${port}`)

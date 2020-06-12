@@ -10,6 +10,7 @@ import {
   SubscribeToImageOptions,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
+  ConnectFrom,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { Lock, setupInternalRedis } from './internal-redis'
@@ -53,6 +54,7 @@ function buildService({
         containerPortToExpose: options.containerPortToExpose,
         exposeStrategy: options.exposeStrategy,
         singletonStrategy: options.singletonStrategy,
+        containerOptions: options.containerOptions,
       })
       res.json(deployedImage)
     }),
@@ -83,7 +85,9 @@ async function main() {
   // eslint-disable-next-line no-console
   process.on('unhandledRejection', e => console.error(e))
 
-  const k8sClient = createK8sClient()
+  log('starting service code...')
+
+  const k8sClient = createK8sClient(ConnectFrom.insideCluster)
 
   await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
 

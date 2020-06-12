@@ -10,6 +10,9 @@ describe('reach endpoints in the cluster', () => {
       containerPortToExpose: 6379,
       appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
+    }).catch(e => {
+      console.log(e)
+      throw e
     })
 
     // cleanups.push(unsubscribe)

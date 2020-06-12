@@ -1,5 +1,5 @@
 import * as k8s from '@kubernetes/client-node'
-import { SingletonStrategy } from './types'
+import { SingletonStrategy, ContainerOptions } from './types'
 import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
@@ -17,6 +17,7 @@ export async function createDeployment(options: {
   containerLabels: Labels
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
+  containerOptions?: ContainerOptions
 }): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
   return createResource({
     appId: options.appId,
@@ -49,6 +50,7 @@ export async function createDeployment(options: {
             spec: {
               containers: [
                 {
+                  ...options.containerOptions,
                   name: generateResourceName({
                     appId: options.appId,
                     imageName: options.imageName,
@@ -56,7 +58,6 @@ export async function createDeployment(options: {
                     singletonStrategy: options.singletonStrategy,
                   }),
                   image: options.imageName,
-                  imagePullPolicy: 'Never',
                   ports: [
                     {
                       containerPort: options.containerPortToExpose,
@@ -68,12 +69,7 @@ export async function createDeployment(options: {
           },
         },
       }),
-    find: resourceName =>
-      findDeployment(resourceName, {
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
-      }),
-    waitUntilCreated: resourceName =>
+    waitUntilReady: resourceName =>
       waitUntilDeploymentReady(resourceName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
@@ -129,20 +125,6 @@ export async function addSubscriptionsLabel(
     .map(([, value]) => value)
     .map(value => (value === SubscriptionOperation.subscribe ? 1 : -1))
     .reduce((acc, value) => acc + value, 0)
-}
-
-async function findDeployment(
-  deploymentName: string,
-  options: {
-    k8sClient: K8sClient
-    namespaceName: string
-  },
-): Promise<k8s.V1Deployment> {
-  const deployment = await options.k8sClient.appsApiClient.readNamespacedDeployment(
-    deploymentName,
-    options.namespaceName,
-  )
-  return deployment.body
 }
 
 export async function deleteDeployment(options: {

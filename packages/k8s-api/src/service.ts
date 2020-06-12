@@ -42,28 +42,12 @@ export async function createService(options: {
           ],
         },
       }),
-    find: resourceName =>
-      findService(resourceName, {
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
-      }),
-    waitUntilCreated: resourceName =>
+    waitUntilReady: resourceName =>
       waitUntilServiceCreated(resourceName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
-}
-
-async function findService(
-  serviceName: string,
-  options: {
-    k8sClient: K8sClient
-    namespaceName: string
-  },
-): Promise<k8s.V1Service> {
-  const service = await options.k8sClient.apiClient.readNamespacedService(serviceName, options.namespaceName)
-  return service.body
 }
 
 export async function deleteService(options: { k8sClient: K8sClient; namespaceName: string; serviceName: string }) {

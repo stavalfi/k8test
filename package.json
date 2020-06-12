@@ -7,9 +7,10 @@
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
+    "pretest": "yarn tsc -b tsconfig-build.json && eval $(minikube docker-env --shell sh) && yarn --cwd packages/monitoring build:docker",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
-    "build": "yarn tsc -b tsconfig-build.json && yarn --cwd packages/monitoring build:docker"
+    "build": "yarn tsc -b tsconfig-build.json"
   },
   "workspaces": [
     "packages/*"
@@ -28,7 +29,7 @@
     "@types/ip-address": "^5.8.2",
     "@types/jest": "^24.0.0",
     "@types/lodash": "^4.14.149",
-    "@types/node": "^13.5.1",
+    "@types/node": "^14.0.13",
     "@types/redlock": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",

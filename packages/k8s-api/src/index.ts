@@ -1,11 +1,11 @@
-import { SingletonStrategy } from './types'
+import { SingletonStrategy, ContainerOptions } from './types'
 import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTempDeployments } from './deployment'
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import chance from 'chance'
 import k8testLog, { minimal } from 'k8test-log'
 
-export { createK8sClient } from './k8s-client'
+export { createK8sClient, ConnectFrom } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient } from './types'
@@ -29,6 +29,7 @@ export type SubscribeToImageOptions = {
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
+  containerOptions?: ContainerOptions
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
@@ -66,6 +67,7 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     containerLabels,
     exposeStrategy: options.exposeStrategy,
     singletonStrategy: options.singletonStrategy,
+    containerOptions: options.containerOptions,
   })
   const deploymentName = deploymentResult.resource.metadata?.name
   if (!deploymentName) {

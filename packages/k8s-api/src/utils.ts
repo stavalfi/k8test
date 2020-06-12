@@ -3,6 +3,8 @@ import http from 'http'
 import { SingletonStrategy } from './types'
 import { K8sResource, Labels } from './types'
 
+const validateImageName = (imageName: string): string => imageName.split('/').join('-')
+
 export const generateResourceLabels = ({
   appId,
   singletonStrategy,
@@ -13,7 +15,7 @@ export const generateResourceLabels = ({
   singletonStrategy: SingletonStrategy
 }) => ({
   k8test: 'true',
-  'image-name': imageName,
+  'image-name': validateImageName(imageName),
   'app-id': appId,
   'singleton-strategy': singletonStrategy,
 })
@@ -29,7 +31,7 @@ export const generateResourceName = ({
   imageName: string
   singletonStrategy: SingletonStrategy
 }): string => {
-  const validImageName = imageName.replace('/', '-')
+  const validImageName = validateImageName(imageName)
 
   const letter = chance()
     .letter()
@@ -61,8 +63,7 @@ export async function createResource<Resource extends K8sResource>(options: {
     response: http.IncomingMessage
     body: Resource
   }>
-  find: (resourceName: string) => Promise<Resource>
-  waitUntilCreated: (resourceName: string) => Promise<Resource>
+  waitUntilReady: (resourceName: string) => Promise<Resource>
 }): Promise<{ resource: Resource; isNewResource: boolean }> {
   const resourceName = generateResourceName({
     appId: options.appId,
@@ -80,52 +81,23 @@ export async function createResource<Resource extends K8sResource>(options: {
       }),
     )
   } catch (error) {
-    return {
-      resource: await shouldIgnoreAlreadyExistError({
-        singletonStrategy: options.singletonStrategy,
-        findResource: () => options.find(resourceName),
-        error,
-      }),
-      isNewResource: false,
+    if (isResourceAlreadyExistError(error)) {
+      return {
+        resource: await options.waitUntilReady(resourceName),
+        isNewResource: false,
+      }
+    } else {
+      throw error
     }
   }
   return {
-    resource: await options.waitUntilCreated(resourceName),
+    resource: await options.waitUntilReady(resourceName),
     isNewResource: true,
   }
 }
 
 export function isResourceAlreadyExistError(error: any): boolean {
   return error?.response?.statusCode === 409 && error?.response?.body?.reason === 'AlreadyExists'
-}
-
-export async function shouldIgnoreAlreadyExistError<Resource extends K8sResource>({
-  singletonStrategy,
-  findResource,
-  error,
-}: {
-  singletonStrategy: SingletonStrategy
-  findResource: () => Promise<Resource>
-  error: any
-}): Promise<Resource> {
-  if (isResourceAlreadyExistError(error)) {
-    if (singletonStrategy === SingletonStrategy.manyInAppId) {
-      throw new Error(
-        'there is a bug in the code. we should not be here: it looks like we generated 2 resources names with the same random-identifier. wierd.',
-      )
-    } else {
-      const resource = await findResource()
-      if (resource.metadata?.labels?.['singleton-strategy'] === singletonStrategy) {
-        return resource
-      } else {
-        throw new Error(
-          `there is a bug in the code. we should not be here: it looks like we created a resource with "SingletonStrategy.namespace" but its label tells us it has a different SingletonStrategy: ${resource.metadata?.labels?.['singleton-strategy']}`,
-        )
-      }
-    }
-  } else {
-    throw error
-  }
 }
 
 // improved promise-based timeout to ensure that if there was no timeout,
