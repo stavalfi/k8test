@@ -20,6 +20,7 @@ module.exports = {
   preset: 'ts-jest',
   moduleNameMapper: packagesAliases,
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
+  globalSetup: path.join(__dirname, 'jest.global-setup'),
   globals: {
     'ts-jest': {
       tsConfig: {

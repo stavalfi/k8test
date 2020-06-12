@@ -4,6 +4,9 @@ import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './type
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 import chance from 'chance'
+import k8testLog from 'k8test-log'
+
+const log = k8testLog('k8s-api:deployment')
 
 export async function createDeployment(options: {
   appId: string
@@ -40,7 +43,7 @@ export async function createDeployment(options: {
                 imageName: options.imageName,
                 namespaceName: options.namespaceName,
                 singletonStrategy: options.singletonStrategy,
-              }).resourceName,
+              }),
               labels: options.containerLabels,
             },
             spec: {
@@ -51,8 +54,9 @@ export async function createDeployment(options: {
                     imageName: options.imageName,
                     namespaceName: options.namespaceName,
                     singletonStrategy: options.singletonStrategy,
-                  }).resourceName,
+                  }),
                   image: options.imageName,
+                  imagePullPolicy: 'Never',
                   ports: [
                     {
                       containerPort: options.containerPortToExpose,
@@ -157,6 +161,8 @@ export async function deleteDeployment(options: {
 }
 
 export async function deleteAllTempDeployments(options: { k8sClient: K8sClient; namespaceName: string }) {
+  log('deleting all temp-deployments in namespace: "%s"', options.namespaceName)
+
   const deployments = await options.k8sClient.appsApiClient.listNamespacedDeployment(options.namespaceName)
   await Promise.all(
     deployments.body.items
@@ -177,4 +183,6 @@ export async function deleteAllTempDeployments(options: { k8sClient: K8sClient; 
         deleteDeployment({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, deploymentName }),
       ),
   )
+
+  log('deleted all temp-deployments in namespace: "%s"', options.namespaceName)
 }

@@ -3,14 +3,18 @@ import express, { Express } from 'express'
 import Redis from 'ioredis'
 import {
   createK8sClient,
-  deleteAllK8testNamespaces,
+  deleteAllTempResources,
   K8sClient,
+  k8testNamespaceName,
   subscribeToImage,
   SubscribeToImageOptions,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
 } from 'k8s-api'
+import k8testLog from 'k8test-log'
 import { Lock, setupInternalRedis } from './internal-redis'
+
+const log = k8testLog('monitoring')
 
 function buildService({
   k8sClient,
@@ -35,6 +39,8 @@ function buildService({
   const app = express()
   app.use(bodyParser.json())
 
+  app.get('/is-alive', (_req, res) => res.end())
+
   app.post(
     '/subscribe',
     synchronizedRoute<SubscribeToImageOptions>('subscribe', async (req, res) => {
@@ -58,6 +64,8 @@ function buildService({
       const options = req.body
       await unsubscribeFromImage({
         k8sClient,
+        appId: options.appId,
+        imageName: options.imageName,
         namespaceName: options.namespaceName,
         singletonStrategy: options.singletonStrategy,
         deploymentName: options.deploymentName,
@@ -77,13 +85,15 @@ async function main() {
 
   const k8sClient = createK8sClient()
 
-  await deleteAllK8testNamespaces(k8sClient)
+  await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
 
   const { redisClient, lock } = await setupInternalRedis(k8sClient)
 
   const app = buildService({ k8sClient, redisClient, lock })
 
   await new Promise(res => app.listen(80, res))
+
+  log('service is listening on port 80 inside the cluster')
 }
 
 main()

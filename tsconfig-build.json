@@ -16,6 +16,9 @@
     },
     {
       "path": "packages/monitoring/tsconfig-build.json"
+    },
+    {
+      "path": "packages/log/tsconfig-build.json"
     }
   ]
 }

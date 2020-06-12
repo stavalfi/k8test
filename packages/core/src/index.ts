@@ -11,9 +11,13 @@ import {
   subscribeToImage,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
+import k8testLog from 'k8test-log'
+import { setupInternalRedis } from './setup-internal-redis'
 
 export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
+
+const log = k8testLog('core')
 
 export const subscribe: Subscribe = async options => {
   assertOptions(options)
@@ -46,6 +50,8 @@ export const subscribe: Subscribe = async options => {
     ),
   )
 
+  await setupInternalRedis(k8sClient)
+
   const monitoringDeployedImage = await subscribeToImage({
     appId: internalK8testResourcesAppId(),
     k8sClient,
@@ -56,12 +62,24 @@ export const subscribe: Subscribe = async options => {
     singletonStrategy: SingletonStrategy.oneInCluster,
   })
 
-  const { body: deployedImage } = await got.get<DeployedImage>(
+  await waitUntilReady(() =>
+    got.get(`${monitoringDeployedImage.deployedImageUrl}/is-alive`, {
+      timeout: 1000,
+    }),
+  )
+
+  log(
+    'image "%s". is reachable using the url: "%s" from outside the cluster',
+    'k8test-monitoring',
+    monitoringDeployedImage.deployedImageUrl,
+  )
+
+  const { body: deployedImage } = await got.post<DeployedImage>(
     `${monitoringDeployedImage.deployedImageUrl}/subscribe`,
     {
       json: {
-        appId,
         k8sClient,
+        appId,
         namespaceName,
         imageName: options.imageName,
         containerPortToExpose: options.containerPortToExpose,
@@ -82,6 +100,12 @@ export const subscribe: Subscribe = async options => {
     )
   }
 
+  log(
+    'image "%s". is reachable using the url: "%s" from outside the cluster',
+    options.imageName,
+    deployedImage.deployedImageUrl,
+  )
+
   return {
     deploymentName: deployedImage.deploymentName,
     serviceName: deployedImage.serviceName,
@@ -90,9 +114,11 @@ export const subscribe: Subscribe = async options => {
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () =>
       got
-        .get(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
+        .post(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
           json: {
             k8sClient,
+            appId,
+            imageName: options.imageName,
             namespaceName,
             singletonStrategy,
             deploymentName: deployedImage.deploymentName,
@@ -104,7 +130,7 @@ export const subscribe: Subscribe = async options => {
   }
 }
 
-async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
+async function waitUntilReady(isReadyPredicate: () => Promise<unknown>): Promise<void> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {

@@ -5,6 +5,10 @@ import { ExposeStrategy, K8sClient } from './types'
 import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 import { Address4 } from 'ip-address'
+import k8testLog from 'k8test-log'
+
+const log = k8testLog('k8s-api:service')
+
 export async function createService(options: {
   appId: string
   k8sClient: K8sClient
@@ -74,6 +78,8 @@ export async function deleteService(options: { k8sClient: K8sClient; namespaceNa
 }
 
 export async function deleteAllTempServices(options: { k8sClient: K8sClient; namespaceName: string }) {
+  log('deleting all temp-services in namespace: "%s"', options.namespaceName)
+
   const services = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
   await Promise.all(
     services.body.items
@@ -94,6 +100,8 @@ export async function deleteAllTempServices(options: { k8sClient: K8sClient; nam
         deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),
       ),
   )
+
+  log('deleted all temp-services in namespace: "%s"', options.namespaceName)
 }
 
 export type GetDeployedImagePort = (

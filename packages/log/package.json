@@ -1,8 +1,9 @@
 {
-  "name": "k8test",
+  "name": "k8test-log",
   "version": "1.2.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
+  "private": true,
   "files": [
     "src",
     "__tests__",
@@ -18,9 +19,6 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "k8test-log": "^1.0.0",
-    "got": "^11.3.0",
-    "k8s-api": "^1.0.0",
-    "ioredis": "^4.17.1"
+    "debug": "^4.1.1"
   }
 }

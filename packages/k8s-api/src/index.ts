@@ -3,11 +3,15 @@ import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTem
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import chance from 'chance'
+import k8testLog, { minimal } from 'k8test-log'
 
 export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient } from './types'
+export { generateResourceName } from './utils'
+
+const log = k8testLog('k8test:k8s-api')
 
 export type DeployedImage = {
   deploymentName: string
@@ -28,6 +32,9 @@ export type SubscribeToImageOptions = {
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
+  const logSubs = log.extend(options.appId)
+
+  logSubs('subscribing to image "%s" with options: %O', options.imageName, minimal(options))
   const serviceResult = await createService({
     appId: options.appId,
     k8sClient: options.k8sClient,
@@ -48,6 +55,8 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
       `failed to create a service for image: ${options.imageName} - service-name is missing after creating it.`,
     )
   }
+  logSubs(`${serviceResult.isNewResource ? 'created' : 'using existing'} service to image "%s"`, options.imageName)
+
   const deploymentResult = await createDeployment({
     appId: options.appId,
     k8sClient: options.k8sClient,
@@ -70,6 +79,10 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
       `k8test detected inconsistent cluster state. some resources that k8test created were deleted (manually?). please remove all k8test resources. if it's allocated on namespace "k8test", please run the following command and start what you were doing again: "kubectl delete namespace k8test"`,
     )
   }
+  logSubs(
+    `${deploymentResult.isNewResource ? 'created' : 'using existing'} deployment to image "%s"`,
+    options.imageName,
+  )
 
   if (!deploymentResult.isNewResource) {
     await addSubscriptionsLabel(deploymentName, {
@@ -92,6 +105,8 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
 
   const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
 
+  logSubs('subscribed to image "%s". url to container: "%s"', options.imageName, deployedImageUrl)
+
   return {
     serviceName,
     deploymentName,
@@ -102,6 +117,8 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
 }
 
 export type UnsubscribeFromImageOptions = {
+  appId: string
+  imageName: string
   k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
@@ -111,6 +128,9 @@ export type UnsubscribeFromImageOptions = {
 }
 
 export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions): Promise<void> {
+  const logUnsubs = log.extend(options.appId)
+
+  logUnsubs('unsubscribing from image "%s" with options: %O', options.imageName, minimal(options))
   if ([SingletonStrategy.oneInAppId, SingletonStrategy.manyInAppId].includes(options.singletonStrategy)) {
     const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
       k8sClient: options.k8sClient,
@@ -130,7 +150,12 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
       })
       // k8s has a delay until the deployment is no-longer accessible.
       await new Promise(res => setTimeout(res, 3000))
+      logUnsubs('the image "%s" deleted', options.imageName)
+    } else {
+      logUnsubs('the image "%s" still has %d subscribers so it is still needed', options.imageName, updatedBalance)
     }
+  } else {
+    logUnsubs('the image "%s" will not be deleted because it is a singleton-cluster resource', options.imageName)
   }
 }
 
@@ -169,6 +194,8 @@ export async function deleteAllTempResources({
   k8sClient: K8sClient
   namespaceName: string
 }) {
+  log('deleting all temp-resources in namespace: "%s"', namespaceName)
   await deleteAllTempServices({ k8sClient, namespaceName })
   await deleteAllTempDeployments({ k8sClient, namespaceName })
+  log('deleted all temp-resources in namespace: "%s"', namespaceName)
 }
