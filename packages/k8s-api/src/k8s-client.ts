@@ -19,9 +19,10 @@ export const createK8sClient = (connectFrom: ConnectFrom): K8sClient => {
       break
   }
 
+  const authClient = kc.makeApiClient(k8s.RbacAuthorizationV1Api)
   const apiClient = kc.makeApiClient(k8s.CoreV1Api)
   const appsApiClient = kc.makeApiClient(k8s.AppsV1Api)
   const watchClient = new k8s.Watch(kc)
 
-  return { apiClient, appsApiClient, watchClient }
+  return { authClient, apiClient, appsApiClient, watchClient }
 }

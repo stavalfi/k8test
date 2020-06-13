@@ -48,6 +48,7 @@ export async function createDeployment(options: {
               labels: options.containerLabels,
             },
             spec: {
+              serviceAccount: '',
               containers: [
                 {
                   ...options.containerOptions,
@@ -151,7 +152,7 @@ export async function deleteAllTempDeployments(options: { k8sClient: K8sClient; 
       .filter(deployment => {
         const singletonStrategy = deployment.metadata?.labels?.['singleton-strategy']
         switch (singletonStrategy) {
-          case SingletonStrategy.oneInCluster:
+          case SingletonStrategy.oneInNamespace:
             return false
           case SingletonStrategy.manyInAppId:
           case SingletonStrategy.oneInAppId:

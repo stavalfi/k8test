@@ -13,6 +13,7 @@ export enum SubscriptionOperation {
 }
 
 export type K8sClient = {
+  authClient: k8s.RbacAuthorizationV1Api
   apiClient: k8s.CoreV1Api
   appsApiClient: k8s.AppsV1Api
   watchClient: k8s.Watch
@@ -20,7 +21,7 @@ export type K8sClient = {
 
 export enum SingletonStrategy {
   manyInAppId = 'many-in-app-id',
-  oneInCluster = 'one-in-cluster',
+  oneInNamespace = 'one-in-namespace',
   oneInAppId = 'one-in-app-id',
 }
 

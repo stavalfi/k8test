@@ -11,13 +11,13 @@ export const generateResourceLabels = ({
   imageName,
 }: {
   appId: string
-  imageName: string
+  imageName?: string
   singletonStrategy: SingletonStrategy
 }) => ({
   k8test: 'true',
-  'image-name': validateImageName(imageName),
   'app-id': appId,
   'singleton-strategy': singletonStrategy,
+  ...(imageName && { image: validateImageName(imageName) }),
 })
 
 export const generateResourceName = ({
@@ -28,11 +28,9 @@ export const generateResourceName = ({
 }: {
   appId: string
   namespaceName: string
-  imageName: string
+  imageName?: string
   singletonStrategy: SingletonStrategy
 }): string => {
-  const validImageName = validateImageName(imageName)
-
   const letter = chance()
     .letter()
     .toLocaleLowerCase()
@@ -41,20 +39,21 @@ export const generateResourceName = ({
     .toLocaleLowerCase()
     .slice(0, 5)
 
+  const withImageName = imageName ? `-${validateImageName(imageName)}` : ''
   switch (singletonStrategy) {
-    case SingletonStrategy.oneInCluster:
-      return `${namespaceName}-${validImageName}`
+    case SingletonStrategy.oneInNamespace:
+      return `${namespaceName}${withImageName}`
     case SingletonStrategy.oneInAppId:
-      return `${appId}-${validImageName}`
+      return `${appId}${withImageName}`
     case SingletonStrategy.manyInAppId:
-      return `${letter}${hash}-${appId}-${validImageName}`
+      return `${letter}${hash}-${appId}${withImageName}`
   }
 }
 
 export async function createResource<Resource extends K8sResource>(options: {
   appId: string
   namespaceName: string
-  imageName: string
+  imageName?: string
   singletonStrategy: SingletonStrategy
   create: (
     resourceName: string,

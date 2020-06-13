@@ -52,7 +52,7 @@ export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisC
     imageName: 'redis',
     containerPortToExpose: 4873,
     exposeStrategy: ExposeStrategy.insideCluster,
-    singletonStrategy: SingletonStrategy.oneInCluster,
+    singletonStrategy: SingletonStrategy.oneInNamespace,
   })
 
   const host = redisDeployment.deployedImageAddress

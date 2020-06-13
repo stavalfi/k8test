@@ -3,7 +3,7 @@ import { isResourceAlreadyExistError } from './utils'
 import { waitUntilNamespaceCreated, waitUntilNamespaceDeleted } from './watch-resources'
 import { K8sClient } from './types'
 
-export const k8testNamespaceName = () => `default`
+export const k8testNamespaceName = () => `k8test`
 
 export async function createNamespaceIfNotExist(options: {
   appId: string

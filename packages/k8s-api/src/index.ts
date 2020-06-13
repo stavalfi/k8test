@@ -10,8 +10,9 @@ export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName 
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient } from './types'
 export { generateResourceName } from './utils'
+export { grantAdminRoleToNamespace } from './role'
 
-const log = k8testLog('k8test:k8s-api')
+const log = k8testLog('k8s-api')
 
 export type DeployedImage = {
   deploymentName: string

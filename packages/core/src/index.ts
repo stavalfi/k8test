@@ -10,6 +10,7 @@ import {
   SingletonStrategy,
   subscribeToImage,
   ConnectFrom,
+  grantAdminRoleToNamespace,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
@@ -30,25 +31,13 @@ export const subscribe: Subscribe = async options => {
 
   const namespaceName = k8testNamespaceName()
 
-  await Promise.all(
-    [
-      createNamespaceIfNotExist({
-        appId,
-        k8sClient,
-        namespaceName,
-      }),
-    ].concat(
-      namespaceName !== k8testNamespaceName()
-        ? [
-            createNamespaceIfNotExist({
-              appId,
-              k8sClient,
-              namespaceName: k8testNamespaceName(),
-            }),
-          ]
-        : [],
-    ),
-  )
+  await createNamespaceIfNotExist({
+    appId,
+    k8sClient,
+    namespaceName,
+  })
+
+  await grantAdminRoleToNamespace({ k8sClient, namespaceName })
 
   const monitoringDeployedImage = await subscribeToImage({
     appId: internalK8testResourcesAppId(),
@@ -57,7 +46,7 @@ export const subscribe: Subscribe = async options => {
     imageName: 'stavalfi/k8test-monitoring',
     containerPortToExpose: 80,
     exposeStrategy: ExposeStrategy.userMachine,
-    singletonStrategy: SingletonStrategy.oneInCluster,
+    singletonStrategy: SingletonStrategy.oneInNamespace,
     // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
     // eslint-disable-next-line no-process-env
     ...(process.env['K8TEST_TEST_MODE'] && { containerOptions: { imagePullPolicy: 'Never' } }),
