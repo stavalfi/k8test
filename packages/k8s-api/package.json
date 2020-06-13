@@ -18,10 +18,11 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "k8test-log": "^1.0.0",
     "@kubernetes/client-node": "^0.11.2",
     "chance": "^1.1.5",
+    "ip-address": "^6.3.0",
+    "k8test-log": "^1.0.0",
     "lodash": "^4.17.15",
-    "ip-address": "^6.3.0"
+    "object-deep-contain": "^1.0.24"
   }
 }

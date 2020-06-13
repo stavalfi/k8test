@@ -1,3 +1,5 @@
+/// <reference path="../../../declarations.d.ts" />
+
 import { SingletonStrategy, ContainerOptions } from './types'
 import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTempDeployments } from './deployment'
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
@@ -5,10 +7,10 @@ import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import chance from 'chance'
 import k8testLog, { minimal } from 'k8test-log'
 
-export { createK8sClient, ConnectFrom } from './k8s-client'
+export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
-export { ExposeStrategy, SingletonStrategy, K8sClient } from './types'
+export { ExposeStrategy, SingletonStrategy, K8sClient, ConnectionFrom } from './types'
 export { generateResourceName } from './utils'
 export { grantAdminRoleToNamespace } from './role'
 
@@ -31,6 +33,11 @@ export type SubscribeToImageOptions = {
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
+  podStdio?: {
+    stdout?: NodeJS.WriteStream
+    stderr?: NodeJS.WriteStream
+  }
+  failFastIfExist?: boolean
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
@@ -44,13 +51,15 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
     singletonStrategy: options.singletonStrategy,
+    failFastIfExist: options.failFastIfExist,
   })
-  const containerLabels = serviceResult.resource.spec?.selector
-  if (!containerLabels) {
+  const podLabels = serviceResult.resource.spec?.selector
+  if (!podLabels) {
     throw new Error(
       `failed to create a service for image: ${options.imageName} - container-labels are missing after creating them.`,
     )
   }
+
   const serviceName = serviceResult.resource.metadata?.name
   if (!serviceName) {
     throw new Error(
@@ -65,10 +74,12 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
-    containerLabels,
+    podLabels,
     exposeStrategy: options.exposeStrategy,
     singletonStrategy: options.singletonStrategy,
     containerOptions: options.containerOptions,
+    podStdio: options.podStdio,
+    failFastIfExist: options.failFastIfExist,
   })
   const deploymentName = deploymentResult.resource.metadata?.name
   if (!deploymentName) {

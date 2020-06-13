@@ -1,8 +1,7 @@
-/* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
 import { SingletonStrategy } from './types'
 import { ExposeStrategy, K8sClient } from './types'
-import { createResource } from './utils'
+import { createResource, generateResourceLabels } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 import { Address4 } from 'ip-address'
 import k8testLog from 'k8test-log'
@@ -16,32 +15,41 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
   singletonStrategy: SingletonStrategy
+  failFastIfExist?: boolean
 }): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
-  return createResource({
+  const podLabels = generateResourceLabels({
+    appId: options.appId,
+    singletonStrategy: options.singletonStrategy,
+    imageName: options.imageName,
+  })
+  return createResource<k8s.V1Service>({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletonStrategy: options.singletonStrategy,
-    create: (resourceName, resourceLabels) =>
-      options.k8sClient.apiClient.createNamespacedService(options.namespaceName, {
-        apiVersion: 'v1',
-        kind: 'Service',
-        metadata: {
-          name: resourceName,
-          labels: resourceLabels,
-        },
-        spec: {
-          type: 'NodePort',
-          selector: resourceLabels,
-          ports: [
-            {
-              // docs: https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
-              port: options.podPortToExpose, // other pods on the cluster can access to this service using this port and this service will direct the request to the relevant pods
-              targetPort: Object(options.podPortToExpose), // this service will forward requests to pods in this port. those ports are expected to expose this port
-            },
-          ],
-        },
-      }),
+    createResource: (resourceName, resourceLabels) => ({
+      apiVersion: 'v1',
+      kind: 'Service',
+      metadata: {
+        name: resourceName,
+        labels: resourceLabels,
+      },
+      spec: {
+        type: 'NodePort',
+        selector: podLabels,
+        ports: [
+          {
+            // docs: https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
+            port: options.podPortToExpose, // other pods on the cluster can access to this service using this port and this service will direct the request to the relevant pods
+            targetPort: Object(options.podPortToExpose), // this service will forward requests to pods in this port. those ports are expected to expose this port
+          },
+        ],
+      },
+    }),
+    createInK8s: resource => options.k8sClient.apiClient.createNamespacedService(options.namespaceName, resource),
+    deleteResource: serviceName =>
+      deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),
+    failFastIfExist: options.failFastIfExist,
     waitUntilReady: resourceName =>
       waitUntilServiceCreated(resourceName, {
         k8sClient: options.k8sClient,

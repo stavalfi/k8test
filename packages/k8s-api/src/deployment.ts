@@ -1,10 +1,11 @@
 import * as k8s from '@kubernetes/client-node'
-import { SingletonStrategy, ContainerOptions } from './types'
-import { ExposeStrategy, Labels, SubscriptionOperation, K8sClient } from './types'
-import { createResource, generateResourceName } from './utils'
-import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 import chance from 'chance'
 import k8testLog from 'k8test-log'
+import { ContainerOptions, ExposeStrategy, K8sClient, Labels, SingletonStrategy, SubscriptionOperation } from './types'
+import { createResource, generateResourceName } from './utils'
+import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
+import { findPodByLabels } from './pod'
+import process from 'process'
 
 const log = k8testLog('k8s-api:deployment')
 
@@ -14,68 +15,106 @@ export async function createDeployment(options: {
   namespaceName: string
   imageName: string
   containerPortToExpose: number
-  containerLabels: Labels
+  podLabels: Labels
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
+  podStdio?: {
+    stdout?: NodeJS.WriteStream
+    stderr?: NodeJS.WriteStream
+  }
+  failFastIfExist?: boolean
 }): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
-  return createResource({
+  const containerName = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletonStrategy: options.singletonStrategy,
-    create: (resourceName, resourceLabels) =>
-      options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, {
-        apiVersion: 'apps/v1',
-        kind: 'Deployment',
-        metadata: {
-          name: resourceName,
-          labels: { ...resourceLabels, ...getSubscriptionLabel(SubscriptionOperation.subscribe) },
+  })
+  const deployment = await createResource<k8s.V1Deployment>({
+    appId: options.appId,
+    imageName: options.imageName,
+    namespaceName: options.namespaceName,
+    singletonStrategy: options.singletonStrategy,
+    createResource: (resourceName, resourceLabels) => ({
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: {
+        name: resourceName,
+        labels: { ...resourceLabels, ...getSubscriptionLabel(SubscriptionOperation.subscribe) },
+      },
+      spec: {
+        replicas: 1,
+        selector: {
+          matchLabels: options.podLabels,
         },
-        spec: {
-          replicas: 1,
-          selector: {
-            matchLabels: options.containerLabels,
+        template: {
+          metadata: {
+            // this is not the final pod-name. k8s add hash to the end of the name
+            name: generateResourceName({
+              appId: options.appId,
+              imageName: options.imageName,
+              namespaceName: options.namespaceName,
+              singletonStrategy: options.singletonStrategy,
+            }),
+            labels: options.podLabels,
           },
-          template: {
-            metadata: {
-              name: generateResourceName({
-                appId: options.appId,
-                imageName: options.imageName,
-                namespaceName: options.namespaceName,
-                singletonStrategy: options.singletonStrategy,
-              }),
-              labels: options.containerLabels,
-            },
-            spec: {
-              serviceAccount: '',
-              containers: [
-                {
-                  ...options.containerOptions,
-                  name: generateResourceName({
-                    appId: options.appId,
-                    imageName: options.imageName,
-                    namespaceName: options.namespaceName,
-                    singletonStrategy: options.singletonStrategy,
-                  }),
-                  image: options.imageName,
-                  ports: [
-                    {
-                      containerPort: options.containerPortToExpose,
-                    },
-                  ],
-                },
-              ],
-            },
+          spec: {
+            serviceAccount: '',
+            containers: [
+              {
+                ...options.containerOptions,
+                name: containerName,
+                image: options.imageName,
+                ports: [
+                  {
+                    containerPort: options.containerPortToExpose,
+                  },
+                ],
+                env: [
+                  // eslint-disable-next-line no-process-env
+                  ...(process.env['DEBUG'] ? [{ name: 'DEBUG', value: process.env['DEBUG'] }] : []),
+                ],
+              },
+            ],
           },
         },
-      }),
+      },
+    }),
+    createInK8s: resource =>
+      options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, resource),
+    deleteResource: deploymentName =>
+      deleteDeployment({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, deploymentName }),
+    failFastIfExist: options.failFastIfExist,
     waitUntilReady: resourceName =>
       waitUntilDeploymentReady(resourceName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
+
+  if (options.podStdio) {
+    const pod = await findPodByLabels({
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      podLabels: options.podLabels,
+    })
+    const podName = pod.metadata?.name
+    if (!podName) {
+      throw new Error(`pod created or found without a name specifier. its a bug`)
+    }
+    await options.k8sClient.attach.attach(
+      options.namespaceName,
+      podName,
+      containerName,
+      options.podStdio.stdout,
+      options.podStdio.stderr,
+      null,
+      false,
+    )
+  }
+
+  return deployment
 }
 
 function getSubscriptionLabel(operation: SubscriptionOperation) {

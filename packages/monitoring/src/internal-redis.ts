@@ -30,6 +30,7 @@ const isRedisReadyPredicate = (host: string, port: number) => {
     port,
     lazyConnect: true, // because i will try to connect manually in the next line,
     connectTimeout: 1000,
+    showFriendlyErrorStack: true,
   })
 
   return redis.connect().finally(() => {
@@ -50,7 +51,7 @@ export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisC
     appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     imageName: 'redis',
-    containerPortToExpose: 4873,
+    containerPortToExpose: 6379,
     exposeStrategy: ExposeStrategy.insideCluster,
     singletonStrategy: SingletonStrategy.oneInNamespace,
   })
@@ -61,7 +62,7 @@ export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisC
   await waitUntilReady(() => isRedisReadyPredicate(host, port))
   log('image "%s". is reachable using the url: "%s" from inside the cluster', 'redis', `${host}:${port}`)
 
-  const redisClient = new Redis({ host, port })
+  const redisClient = new Redis({ host, port, showFriendlyErrorStack: true })
   const locker = new Redlock([redisClient])
   return {
     redisClient,

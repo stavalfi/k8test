@@ -22,9 +22,7 @@ module.exports = {
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   globals: {
     'ts-jest': {
-      tsConfig: {
-        esModuleInterop: true,
-      },
+      tsConfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
 }

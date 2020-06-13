@@ -9,8 +9,8 @@ import {
   randomAppId,
   SingletonStrategy,
   subscribeToImage,
-  ConnectFrom,
   grantAdminRoleToNamespace,
+  ConnectionFrom,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
@@ -25,7 +25,7 @@ export const subscribe: Subscribe = async options => {
 
   const appId = getAppId(options.appId)
 
-  const k8sClient = createK8sClient(ConnectFrom.outsideCluster)
+  const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
 
   const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
 
@@ -47,9 +47,19 @@ export const subscribe: Subscribe = async options => {
     containerPortToExpose: 80,
     exposeStrategy: ExposeStrategy.userMachine,
     singletonStrategy: SingletonStrategy.oneInNamespace,
+    // this option exist for cases where we try to create the same resource from multiple processes at the same time and we can't synchronize them,
+    // so we avoid a situation where some processes will try to delete while others try to create.
+    // for now, this is one of the use-cases: when we subscribe the monitoring service multiple times from multiple test-runner processes.
+    failFastIfExist: true,
     // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
     // eslint-disable-next-line no-process-env
-    ...(process.env['K8TEST_TEST_MODE'] && { containerOptions: { imagePullPolicy: 'Never' } }),
+    ...(process.env['K8TEST_TEST_MODE'] && {
+      containerOptions: { imagePullPolicy: 'Never' },
+      podStdio: {
+        stdout: process.stdout,
+        stderr: process.stderr,
+      },
+    }),
   })
 
   await waitUntilReady(() =>

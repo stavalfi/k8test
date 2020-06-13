@@ -10,7 +10,7 @@ import {
   SubscribeToImageOptions,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
-  ConnectFrom,
+  ConnectionFrom,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { Lock, setupInternalRedis } from './internal-redis'
@@ -87,7 +87,7 @@ async function main() {
 
   log('starting service code...')
 
-  const k8sClient = createK8sClient(ConnectFrom.insideCluster)
+  const k8sClient = createK8sClient(ConnectionFrom.insideCluster)
 
   await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
 
