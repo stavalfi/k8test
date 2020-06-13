@@ -9,24 +9,19 @@ enum ResourceEventType {
   resourceDeleted = 'DELETED',
 }
 
-export const waitUntilRoleCreated = (roleName: string, options: { k8sClient: K8sClient; namespaceName: string }) =>
+export const waitUntilClusterRoleCreated = (roleName: string, options: { k8sClient: K8sClient }) =>
   waitForResource<k8s.V1Role>({
     k8sClient: options.k8sClient,
-    api: `/apis/rbac.authorization.k8s.io/v1/namespaces/${options.namespaceName}/roles`,
+    api: `/apis/rbac.authorization.k8s.io/v1/clusterroles`,
     resourceName: roleName,
-    namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
 
-export const waitUntilRoleBindingCreated = (
-  roleBindingName: string,
-  options: { k8sClient: K8sClient; namespaceName: string },
-) =>
+export const waitUntilClusterRoleBindingCreated = (roleBindingName: string, options: { k8sClient: K8sClient }) =>
   waitForResource<k8s.V1RoleBinding>({
     k8sClient: options.k8sClient,
-    api: `/apis/rbac.authorization.k8s.io/v1/namespaces/${options.namespaceName}/rolebindings`,
+    api: `/apis/rbac.authorization.k8s.io/v1/clusterrolebindings`,
     resourceName: roleBindingName,
-    namespaceName: options.namespaceName,
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
 

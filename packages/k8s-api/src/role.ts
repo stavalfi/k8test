@@ -1,21 +1,20 @@
 import * as k8s from '@kubernetes/client-node'
-import { K8sClient, SingletonStrategy } from './types'
-import { createResource } from './utils'
-import { internalK8testResourcesAppId } from 'k8s-api'
-import { k8testNamespaceName } from './namespace'
-import { waitUntilRoleCreated, waitUntilRoleBindingCreated } from './watch-resources'
 import k8testLog from 'k8test-log'
+import { k8testNamespaceName } from './namespace'
+import { K8sClient, SingletonStrategy } from './types'
+import { createResource, internalK8testResourcesAppId } from './utils'
+import { waitUntilClusterRoleBindingCreated, waitUntilClusterRoleCreated } from './watch-resources'
 
 const log = k8testLog('k8s-api:role')
 
-export async function grantAdminRoleToNamespace(options: { k8sClient: K8sClient; namespaceName: string }) {
-  log('creating (if not exist) admin role with binding to namespace "%s"', options.namespaceName)
-  const role = await createResource<k8s.V1Role>({
+export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
+  log('creating (if not exist) admin role with binding')
+  const clusterRole = await createResource<k8s.V1ClusterRole>({
     appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({
-      kind: 'Role',
+      kind: 'ClusterRole',
       apiVersion: 'rbac.authorization.k8s.io/v1',
       metadata: {
         name: resourceName,
@@ -30,37 +29,35 @@ export async function grantAdminRoleToNamespace(options: { k8sClient: K8sClient;
         },
       ],
     }),
-    createInK8s: resource => options.k8sClient.authClient.createNamespacedRole('k8test', resource),
-    deleteResource: roleName => options.k8sClient.authClient.deleteNamespacedRole(roleName, options.namespaceName),
+    createInK8s: resource => k8sClient.authClient.createClusterRole(resource),
+    deleteResource: roleName => k8sClient.authClient.deleteClusterRole(roleName),
     failFastIfExist: true,
     waitUntilReady: resourceName =>
-      waitUntilRoleCreated(resourceName, {
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
+      waitUntilClusterRoleCreated(resourceName, {
+        k8sClient,
       }),
   })
 
-  const roleName = role.resource.metadata?.name
+  const roleName = clusterRole.resource.metadata?.name
 
   if (!roleName) {
-    throw new Error(`role was created without a name. bug. role: ${JSON.stringify(role, null, 2)}`)
+    throw new Error(`role was created without a name. bug. role: ${JSON.stringify(clusterRole, null, 2)}`)
   }
 
-  if (role.isNewResource) {
+  if (clusterRole.isNewResource) {
     // multiple process will run this function so I want to log only when the resource created
-    log('created admin role to namespace "%s"', options.namespaceName)
+    log('created admin role')
   }
 
-  const roleBinding = await createResource<k8s.V1RoleBinding>({
+  const clusterRoleBinding = await createResource<k8s.V1ClusterRoleBinding>({
     appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({
-      kind: 'RoleBinding',
+      kind: 'ClusterRoleBinding',
       apiVersion: 'rbac.authorization.k8s.io/v1',
       metadata: {
         name: resourceName,
-        namespace: k8testNamespaceName(),
         labels: resourceLabels,
       },
       subjects: [
@@ -71,24 +68,22 @@ export async function grantAdminRoleToNamespace(options: { k8sClient: K8sClient;
         },
       ],
       roleRef: {
-        kind: 'Role',
+        kind: 'ClusterRole',
         name: roleName,
         apiGroup: 'rbac.authorization.k8s.io',
       },
     }),
-    createInK8s: resource => options.k8sClient.authClient.createNamespacedRoleBinding('k8test', resource),
-    deleteResource: roleName =>
-      options.k8sClient.authClient.deleteNamespacedRoleBinding(roleName, options.namespaceName),
+    createInK8s: resource => k8sClient.authClient.createClusterRoleBinding(resource),
+    deleteResource: roleName => k8sClient.authClient.deleteClusterRoleBinding(roleName),
     failFastIfExist: true,
     waitUntilReady: resourceName =>
-      waitUntilRoleBindingCreated(resourceName, {
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
+      waitUntilClusterRoleBindingCreated(resourceName, {
+        k8sClient,
       }),
   })
 
-  if (roleBinding.isNewResource) {
+  if (clusterRoleBinding.isNewResource) {
     // multiple process will run this function so I want to log only when the resource created
-    log('bind role "%s" to namespace "%s"', roleName, options.namespaceName)
+    log('bind role "%s"', roleName)
   }
 }

@@ -4,15 +4,14 @@ import { SingletonStrategy, ContainerOptions } from './types'
 import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTempDeployments } from './deployment'
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
-import chance from 'chance'
 import k8testLog, { minimal } from 'k8test-log'
 
 export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient, ConnectionFrom } from './types'
-export { generateResourceName } from './utils'
-export { grantAdminRoleToNamespace } from './role'
+export { generateResourceName, internalK8testResourcesAppId, randomAppId } from './utils'
+export { grantAdminRoleToCluster } from './role'
 
 const log = k8testLog('k8s-api')
 
@@ -119,7 +118,11 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
 
   const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
 
-  logSubs('subscribed to image "%s". url to container: "%s"', options.imageName, deployedImageUrl)
+  logSubs(
+    'subscribed to image "%s". address of the container: "%s"',
+    options.imageName,
+    `${deployedImageAddress}:${deployedImagePort}`,
+  )
 
   return {
     serviceName,
@@ -172,13 +175,6 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
     logUnsubs('the image "%s" will not be deleted because it is a singleton-cluster resource', options.imageName)
   }
 }
-
-export const randomAppId = () =>
-  `app-id-${chance()
-    .hash()
-    .slice(0, 10)}`
-
-export const internalK8testResourcesAppId = () => 'app-id-internal-k8test-resources'
 
 export type GetMasterAddress = (options: { k8sClient: K8sClient }) => Promise<string>
 

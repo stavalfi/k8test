@@ -10,20 +10,17 @@ describe('reach endpoints in the cluster', () => {
       containerPortToExpose: 6379,
       appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
-    }).catch(e => {
-      console.log(e)
-      throw e
     })
 
-    // cleanups.push(unsubscribe)
+    cleanups.push(unsubscribe)
 
-    // const redis = redisClient({
-    //   host: deployedImageAddress,
-    //   port: deployedImagePort,
-    // })
-    // cleanups.push(() => redis.disconnect())
+    const redis = redisClient({
+      host: deployedImageAddress,
+      port: deployedImagePort,
+    })
+    cleanups.push(() => redis.disconnect())
 
-    // await expect(redis.ping()).resolves.toEqual('PONG')
+    await expect(redis.ping()).resolves.toEqual('PONG')
   })
 
   test('endpoint is not available after unsubscribe', async () => {

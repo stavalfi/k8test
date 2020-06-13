@@ -6,6 +6,13 @@ import { SingletonStrategy } from './types'
 import { K8sResource, Labels } from './types'
 import objectDeepContain from 'object-deep-contain'
 
+export const randomAppId = () =>
+  `app-id-${chance()
+    .hash()
+    .slice(0, 10)}`
+
+export const internalK8testResourcesAppId = () => 'app-id-internal-k8test-resources'
+
 const validateImageName = (imageName: string): string => imageName.split('/').join('-')
 
 export const generateResourceLabels = ({

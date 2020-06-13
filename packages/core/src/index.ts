@@ -9,13 +9,13 @@ import {
   randomAppId,
   SingletonStrategy,
   subscribeToImage,
-  grantAdminRoleToNamespace,
+  grantAdminRoleToCluster,
   ConnectionFrom,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
 
-export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
+export { deleteNamespaceIfExist, SingletonStrategy, randomAppId } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
 
 const log = k8testLog('core')
@@ -27,6 +27,8 @@ export const subscribe: Subscribe = async options => {
 
   const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
 
+  await grantAdminRoleToCluster(k8sClient)
+
   const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
 
   const namespaceName = k8testNamespaceName()
@@ -36,8 +38,6 @@ export const subscribe: Subscribe = async options => {
     k8sClient,
     namespaceName,
   })
-
-  await grantAdminRoleToNamespace({ k8sClient, namespaceName })
 
   const monitoringDeployedImage = await subscribeToImage({
     appId: internalK8testResourcesAppId(),
@@ -69,7 +69,7 @@ export const subscribe: Subscribe = async options => {
   )
 
   log(
-    'image "%s". is reachable using the url: "%s" from outside the cluster',
+    'image "%s". is reachable using the address: "%s" from outside the cluster',
     'k8test-monitoring',
     monitoringDeployedImage.deployedImageUrl,
   )
@@ -102,7 +102,7 @@ export const subscribe: Subscribe = async options => {
   }
 
   log(
-    'image "%s". is reachable using the url: "%s" from outside the cluster',
+    'image "%s". is reachable using the address: "%s" from outside the cluster',
     options.imageName,
     deployedImage.deployedImageUrl,
   )

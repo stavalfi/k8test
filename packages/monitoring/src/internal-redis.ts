@@ -25,26 +25,35 @@ async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<vo
 }
 
 const isRedisReadyPredicate = (host: string, port: number) => {
-  const redis = new Redis({
+  const redisClient = new Redis({
     host,
     port,
     lazyConnect: true, // because i will try to connect manually in the next line,
     connectTimeout: 1000,
     showFriendlyErrorStack: true,
   })
+  redisClient.on('error', () => {})
 
-  return redis.connect().finally(() => {
+  return redisClient.connect().finally(() => {
     try {
-      redis.disconnect()
+      redisClient.disconnect()
     } catch {
       // ignore error
     }
   })
 }
 
-export type Lock = (lockIdentifier: string) => Promise<{ unlock: () => Promise<void> }>
+export type SyncTask = <SyncTaskReturnType>(
+  lockIdentifier: string,
+  task: () => Promise<SyncTaskReturnType>,
+) => Promise<SyncTaskReturnType>
 
-export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisClient: Redis.Redis; lock: Lock }> {
+export async function setupInternalRedis(
+  k8sClient: K8sClient,
+): Promise<{
+  redisClient: Redis.Redis
+  syncTask: SyncTask
+}> {
   log('setting up redis for k8test internal use inside namespace "%s"', k8testNamespaceName())
   const redisDeployment = await subscribeToImage({
     k8sClient,
@@ -60,12 +69,19 @@ export async function setupInternalRedis(k8sClient: K8sClient): Promise<{ redisC
   const port = redisDeployment.deployedImagePort
 
   await waitUntilReady(() => isRedisReadyPredicate(host, port))
-  log('image "%s". is reachable using the url: "%s" from inside the cluster', 'redis', `${host}:${port}`)
+  log('image "%s". is reachable using the address: "%s" from inside the cluster', 'redis', `${host}:${port}`)
 
   const redisClient = new Redis({ host, port, showFriendlyErrorStack: true })
+  redisClient.on('error', () => {})
   const locker = new Redlock([redisClient])
+  locker.on
   return {
     redisClient,
-    lock: (lockIdentifier: string) => locker.lock(lockIdentifier, 100_000),
+    syncTask: async (lockIdentifier, task) => {
+      const lock = await locker.lock(lockIdentifier, 10_000)
+      const result = await task()
+      await lock.unlock()
+      return result
+    },
   }
 }

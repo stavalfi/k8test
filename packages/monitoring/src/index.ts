@@ -11,40 +11,29 @@ import {
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
   ConnectionFrom,
+  DeployedImage,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import { Lock, setupInternalRedis } from './internal-redis'
+import { SyncTask, setupInternalRedis } from './internal-redis'
 
 const log = k8testLog('monitoring')
 
 function buildService({
   k8sClient,
   redisClient,
-  lock,
+  syncTask,
 }: {
   k8sClient: K8sClient
   redisClient: Redis.Redis
-  lock: Lock
+  syncTask: SyncTask
 }): Express {
-  function synchronizedRoute<ReqBody>(
-    route: string,
-    logic: (req: express.Request & { body: ReqBody }, res: express.Response) => Promise<void>,
-  ) {
-    return async (req: express.Request & { body: ReqBody }, res: express.Response) => {
-      const { unlock } = await lock(route)
-      await logic(req, res)
-      await unlock()
-    }
-  }
-
   const app = express()
   app.use(bodyParser.json())
 
   app.get('/is-alive', (_req, res) => res.end())
 
-  app.post(
-    '/subscribe',
-    synchronizedRoute<SubscribeToImageOptions>('subscribe', async (req, res) => {
+  app.post<{}, DeployedImage, SubscribeToImageOptions>('/subscribe', (req, res) =>
+    syncTask('subscribe', async () => {
       const options = req.body
       const deployedImage = await subscribeToImage({
         k8sClient,
@@ -60,9 +49,8 @@ function buildService({
     }),
   )
 
-  app.post(
-    '/unsubscribe',
-    synchronizedRoute<UnsubscribeFromImageOptions>('unsubscribe', async (req, res) => {
+  app.post<{}, {}, UnsubscribeFromImageOptions>('/unsubscribe', (req, res) =>
+    syncTask('unsubscribe', async () => {
       const options = req.body
       await unsubscribeFromImage({
         k8sClient,
@@ -91,13 +79,13 @@ async function main() {
 
   await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
 
-  const { redisClient, lock } = await setupInternalRedis(k8sClient)
+  const { redisClient, syncTask } = await setupInternalRedis(k8sClient)
 
-  const app = buildService({ k8sClient, redisClient, lock })
+  const app = buildService({ k8sClient, redisClient, syncTask })
 
   await new Promise(res => app.listen(80, res))
 
-  log('service is listening on port 80 inside the cluster')
+  log('service is listening on port 80 inside the cluster (this service will be used only outside of cluster)')
 }
 
 main()

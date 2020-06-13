@@ -40,5 +40,7 @@ export type K8sResource =
   | k8s.V1Pod
   | k8s.V1Role
   | k8s.V1RoleBinding
+  | k8s.V1ClusterRole
+  | k8s.V1ClusterRoleBinding
 
 export type ContainerOptions = Omit<k8s.V1Container, 'name' | 'image' | 'ports'>
