@@ -2,20 +2,21 @@ import bodyParser from 'body-parser'
 import express, { Express } from 'express'
 import Redis from 'ioredis'
 import {
+  ConnectionFrom,
   createK8sClient,
   deleteAllTempResources,
+  DeployedImage,
   K8sClient,
   k8testNamespaceName,
+  SerializedDeployedImageProps,
+  SerializedSubscribeToImageOptions,
   subscribeToImage,
-  SubscribeToImageOptions,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
-  ConnectionFrom,
-  DeployedImage,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import { SyncTask, setupInternalRedis } from './internal-redis'
-import { type } from 'os'
+import _omit from 'lodash/omit'
+import { setupInternalRedis, SyncTask } from './internal-redis'
 
 const log = k8testLog('monitoring')
 
@@ -23,17 +24,19 @@ function buildService({
   k8sClient,
   redisClient,
   syncTask,
+  redisDeployment,
 }: {
   k8sClient: K8sClient
   redisClient: Redis.Redis
   syncTask: SyncTask
+  redisDeployment: DeployedImage
 }): Express {
   const app = express()
   app.use(bodyParser.json())
 
   app.get('/is-alive', (_req, res) => res.end())
 
-  app.post<{}, DeployedImage, SubscribeToImageOptions>('/subscribe', (req, res) =>
+  app.post<{}, SerializedDeployedImageProps, SerializedSubscribeToImageOptions>('/subscribe', (req, res) =>
     syncTask('subscribe', async () => {
       const options = req.body
       const deployedImage = await subscribeToImage({
@@ -46,7 +49,7 @@ function buildService({
         singletonStrategy: options.singletonStrategy,
         containerOptions: options.containerOptions,
       })
-      res.json(deployedImage)
+      res.json(_omit(deployedImage, ['containerStdioAttachment']))
       res.end()
     }),
   )
@@ -62,7 +65,6 @@ function buildService({
         singletonStrategy: options.singletonStrategy,
         deploymentName: options.deploymentName,
         serviceName: options.serviceName,
-        deployedImageUrl: options.deployedImageUrl,
       })
       res.end()
     }),
@@ -81,9 +83,9 @@ async function main() {
 
   await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
 
-  const { redisClient, syncTask } = await setupInternalRedis(k8sClient)
+  const { redisClient, redisDeployment, syncTask } = await setupInternalRedis(k8sClient)
 
-  const app = buildService({ k8sClient, redisClient, syncTask })
+  const app = buildService({ k8sClient, redisClient, redisDeployment, syncTask })
 
   await new Promise(res => app.listen(80, res))
 

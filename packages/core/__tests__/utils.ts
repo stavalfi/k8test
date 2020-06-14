@@ -1,4 +1,40 @@
 import Redis from 'ioredis'
+import {
+  generateResourceName,
+  k8testNamespaceName,
+  SingletonStrategy,
+  unsubscribeFromImage,
+  createK8sClient,
+  ConnectionFrom,
+} from 'k8s-api'
+
+export async function deleteAllInternalResources() {
+  const getName = (imageName: string) =>
+    generateResourceName({
+      imageName,
+      namespaceName: k8testNamespaceName(),
+      singletonStrategy: SingletonStrategy.oneInNamespace,
+    })
+  const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
+  await unsubscribeFromImage({
+    k8sClient,
+    imageName: 'redis',
+    namespaceName: k8testNamespaceName(),
+    singletonStrategy: SingletonStrategy.oneInNamespace,
+    deploymentName: getName('redis'),
+    serviceName: getName('redis'),
+    forceDelete: true,
+  })
+  await unsubscribeFromImage({
+    k8sClient,
+    imageName: 'stavalfi/k8test-monitoring',
+    namespaceName: k8testNamespaceName(),
+    singletonStrategy: SingletonStrategy.oneInNamespace,
+    deploymentName: getName('stavalfi/k8test-monitoring'),
+    serviceName: getName('stavalfi/k8test-monitoring'),
+    forceDelete: true,
+  })
+}
 
 export const isRedisReadyPredicate = (url: string, host: string, port: number) => {
   const redis = new Redis({

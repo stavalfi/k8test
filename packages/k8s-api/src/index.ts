@@ -5,6 +5,7 @@ import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTem
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import k8testLog, { minimal } from 'k8test-log'
+import WebSocket from 'ws'
 
 export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
@@ -15,7 +16,9 @@ export { grantAdminRoleToCluster } from './role'
 
 const log = k8testLog('k8s-api')
 
-export type DeployedImage = {
+export type DeployedImage = SerializedDeployedImageProps & UnserializedDeployedImageProps
+
+export type SerializedDeployedImageProps = {
   deploymentName: string
   serviceName: string
   deployedImageUrl: string
@@ -23,20 +26,31 @@ export type DeployedImage = {
   deployedImagePort: number
 }
 
+export type UnserializedDeployedImageProps = {
+  containerStdioAttachment?: WebSocket
+}
+
 export type SubscribeToImageOptions = {
-  appId?: string
   k8sClient: K8sClient
+} & SerializedSubscribeToImageOptions &
+  UnserializedSubscribeToImageOptions
+
+export type SerializedSubscribeToImageOptions = {
+  appId?: string
   namespaceName: string
   imageName: string
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
+  failFastIfExist?: boolean
+}
+
+export type UnserializedSubscribeToImageOptions = {
   podStdio?: {
     stdout?: NodeJS.WriteStream
     stderr?: NodeJS.WriteStream
   }
-  failFastIfExist?: boolean
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
@@ -130,22 +144,23 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     deployedImageUrl,
     deployedImageAddress,
     deployedImagePort,
+    containerStdioAttachment: deploymentResult.containerStdioAttachment,
   }
 }
 
 export type UnsubscribeFromImageOptions = {
-  appId: string
+  appId?: string
   imageName: string
   k8sClient: K8sClient
   namespaceName: string
   deploymentName: string
   serviceName: string
-  deployedImageUrl: string
   singletonStrategy: SingletonStrategy
+  forceDelete?: boolean
 }
 
 export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions): Promise<void> {
-  const logUnsubs = log.extend(options.appId)
+  const logUnsubs = options.appId ? log.extend(options.appId) : log
 
   logUnsubs('unsubscribing from image "%s" with options: %O', options.imageName, minimal(options))
   const deleteResources = async () => {
@@ -163,19 +178,23 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
     await new Promise(res => setTimeout(res, 3000))
     logUnsubs('the image "%s" deleted', options.imageName)
   }
-  if ([SingletonStrategy.oneInAppId, SingletonStrategy.manyInAppId].includes(options.singletonStrategy)) {
-    const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      operation: SubscriptionOperation.unsubscribe,
-    })
-    if (updatedBalance === 0) {
-      await deleteResources()
-    } else {
-      logUnsubs('the image "%s" still has %d subscribers so it is still needed', options.imageName, updatedBalance)
-    }
+  if (options.forceDelete) {
+    return deleteResources()
   } else {
-    logUnsubs('the image "%s" will not be deleted because it is a singleton-cluster resource', options.imageName)
+    if ([SingletonStrategy.oneInAppId, SingletonStrategy.manyInAppId].includes(options.singletonStrategy)) {
+      const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
+        k8sClient: options.k8sClient,
+        namespaceName: options.namespaceName,
+        operation: SubscriptionOperation.unsubscribe,
+      })
+      if (updatedBalance === 0) {
+        await deleteResources()
+      } else {
+        logUnsubs('the image "%s" still has %d subscribers so it is still needed', options.imageName, updatedBalance)
+      }
+    } else {
+      logUnsubs('the image "%s" will not be deleted because it is a singleton-cluster resource', options.imageName)
+    }
   }
 }
 

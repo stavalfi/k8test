@@ -2,7 +2,6 @@ import got from 'got'
 import {
   createK8sClient,
   createNamespaceIfNotExist,
-  DeployedImage,
   ExposeStrategy,
   k8testNamespaceName,
   randomAppId,
@@ -10,6 +9,7 @@ import {
   subscribeToImage,
   grantAdminRoleToCluster,
   ConnectionFrom,
+  SerializedDeployedImageProps,
 } from 'k8s-api'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
@@ -49,14 +49,16 @@ export const subscribe: Subscribe = async options => {
     // so we avoid a situation where some processes will try to delete while others try to create.
     // for now, this is one of the use-cases: when we subscribe the monitoring service multiple times from multiple test-runner processes.
     failFastIfExist: true,
-    // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
-    // eslint-disable-next-line no-process-env
-    ...(process.env['K8TEST_TEST_MODE'] && {
-      containerOptions: { imagePullPolicy: 'Never' },
+    ...(options.debugMonitoringService && {
       podStdio: {
         stdout: process.stdout,
         stderr: process.stderr,
       },
+    }),
+    // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
+    // eslint-disable-next-line no-process-env
+    ...(process.env['K8TEST_TEST_MODE'] === 'true' && {
+      containerOptions: { imagePullPolicy: 'Never' },
     }),
   })
 
@@ -78,7 +80,7 @@ export const subscribe: Subscribe = async options => {
     monitoringDeployedImage.deployedImageUrl,
   )
 
-  const { body: deployedImage } = await got.post<DeployedImage>(
+  const { body: deployedImage } = await got.post<SerializedDeployedImageProps>(
     `${monitoringDeployedImage.deployedImageUrl}/subscribe`,
     {
       responseType: 'json',
@@ -136,6 +138,7 @@ export const subscribe: Subscribe = async options => {
         },
       })
     },
+    monitoringServiceContainerStdioAttachment: monitoringDeployedImage.containerStdioAttachment,
   }
 }
 

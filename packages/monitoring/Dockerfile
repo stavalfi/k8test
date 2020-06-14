@@ -15,4 +15,4 @@ COPY packages/k8s-api/dist/src ./packages/k8s-api/dist/src
 
 EXPOSE 80
 
-CMD ["node", "--unhandled-rejections=strict", "packages/monitoring/dist/src/index.js"]
+CMD ["node", "--unhandled-rejections=strict", "--trace-deprecation","packages/monitoring/dist/src/index.js"]

@@ -57,13 +57,14 @@ export const generateResourceName = ({
     .slice(0, 5)
 
   const validatedImageName = imageName ? validateImageName(imageName) : ''
+  const join = (values: (string | undefined)[]) => values.filter(Boolean).join('-')
   switch (singletonStrategy) {
     case SingletonStrategy.oneInNamespace:
-      return `${namespaceName}-${validatedImageName}`
+      return join([namespaceName, validatedImageName])
     case SingletonStrategy.oneInAppId:
-      return `${appId}-${validatedImageName}`
+      return join([appId, validatedImageName])
     case SingletonStrategy.manyInAppId:
-      return `${letter}${hash}-${appId}-${validatedImageName}`
+      return join([`${letter}${hash}`, appId, validatedImageName])
   }
 }
 

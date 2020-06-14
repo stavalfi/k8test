@@ -6,6 +6,7 @@ import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 import { findPodByLabels } from './pod'
 import process from 'process'
+import WebSocket from 'ws'
 
 const log = k8testLog('k8s-api:deployment')
 
@@ -24,7 +25,7 @@ export async function createDeployment(options: {
     stderr?: NodeJS.WriteStream
   }
   failFastIfExist?: boolean
-}): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
+}): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean; containerStdioAttachment?: WebSocket }> {
   const containerName = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
@@ -93,7 +94,7 @@ export async function createDeployment(options: {
       }),
   })
 
-  if (options.podStdio) {
+  if (options.podStdio && deployment.isNewResource) {
     const pod = await findPodByLabels({
       k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
@@ -103,7 +104,7 @@ export async function createDeployment(options: {
     if (!podName) {
       throw new Error(`pod created or found without a name specifier. its a bug`)
     }
-    await options.k8sClient.attach.attach(
+    const containerStdioAttachment = await options.k8sClient.attach.attach(
       options.namespaceName,
       podName,
       containerName,
@@ -112,6 +113,7 @@ export async function createDeployment(options: {
       null,
       false,
     )
+    return { ...deployment, containerStdioAttachment }
   }
 
   return deployment
