@@ -82,7 +82,6 @@ export async function createResource<Resource extends K8sResource>(options: {
   }>
   deleteResource: (resourceName: string) => Promise<unknown>
   waitUntilReady: (resourceName: string) => Promise<Resource>
-  failFastIfExist?: boolean
 }): Promise<{ resource: Resource; isNewResource: boolean }> {
   const resourceName = generateResourceName({
     appId: options.appId,
@@ -109,15 +108,8 @@ export async function createResource<Resource extends K8sResource>(options: {
           isNewResource: false,
         }
       } else {
-        // the existing resource is not valid anymore.
-        if (options.failFastIfExist) {
-          throw new Error(
-            `resource "${resourceName}" already exist and it is not valid any more. please manually remove it and start your application again. we are sorry for the inconvenience but we do not have a solution for this edge-case.`,
-          )
-        } else {
-          await options.deleteResource(resourceName)
-          return createResource(options)
-        }
+        await options.deleteResource(resourceName)
+        return createResource(options)
       }
     } else {
       throw error

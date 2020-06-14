@@ -1,26 +1,23 @@
 import { subscribe, randomAppId } from '../src'
-import { cleanupAfterEach, isRedisReadyPredicate, redisClient, deleteAllInternalResources } from './utils'
+import { cleanupAfterEach, isRedisReadyPredicate, redisClient, cliMonitoringPath } from './utils'
+import execa from 'execa'
+import { k8testNamespaceName } from 'k8s-api'
 
 describe('reach endpoints in the cluster', () => {
   let cleanups = cleanupAfterEach()
 
   test('endpoint is available while the endpoint has active subscription', async () => {
-    const {
-      unsubscribe,
-      deployedImageAddress,
-      deployedImagePort,
-      monitoringServiceContainerStdioAttachment,
-    } = await subscribe({
+    const namespaceName = k8testNamespaceName()
+    await execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`)
+    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,
       appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
-      debugMonitoringService: true,
     })
 
     cleanups.push(unsubscribe)
-    cleanups.push(deleteAllInternalResources)
-    cleanups.push(() => monitoringServiceContainerStdioAttachment?.close())
+    cleanups.push(() => execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`))
 
     const redis = redisClient({
       host: deployedImageAddress,

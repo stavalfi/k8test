@@ -8,14 +8,14 @@ import {
   DeployedImage,
   K8sClient,
   k8testNamespaceName,
-  SerializedDeployedImageProps,
   SerializedSubscribeToImageOptions,
   subscribeToImage,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
+  SingletonStrategy,
+  generateResourceName,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import _omit from 'lodash/omit'
 import { setupInternalRedis, SyncTask } from './internal-redis'
 
 const log = k8testLog('monitoring')
@@ -36,7 +36,7 @@ function buildService({
 
   app.get('/is-alive', (_req, res) => res.end())
 
-  app.post<{}, SerializedDeployedImageProps, SerializedSubscribeToImageOptions>('/subscribe', (req, res) =>
+  app.post<{}, DeployedImage, SerializedSubscribeToImageOptions>('/subscribe', (req, res) =>
     syncTask('subscribe', async () => {
       const options = req.body
       const deployedImage = await subscribeToImage({
@@ -49,7 +49,7 @@ function buildService({
         singletonStrategy: options.singletonStrategy,
         containerOptions: options.containerOptions,
       })
-      res.json(_omit(deployedImage, ['containerStdioAttachment']))
+      res.json(deployedImage)
       res.end()
     }),
   )
@@ -65,6 +65,27 @@ function buildService({
         singletonStrategy: options.singletonStrategy,
         deploymentName: options.deploymentName,
         serviceName: options.serviceName,
+      })
+      res.end()
+    }),
+  )
+
+  app.delete<{}, {}, {}>('/delete-internal-resources', (req, res) =>
+    syncTask('delete-internal-resources', async () => {
+      const getName = (imageName: string) =>
+        generateResourceName({
+          imageName,
+          namespaceName: k8testNamespaceName(),
+          singletonStrategy: SingletonStrategy.oneInNamespace,
+        })
+      await unsubscribeFromImage({
+        k8sClient,
+        imageName: 'redis',
+        namespaceName: k8testNamespaceName(),
+        singletonStrategy: SingletonStrategy.oneInNamespace,
+        deploymentName: getName('redis'),
+        serviceName: getName('redis'),
+        forceDelete: true,
       })
       res.end()
     }),

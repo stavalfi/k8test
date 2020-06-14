@@ -1,10 +1,10 @@
 import * as k8s from '@kubernetes/client-node'
-import { SingletonStrategy } from './types'
-import { ExposeStrategy, K8sClient } from './types'
-import { createResource, generateResourceLabels } from './utils'
-import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 import { Address4 } from 'ip-address'
 import k8testLog from 'k8test-log'
+import { ExposeStrategy, K8sClient, SingletonStrategy } from './types'
+import { createResource, generateResourceLabels } from './utils'
+import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
+import { NotFoundError } from './errors'
 
 const log = k8testLog('k8s-api:service')
 
@@ -15,7 +15,6 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
   singletonStrategy: SingletonStrategy
-  failFastIfExist?: boolean
 }): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
   const podLabels = generateResourceLabels({
     appId: options.appId,
@@ -49,7 +48,6 @@ export async function createService(options: {
     createInK8s: resource => options.k8sClient.apiClient.createNamespacedService(options.namespaceName, resource),
     deleteResource: serviceName =>
       deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),
-    failFastIfExist: options.failFastIfExist,
     waitUntilReady: resourceName =>
       waitUntilServiceCreated(resourceName, {
         k8sClient: options.k8sClient,
@@ -109,13 +107,7 @@ export const getDeployedImagePort: GetDeployedImagePort = async (serviceName, op
   const response = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
   const service = response.body.items.find(service => service.metadata?.name === serviceName)
   if (!service) {
-    throw new Error(
-      `could not find a specific service to extract the node-port from him. the response contains the following services: ${JSON.stringify(
-        response.body.items,
-        null,
-        2,
-      )}`,
-    )
+    throw new NotFoundError(serviceName, 'service')
   }
   const ports = service.spec?.ports
   if (!ports || ports.length !== 1) {
@@ -161,13 +153,7 @@ export const getServiceIp: GetServiceAddress = async (serviceName, options) => {
   const response = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
   const service = response.body.items.find(service => service.metadata?.name === serviceName)
   if (!service) {
-    throw new Error(
-      `could not find a specific service to extract the node-port from him. the response contains the following services: ${JSON.stringify(
-        response.body.items,
-        null,
-        2,
-      )}`,
-    )
+    throw new NotFoundError(serviceName, 'service')
   }
   const serviceIp = service.spec?.clusterIP
   if (!serviceIp) {

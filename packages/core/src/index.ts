@@ -1,20 +1,21 @@
 import got from 'got'
 import {
+  ConnectionFrom,
   createK8sClient,
-  createNamespaceIfNotExist,
   ExposeStrategy,
+  generateResourceName,
+  getDeployedImageConnectionDetails,
+  grantAdminRoleToCluster,
   k8testNamespaceName,
   randomAppId,
   SingletonStrategy,
-  subscribeToImage,
-  grantAdminRoleToCluster,
-  ConnectionFrom,
-  SerializedDeployedImageProps,
+  DeployedImage,
 } from 'k8s-api'
-import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import k8testLog from 'k8test-log'
+import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
+import { waitUntilReady } from './utils'
 
-export { deleteNamespaceIfExist, SingletonStrategy, randomAppId } from 'k8s-api'
+export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
 
 const log = k8testLog('core')
@@ -32,69 +33,29 @@ export const subscribe: Subscribe = async options => {
 
   const namespaceName = k8testNamespaceName()
 
-  await createNamespaceIfNotExist({
-    appId,
+  const { deployedImageUrl: monitoringDeployedImageUrl } = await getDeployedImageConnectionDetails({
     k8sClient,
-    namespaceName,
-  })
-
-  const monitoringDeployedImage = await subscribeToImage({
-    k8sClient,
-    namespaceName: k8testNamespaceName(),
-    imageName: 'stavalfi/k8test-monitoring',
-    containerPortToExpose: 80,
     exposeStrategy: ExposeStrategy.userMachine,
-    singletonStrategy: SingletonStrategy.oneInNamespace,
-    // this option exist for cases where we try to create the same resource from multiple processes at the same time and we can't synchronize them,
-    // so we avoid a situation where some processes will try to delete while others try to create.
-    // for now, this is one of the use-cases: when we subscribe the monitoring service multiple times from multiple test-runner processes.
-    failFastIfExist: true,
-    ...(options.debugMonitoringService && {
-      podStdio: {
-        stdout: process.stdout,
-        stderr: process.stderr,
-      },
-    }),
-    // before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet.
-    // eslint-disable-next-line no-process-env
-    ...(process.env['K8TEST_TEST_MODE'] === 'true' && {
-      containerOptions: { imagePullPolicy: 'Never' },
+    namespaceName: k8testNamespaceName(),
+    serviceName: generateResourceName({
+      imageName: 'stavalfi/k8test-monitoring',
+      namespaceName: k8testNamespaceName(),
+      singletonStrategy: SingletonStrategy.oneInNamespace,
     }),
   })
 
-  log(
-    'waiting until the service in image "%s" is reachable using the address: "%s" from outside the cluster',
-    'k8test-monitoring',
-    monitoringDeployedImage.deployedImageUrl,
-  )
-
-  await waitUntilReady(() =>
-    got.get(`${monitoringDeployedImage.deployedImageUrl}/is-alive`, {
-      timeout: 1000,
-    }),
-  )
-
-  log(
-    'image "%s" is reachable using the address: "%s" from outside the cluster',
-    'k8test-monitoring',
-    monitoringDeployedImage.deployedImageUrl,
-  )
-
-  const { body: deployedImage } = await got.post<SerializedDeployedImageProps>(
-    `${monitoringDeployedImage.deployedImageUrl}/subscribe`,
-    {
-      responseType: 'json',
-      json: {
-        appId,
-        namespaceName,
-        imageName: options.imageName,
-        containerPortToExpose: options.containerPortToExpose,
-        exposeStrategy: ExposeStrategy.userMachine,
-        singletonStrategy,
-        containerOptions: options.containerOptions,
-      },
+  const { body: deployedImage } = await got.post<DeployedImage>(`${monitoringDeployedImageUrl}/subscribe`, {
+    responseType: 'json',
+    json: {
+      appId,
+      namespaceName,
+      imageName: options.imageName,
+      containerPortToExpose: options.containerPortToExpose,
+      exposeStrategy: ExposeStrategy.userMachine,
+      singletonStrategy,
+      containerOptions: options.containerOptions,
     },
-  )
+  })
 
   log(
     'waiting until the service in image "%s" is reachable using the address: "%s" from outside the cluster',
@@ -126,7 +87,7 @@ export const subscribe: Subscribe = async options => {
     deployedImageAddress: deployedImage.deployedImageAddress,
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () => {
-      await got.post(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
+      await got.post(`${monitoringDeployedImageUrl}/unsubscribe`, {
         json: {
           appId,
           imageName: options.imageName,
@@ -138,19 +99,6 @@ export const subscribe: Subscribe = async options => {
         },
       })
     },
-    monitoringServiceContainerStdioAttachment: monitoringDeployedImage.containerStdioAttachment,
-  }
-}
-
-async function waitUntilReady(isReadyPredicate: () => Promise<unknown>): Promise<void> {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    try {
-      await isReadyPredicate()
-      return
-    } catch (e) {
-      await new Promise(res => setTimeout(res, 1000))
-    }
   }
 }
 

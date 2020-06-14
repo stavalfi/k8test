@@ -17,7 +17,8 @@
       "k8test": ["core/src/index.ts"],
       "k8test-monitoring": ["monitoring/src/index.ts"],
       "k8s-api": ["k8s-api/src/index.ts"],
-      "k8test-log": ["log/src/index.ts"]
+      "k8test-log": ["log/src/index.ts"],
+      "k8test-cli-logic": ["cli-logic/src/index.ts"]
     }
   }
 }

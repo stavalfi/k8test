@@ -6,7 +6,6 @@ import { K8sClient } from './types'
 export const k8testNamespaceName = () => `k8test`
 
 export async function createNamespaceIfNotExist(options: {
-  appId: string
   k8sClient: K8sClient
   namespaceName: string
 }): Promise<k8s.V1Namespace> {

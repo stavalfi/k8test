@@ -2,6 +2,7 @@
   "name": "k8test-example-project",
   "version": "1.0.0",
   "license": "UNLICENSED",
+  "private": true,
   "files": [
     "src",
     "__tests__",

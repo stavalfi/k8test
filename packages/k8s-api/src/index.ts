@@ -5,7 +5,6 @@ import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTem
 import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
 import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import k8testLog, { minimal } from 'k8test-log'
-import WebSocket from 'ws'
 
 export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
@@ -13,12 +12,11 @@ export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient, ConnectionFrom } from './types'
 export { generateResourceName, randomAppId } from './utils'
 export { grantAdminRoleToCluster } from './role'
+export { NotFoundError } from './errors'
 
 const log = k8testLog('k8s-api')
 
-export type DeployedImage = SerializedDeployedImageProps & UnserializedDeployedImageProps
-
-export type SerializedDeployedImageProps = {
+export type DeployedImage = {
   deploymentName: string
   serviceName: string
   deployedImageUrl: string
@@ -26,14 +24,9 @@ export type SerializedDeployedImageProps = {
   deployedImagePort: number
 }
 
-export type UnserializedDeployedImageProps = {
-  containerStdioAttachment?: WebSocket
-}
-
 export type SubscribeToImageOptions = {
   k8sClient: K8sClient
-} & SerializedSubscribeToImageOptions &
-  UnserializedSubscribeToImageOptions
+} & SerializedSubscribeToImageOptions
 
 export type SerializedSubscribeToImageOptions = {
   appId?: string
@@ -43,14 +36,6 @@ export type SerializedSubscribeToImageOptions = {
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
-  failFastIfExist?: boolean
-}
-
-export type UnserializedSubscribeToImageOptions = {
-  podStdio?: {
-    stdout?: NodeJS.WriteStream
-    stderr?: NodeJS.WriteStream
-  }
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
@@ -64,7 +49,6 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
     singletonStrategy: options.singletonStrategy,
-    failFastIfExist: options.failFastIfExist,
   })
   const podLabels = serviceResult.resource.spec?.selector
   if (!podLabels) {
@@ -91,8 +75,6 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     exposeStrategy: options.exposeStrategy,
     singletonStrategy: options.singletonStrategy,
     containerOptions: options.containerOptions,
-    podStdio: options.podStdio,
-    failFastIfExist: options.failFastIfExist,
   })
   const deploymentName = deploymentResult.resource.metadata?.name
   if (!deploymentName) {
@@ -119,18 +101,12 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     })
   }
 
-  const [deployedImageAddress, deployedImagePort] = await Promise.all([
-    options.exposeStrategy === ExposeStrategy.userMachine
-      ? getMasterIp({ k8sClient: options.k8sClient })
-      : getServiceIp(serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
-    getDeployedImagePort(serviceName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      exposeStrategy: options.exposeStrategy,
-    }),
-  ])
-
-  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
+  const { deployedImageAddress, deployedImagePort, deployedImageUrl } = await getDeployedImageConnectionDetails({
+    k8sClient: options.k8sClient,
+    exposeStrategy: options.exposeStrategy,
+    namespaceName: options.namespaceName,
+    serviceName,
+  })
 
   logSubs(
     'subscribed to image "%s". address of the container: "%s"',
@@ -144,8 +120,28 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     deployedImageUrl,
     deployedImageAddress,
     deployedImagePort,
-    containerStdioAttachment: deploymentResult.containerStdioAttachment,
   }
+}
+
+export async function getDeployedImageConnectionDetails(options: {
+  k8sClient: K8sClient
+  namespaceName: string
+  exposeStrategy: ExposeStrategy
+  serviceName: string
+}) {
+  const [deployedImageAddress, deployedImagePort] = await Promise.all([
+    options.exposeStrategy === ExposeStrategy.userMachine
+      ? getMasterIp({ k8sClient: options.k8sClient })
+      : getServiceIp(options.serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
+    getDeployedImagePort(options.serviceName, {
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      exposeStrategy: options.exposeStrategy,
+    }),
+  ])
+
+  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
+  return { deployedImageAddress, deployedImagePort, deployedImageUrl }
 }
 
 export type UnsubscribeFromImageOptions = {

@@ -1,12 +1,10 @@
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
 import k8testLog from 'k8test-log'
+import process from 'process'
 import { ContainerOptions, ExposeStrategy, K8sClient, Labels, SingletonStrategy, SubscriptionOperation } from './types'
 import { createResource, generateResourceName } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
-import { findPodByLabels } from './pod'
-import process from 'process'
-import WebSocket from 'ws'
 
 const log = k8testLog('k8s-api:deployment')
 
@@ -20,12 +18,8 @@ export async function createDeployment(options: {
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
-  podStdio?: {
-    stdout?: NodeJS.WriteStream
-    stderr?: NodeJS.WriteStream
-  }
   failFastIfExist?: boolean
-}): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean; containerStdioAttachment?: WebSocket }> {
+}): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
   const containerName = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
@@ -86,35 +80,12 @@ export async function createDeployment(options: {
       options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, resource),
     deleteResource: deploymentName =>
       deleteDeployment({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, deploymentName }),
-    failFastIfExist: options.failFastIfExist,
     waitUntilReady: resourceName =>
       waitUntilDeploymentReady(resourceName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
-
-  if (options.podStdio && deployment.isNewResource) {
-    const pod = await findPodByLabels({
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      podLabels: options.podLabels,
-    })
-    const podName = pod.metadata?.name
-    if (!podName) {
-      throw new Error(`pod created or found without a name specifier. its a bug`)
-    }
-    const containerStdioAttachment = await options.k8sClient.attach.attach(
-      options.namespaceName,
-      podName,
-      containerName,
-      options.podStdio.stdout,
-      options.podStdio.stderr,
-      null,
-      false,
-    )
-    return { ...deployment, containerStdioAttachment }
-  }
 
   return deployment
 }

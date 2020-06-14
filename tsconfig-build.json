@@ -19,6 +19,9 @@
     },
     {
       "path": "packages/log/tsconfig-build.json"
+    },
+    {
+      "path": "packages/cli-logic/tsconfig-build.json"
     }
   ]
 }

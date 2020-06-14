@@ -30,7 +30,6 @@ export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
     }),
     createInK8s: resource => k8sClient.authClient.createClusterRole(resource),
     deleteResource: roleName => k8sClient.authClient.deleteClusterRole(roleName),
-    failFastIfExist: true,
     waitUntilReady: resourceName =>
       waitUntilClusterRoleCreated(resourceName, {
         k8sClient,
@@ -73,7 +72,6 @@ export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
     }),
     createInK8s: resource => k8sClient.authClient.createClusterRoleBinding(resource),
     deleteResource: roleName => k8sClient.authClient.deleteClusterRoleBinding(roleName),
-    failFastIfExist: true,
     waitUntilReady: resourceName =>
       waitUntilClusterRoleBindingCreated(resourceName, {
         k8sClient,
