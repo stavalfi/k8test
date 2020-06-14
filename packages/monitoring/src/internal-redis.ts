@@ -68,13 +68,21 @@ export async function setupInternalRedis(
   const host = redisDeployment.deployedImageAddress
   const port = redisDeployment.deployedImagePort
 
+  log(
+    'waiting until the service in image "%s" is reachable using the address: "%s" from inside the cluster',
+    'redis',
+    redisDeployment.deployedImageUrl,
+  )
+
   await waitUntilReady(() => isRedisReadyPredicate(host, port))
   log('image "%s". is reachable using the address: "%s" from inside the cluster', 'redis', `${host}:${port}`)
 
   const redisClient = new Redis({ host, port, showFriendlyErrorStack: true })
   redisClient.on('error', () => {})
+  await redisClient.set('x', 1)
   const locker = new Redlock([redisClient])
-  locker.on
+  // eslint-disable-next-line no-console
+  locker.on('clientError', e => console.error('lock-error', e))
   return {
     redisClient,
     syncTask: async (lockIdentifier, task) => {

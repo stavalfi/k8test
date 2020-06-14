@@ -15,6 +15,7 @@ import {
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { SyncTask, setupInternalRedis } from './internal-redis'
+import { type } from 'os'
 
 const log = k8testLog('monitoring')
 
@@ -46,6 +47,7 @@ function buildService({
         containerOptions: options.containerOptions,
       })
       res.json(deployedImage)
+      res.end()
     }),
   )
 

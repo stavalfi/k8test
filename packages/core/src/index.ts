@@ -62,6 +62,12 @@ export const subscribe: Subscribe = async options => {
     }),
   })
 
+  log(
+    'waiting until the service in image "%s" is reachable using the address: "%s" from outside the cluster',
+    'k8test-monitoring',
+    monitoringDeployedImage.deployedImageUrl,
+  )
+
   await waitUntilReady(() =>
     got.get(`${monitoringDeployedImage.deployedImageUrl}/is-alive`, {
       timeout: 1000,
@@ -69,7 +75,7 @@ export const subscribe: Subscribe = async options => {
   )
 
   log(
-    'image "%s". is reachable using the address: "%s" from outside the cluster',
+    'image "%s" is reachable using the address: "%s" from outside the cluster',
     'k8test-monitoring',
     monitoringDeployedImage.deployedImageUrl,
   )
@@ -77,8 +83,8 @@ export const subscribe: Subscribe = async options => {
   const { body: deployedImage } = await got.post<DeployedImage>(
     `${monitoringDeployedImage.deployedImageUrl}/subscribe`,
     {
+      responseType: 'json',
       json: {
-        k8sClient,
         appId,
         namespaceName,
         imageName: options.imageName,
@@ -88,6 +94,12 @@ export const subscribe: Subscribe = async options => {
         containerOptions: options.containerOptions,
       },
     },
+  )
+
+  log(
+    'waiting until the service in image "%s" is reachable using the address: "%s" from outside the cluster',
+    options.imageName,
+    deployedImage.deployedImageUrl,
   )
 
   const { isReadyPredicate } = options
@@ -102,7 +114,7 @@ export const subscribe: Subscribe = async options => {
   }
 
   log(
-    'image "%s". is reachable using the address: "%s" from outside the cluster',
+    'image "%s" is reachable using the address: "%s" from outside the cluster',
     options.imageName,
     deployedImage.deployedImageUrl,
   )
@@ -113,21 +125,19 @@ export const subscribe: Subscribe = async options => {
     deployedImageUrl: deployedImage.deployedImageUrl,
     deployedImageAddress: deployedImage.deployedImageAddress,
     deployedImagePort: deployedImage.deployedImagePort,
-    unsubscribe: async () =>
-      got
-        .post(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
-          json: {
-            k8sClient,
-            appId,
-            imageName: options.imageName,
-            namespaceName,
-            singletonStrategy,
-            deploymentName: deployedImage.deploymentName,
-            serviceName: deployedImage.serviceName,
-            deployedImageUrl: deployedImage.deployedImageUrl,
-          },
-        })
-        .then(() => {}),
+    unsubscribe: async () => {
+      await got.post(`${monitoringDeployedImage.deployedImageUrl}/unsubscribe`, {
+        json: {
+          appId,
+          imageName: options.imageName,
+          namespaceName,
+          singletonStrategy,
+          deploymentName: deployedImage.deploymentName,
+          serviceName: deployedImage.serviceName,
+          deployedImageUrl: deployedImage.deployedImageUrl,
+        },
+      })
+    },
   }
 }
 

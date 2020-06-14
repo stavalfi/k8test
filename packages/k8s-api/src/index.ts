@@ -148,6 +148,21 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
   const logUnsubs = log.extend(options.appId)
 
   logUnsubs('unsubscribing from image "%s" with options: %O', options.imageName, minimal(options))
+  const deleteResources = async () => {
+    await deleteService({
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      serviceName: options.serviceName,
+    })
+    await deleteDeployment({
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      deploymentName: options.deploymentName,
+    })
+    // k8s has a delay until the deployment is no-longer accessible.
+    await new Promise(res => setTimeout(res, 3000))
+    logUnsubs('the image "%s" deleted', options.imageName)
+  }
   if ([SingletonStrategy.oneInAppId, SingletonStrategy.manyInAppId].includes(options.singletonStrategy)) {
     const updatedBalance = await addSubscriptionsLabel(options.deploymentName, {
       k8sClient: options.k8sClient,
@@ -155,19 +170,7 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
       operation: SubscriptionOperation.unsubscribe,
     })
     if (updatedBalance === 0) {
-      await deleteService({
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
-        serviceName: options.serviceName,
-      })
-      await deleteDeployment({
-        k8sClient: options.k8sClient,
-        namespaceName: options.namespaceName,
-        deploymentName: options.deploymentName,
-      })
-      // k8s has a delay until the deployment is no-longer accessible.
-      await new Promise(res => setTimeout(res, 3000))
-      logUnsubs('the image "%s" deleted', options.imageName)
+      await deleteResources()
     } else {
       logUnsubs('the image "%s" still has %d subscribers so it is still needed', options.imageName, updatedBalance)
     }
