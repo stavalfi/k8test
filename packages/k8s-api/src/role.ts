@@ -2,7 +2,7 @@ import * as k8s from '@kubernetes/client-node'
 import k8testLog from 'k8test-log'
 import { k8testNamespaceName } from './namespace'
 import { K8sClient, SingletonStrategy } from './types'
-import { createResource, internalK8testResourcesAppId } from './utils'
+import { createResource } from './utils'
 import { waitUntilClusterRoleBindingCreated, waitUntilClusterRoleCreated } from './watch-resources'
 
 const log = k8testLog('k8s-api:role')
@@ -10,7 +10,6 @@ const log = k8testLog('k8s-api:role')
 export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
   log('creating (if not exist) admin role with binding')
   const clusterRole = await createResource<k8s.V1ClusterRole>({
-    appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({
@@ -50,7 +49,6 @@ export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
   }
 
   const clusterRoleBinding = await createResource<k8s.V1ClusterRoleBinding>({
-    appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({

@@ -11,8 +11,6 @@ export const randomAppId = () =>
     .hash()
     .slice(0, 10)}`
 
-export const internalK8testResourcesAppId = () => 'app-id-internal-k8test-resources'
-
 const validateImageName = (imageName: string): string => imageName.split('/').join('-')
 
 export const generateResourceLabels = ({
@@ -20,7 +18,7 @@ export const generateResourceLabels = ({
   singletonStrategy,
   imageName,
 }: {
-  appId: string
+  appId?: string
   imageName?: string
   singletonStrategy: SingletonStrategy
 }) => {
@@ -32,10 +30,10 @@ export const generateResourceLabels = ({
     .toLocaleLowerCase()
   return {
     k8test: 'true',
-    'app-id': appId,
     'singleton-strategy': singletonStrategy,
-    ...(imageName && { image: validateImageName(imageName) }),
     'k8test-resource-id': `${letter}${hash}`,
+    ...(appId && { 'app-id': appId }),
+    ...(imageName && { image: validateImageName(imageName) }),
   }
 }
 
@@ -45,7 +43,7 @@ export const generateResourceName = ({
   namespaceName,
   singletonStrategy,
 }: {
-  appId: string
+  appId?: string
   namespaceName: string
   imageName?: string
   singletonStrategy: SingletonStrategy
@@ -58,19 +56,19 @@ export const generateResourceName = ({
     .toLocaleLowerCase()
     .slice(0, 5)
 
-  const withImageName = imageName ? `-${validateImageName(imageName)}` : ''
+  const validatedImageName = imageName ? validateImageName(imageName) : ''
   switch (singletonStrategy) {
     case SingletonStrategy.oneInNamespace:
-      return `${namespaceName}${withImageName}`
+      return `${namespaceName}-${validatedImageName}`
     case SingletonStrategy.oneInAppId:
-      return `${appId}${withImageName}`
+      return `${appId}-${validatedImageName}`
     case SingletonStrategy.manyInAppId:
-      return `${letter}${hash}-${appId}${withImageName}`
+      return `${letter}${hash}-${appId}-${validatedImageName}`
   }
 }
 
 export async function createResource<Resource extends K8sResource>(options: {
-  appId: string
+  appId?: string
   namespaceName: string
   imageName?: string
   singletonStrategy: SingletonStrategy

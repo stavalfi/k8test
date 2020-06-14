@@ -9,7 +9,7 @@ import k8testLog from 'k8test-log'
 const log = k8testLog('k8s-api:service')
 
 export async function createService(options: {
-  appId: string
+  appId?: string
   k8sClient: K8sClient
   namespaceName: string
   imageName: string

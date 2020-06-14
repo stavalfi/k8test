@@ -1,14 +1,7 @@
 import Redis from 'ioredis'
-import {
-  internalK8testResourcesAppId,
-  K8sClient,
-  k8testNamespaceName,
-  SingletonStrategy,
-  ExposeStrategy,
-  subscribeToImage,
-} from 'k8s-api'
-import Redlock from 'redlock'
+import { ExposeStrategy, K8sClient, k8testNamespaceName, SingletonStrategy, subscribeToImage } from 'k8s-api'
 import k8testLog from 'k8test-log'
+import Redlock from 'redlock'
 
 const log = k8testLog('monitoring:internal-redis')
 
@@ -57,7 +50,6 @@ export async function setupInternalRedis(
   log('setting up redis for k8test internal use inside namespace "%s"', k8testNamespaceName())
   const redisDeployment = await subscribeToImage({
     k8sClient,
-    appId: internalK8testResourcesAppId(),
     namespaceName: k8testNamespaceName(),
     imageName: 'redis',
     containerPortToExpose: 6379,

@@ -10,7 +10,7 @@ export { createK8sClient } from './k8s-client'
 export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
 export { getDeployedImagePort } from './service'
 export { ExposeStrategy, SingletonStrategy, K8sClient, ConnectionFrom } from './types'
-export { generateResourceName, internalK8testResourcesAppId, randomAppId } from './utils'
+export { generateResourceName, randomAppId } from './utils'
 export { grantAdminRoleToCluster } from './role'
 
 const log = k8testLog('k8s-api')
@@ -24,7 +24,7 @@ export type DeployedImage = {
 }
 
 export type SubscribeToImageOptions = {
-  appId: string
+  appId?: string
   k8sClient: K8sClient
   namespaceName: string
   imageName: string
@@ -40,7 +40,7 @@ export type SubscribeToImageOptions = {
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
-  const logSubs = log.extend(options.appId)
+  const logSubs = options.appId ? log.extend(options.appId) : log
 
   logSubs('subscribing to image "%s" with options: %O', options.imageName, minimal(options))
   const serviceResult = await createService({

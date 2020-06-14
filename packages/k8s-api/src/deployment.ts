@@ -10,7 +10,7 @@ import process from 'process'
 const log = k8testLog('k8s-api:deployment')
 
 export async function createDeployment(options: {
-  appId: string
+  appId?: string
   k8sClient: K8sClient
   namespaceName: string
   imageName: string

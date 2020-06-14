@@ -4,7 +4,6 @@ import {
   createNamespaceIfNotExist,
   DeployedImage,
   ExposeStrategy,
-  internalK8testResourcesAppId,
   k8testNamespaceName,
   randomAppId,
   SingletonStrategy,
@@ -40,7 +39,6 @@ export const subscribe: Subscribe = async options => {
   })
 
   const monitoringDeployedImage = await subscribeToImage({
-    appId: internalK8testResourcesAppId(),
     k8sClient,
     namespaceName: k8testNamespaceName(),
     imageName: 'stavalfi/k8test-monitoring',
