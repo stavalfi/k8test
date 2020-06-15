@@ -18,7 +18,9 @@ module.exports = {
     'no-console': 'error',
     'prettier/prettier': 'error',
     'no-unused-vars': 'off', // it is the same as @typescript-eslint/no-unused-vars which is on
-    'jest/no-disabled-tests': 'off'
+    'jest/no-disabled-tests': 'off',
+    'require-await': 'error',
+    '@typescript-eslint/require-await': 'error',
   },
   overrides: [
     {

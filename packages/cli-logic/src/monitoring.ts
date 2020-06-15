@@ -16,7 +16,6 @@ import {
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { waitUntilReady } from './utils'
-import process from 'process'
 
 const log = k8testLog('cli-logic:monitoring')
 

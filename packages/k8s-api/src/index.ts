@@ -19,6 +19,7 @@ export { deleteRolesIf, grantAdminRoleToCluster } from './role'
 export { getDeployedImagePort } from './service'
 export { ConnectionFrom, ExposeStrategy, K8sClient, SingletonStrategy } from './types'
 export { generateResourceName, isTempResource, randomAppId } from './utils'
+export { attach } from './attach'
 
 const log = k8testLog('k8s-api')
 
