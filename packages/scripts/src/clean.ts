@@ -3,7 +3,7 @@ import glob from 'fast-glob'
 import fs from 'fs-extra'
 import path from 'path'
 
-const BASE_PATH = path.join(__dirname, '..')
+const BASE_PATH = path.join(__dirname, '../..')
 const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
 
 const remove = (
