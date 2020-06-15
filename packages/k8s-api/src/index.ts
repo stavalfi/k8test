@@ -1,18 +1,24 @@
 /// <reference path="../../../declarations.d.ts" />
 
-import { SingletonStrategy, ContainerOptions } from './types'
-import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteAllTempDeployments } from './deployment'
-import { createService, deleteService, getDeployedImagePort, getServiceIp, deleteAllTempServices } from './service'
-import { ExposeStrategy, K8sClient, SubscriptionOperation } from './types'
 import k8testLog, { minimal } from 'k8test-log'
+import { addSubscriptionsLabel, createDeployment, deleteDeployment, deleteDeploymentIf } from './deployment'
+import { createService, deleteService, deleteServiceIf, getDeployedImagePort, getServiceIp } from './service'
+import {
+  ContainerOptions,
+  ExposeStrategy,
+  K8sClient,
+  K8sResource,
+  SingletonStrategy,
+  SubscriptionOperation,
+} from './types'
 
-export { createK8sClient } from './k8s-client'
-export { createNamespaceIfNotExist, deleteNamespaceIfExist, k8testNamespaceName } from './namespace'
-export { getDeployedImagePort } from './service'
-export { ExposeStrategy, SingletonStrategy, K8sClient, ConnectionFrom } from './types'
-export { generateResourceName, randomAppId } from './utils'
-export { grantAdminRoleToCluster } from './role'
 export { NotFoundError } from './errors'
+export { createK8sClient } from './k8s-client'
+export { createNamespaceIfNotExist, defaultK8testNamespaceName, deleteNamespaceIf } from './namespace'
+export { deleteRolesIf, grantAdminRoleToCluster } from './role'
+export { getDeployedImagePort } from './service'
+export { ConnectionFrom, ExposeStrategy, K8sClient, SingletonStrategy } from './types'
+export { generateResourceName, isTempResource, randomAppId } from './utils'
 
 const log = k8testLog('k8s-api')
 
@@ -215,15 +221,17 @@ export const getMasterIp: GetMasterAddress = async options => {
   return result.address
 }
 
-export async function deleteAllTempResources({
+export async function deleteResourceIf({
   k8sClient,
   namespaceName,
+  predicate,
 }: {
   k8sClient: K8sClient
   namespaceName: string
+  predicate: (resource: K8sResource) => boolean
 }) {
-  log('deleting all temp-resources in namespace: "%s"', namespaceName)
-  await deleteAllTempServices({ k8sClient, namespaceName })
-  await deleteAllTempDeployments({ k8sClient, namespaceName })
-  log('deleted all temp-resources in namespace: "%s"', namespaceName)
+  log('deleting all resources in namespace: "%s" by predicate', namespaceName)
+  await deleteServiceIf({ k8sClient, namespaceName, predicate })
+  await deleteDeploymentIf({ k8sClient, namespaceName, predicate })
+  log('deleted all resources in namespace: "%s" by predicate', namespaceName)
 }

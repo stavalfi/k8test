@@ -1,7 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import { Address4 } from 'ip-address'
 import k8testLog from 'k8test-log'
-import { ExposeStrategy, K8sClient, SingletonStrategy } from './types'
+import { ExposeStrategy, K8sClient, SingletonStrategy, K8sResource } from './types'
 import { createResource, generateResourceLabels } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 import { NotFoundError } from './errors'
@@ -67,24 +67,17 @@ export async function deleteService(options: { k8sClient: K8sClient; namespaceNa
   return response
 }
 
-export async function deleteAllTempServices(options: { k8sClient: K8sClient; namespaceName: string }) {
+export async function deleteServiceIf(options: {
+  k8sClient: K8sClient
+  namespaceName: string
+  predicate: (resource: k8s.V1Service) => boolean
+}) {
   log('deleting all temp-services in namespace: "%s"', options.namespaceName)
 
   const services = await options.k8sClient.apiClient.listNamespacedService(options.namespaceName)
   await Promise.all(
     services.body.items
-      .filter(service => {
-        const singletonStrategy = service.metadata?.labels?.['singleton-strategy']
-        switch (singletonStrategy) {
-          case SingletonStrategy.oneInNamespace:
-            return false
-          case SingletonStrategy.manyInAppId:
-          case SingletonStrategy.oneInAppId:
-            return true
-          default:
-            return true
-        }
-      })
+      .filter(options.predicate)
       .map(service => service.metadata?.name || '')
       .map(serviceName =>
         deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),

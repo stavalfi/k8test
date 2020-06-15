@@ -25,6 +25,22 @@ export const waitUntilClusterRoleBindingCreated = (roleBindingName: string, opti
     predicate: resourceEventType => resourceEventType === ResourceEventType.resourceAdded,
   })
 
+export const waitUntilClusterRoleDeleted = (roleName: string, options: { k8sClient: K8sClient }) =>
+  waitForResource<k8s.V1Role>({
+    k8sClient: options.k8sClient,
+    api: `/apis/rbac.authorization.k8s.io/v1/clusterroles`,
+    resourceName: roleName,
+    predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
+  })
+
+export const waitUntilClusterRoleBindingDeleted = (roleBindingName: string, options: { k8sClient: K8sClient }) =>
+  waitForResource<k8s.V1RoleBinding>({
+    k8sClient: options.k8sClient,
+    api: `/apis/rbac.authorization.k8s.io/v1/clusterrolebindings`,
+    resourceName: roleBindingName,
+    predicate: resourceEventType => resourceEventType === ResourceEventType.resourceDeleted,
+  })
+
 export const waitUntilNamespaceCreated = (namespaceName: string, options: { k8sClient: K8sClient }) =>
   waitForResource<k8s.V1Namespace>({
     k8sClient: options.k8sClient,

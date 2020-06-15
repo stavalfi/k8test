@@ -1,23 +1,64 @@
 import * as k8s from '@kubernetes/client-node'
 import k8testLog from 'k8test-log'
-import { k8testNamespaceName } from './namespace'
 import { K8sClient, SingletonStrategy } from './types'
 import { createResource } from './utils'
-import { waitUntilClusterRoleBindingCreated, waitUntilClusterRoleCreated } from './watch-resources'
+import {
+  waitUntilClusterRoleBindingCreated,
+  waitUntilClusterRoleBindingDeleted,
+  waitUntilClusterRoleCreated,
+  waitUntilClusterRoleDeleted,
+} from './watch-resources'
 
 const log = k8testLog('k8s-api:role')
 
-export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
+export async function deleteRolesIf(options: {
+  k8sClient: K8sClient
+  predicate: (resource: k8s.V1ClusterRole | k8s.V1ClusterRoleBinding) => boolean
+}): Promise<void> {
+  const clusterRoles = await options.k8sClient.authClient
+    .listClusterRole()
+    .then(clusterRolesRespond => clusterRolesRespond.body.items.filter(options.predicate))
+
+  await Promise.all(
+    clusterRoles.map(clusterRole => options.k8sClient.authClient.deleteClusterRole(clusterRole.metadata?.name!)),
+  )
+  await Promise.all(
+    clusterRoles.map(clusterRole =>
+      waitUntilClusterRoleDeleted(clusterRole.metadata?.name!, {
+        k8sClient: options.k8sClient,
+      }),
+    ),
+  )
+
+  const clusterRolesBindings = await options.k8sClient.authClient
+    .listClusterRole()
+    .then(clusterRolesBindingsRespond => clusterRolesBindingsRespond.body.items.filter(options.predicate))
+
+  await Promise.all(
+    clusterRolesBindings.map(clusterRoleBinding =>
+      options.k8sClient.authClient.deleteClusterRoleBinding(clusterRoleBinding.metadata?.name!),
+    ),
+  )
+  await Promise.all(
+    clusterRolesBindings.map(clusterRoleBinding =>
+      waitUntilClusterRoleBindingDeleted(clusterRoleBinding.metadata?.name!, {
+        k8sClient: options.k8sClient,
+      }),
+    ),
+  )
+}
+
+export async function grantAdminRoleToCluster(k8sClient: K8sClient, namespaceName: string) {
   log('creating (if not exist) admin role with binding')
   const clusterRole = await createResource<k8s.V1ClusterRole>({
-    namespaceName: k8testNamespaceName(),
+    namespaceName,
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({
       kind: 'ClusterRole',
       apiVersion: 'rbac.authorization.k8s.io/v1',
       metadata: {
         name: resourceName,
-        namespace: k8testNamespaceName(),
+        namespace: namespaceName,
         labels: resourceLabels,
       },
       rules: [
@@ -48,7 +89,7 @@ export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
   }
 
   const clusterRoleBinding = await createResource<k8s.V1ClusterRoleBinding>({
-    namespaceName: k8testNamespaceName(),
+    namespaceName,
     singletonStrategy: SingletonStrategy.oneInNamespace,
     createResource: (resourceName, resourceLabels) => ({
       kind: 'ClusterRoleBinding',
@@ -61,7 +102,7 @@ export async function grantAdminRoleToCluster(k8sClient: K8sClient) {
         {
           kind: 'ServiceAccount',
           name: 'default',
-          namespace: k8testNamespaceName(),
+          namespace: namespaceName,
         },
       ],
       roleRef: {

@@ -4,16 +4,16 @@ import Redis from 'ioredis'
 import {
   ConnectionFrom,
   createK8sClient,
-  deleteAllTempResources,
+  deleteResourceIf,
   DeployedImage,
   K8sClient,
-  k8testNamespaceName,
   SerializedSubscribeToImageOptions,
   subscribeToImage,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
   SingletonStrategy,
   generateResourceName,
+  isTempResource,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { setupInternalRedis, SyncTask } from './internal-redis'
@@ -25,11 +25,13 @@ function buildService({
   redisClient,
   syncTask,
   redisDeployment,
+  namespaceName,
 }: {
   k8sClient: K8sClient
   redisClient: Redis.Redis
   syncTask: SyncTask
   redisDeployment: DeployedImage
+  namespaceName: string
 }): Express {
   const app = express()
   app.use(bodyParser.json())
@@ -75,13 +77,13 @@ function buildService({
       const getName = (imageName: string) =>
         generateResourceName({
           imageName,
-          namespaceName: k8testNamespaceName(),
+          namespaceName,
           singletonStrategy: SingletonStrategy.oneInNamespace,
         })
       await unsubscribeFromImage({
         k8sClient,
         imageName: 'redis',
-        namespaceName: k8testNamespaceName(),
+        namespaceName,
         singletonStrategy: SingletonStrategy.oneInNamespace,
         deploymentName: getName('redis'),
         serviceName: getName('redis'),
@@ -98,15 +100,22 @@ async function main() {
   // eslint-disable-next-line no-console
   process.on('unhandledRejection', e => console.error(e))
 
-  log('starting service code...')
+  // eslint-disable-next-line no-process-env
+  const namespaceName = process.env['K8S_NAMESPACE']
+
+  if (!namespaceName) {
+    throw new Error('process.env.K8S_NAMESPACE cant be falsy')
+  }
+
+  log('starting service code on namespace "%s"', namespaceName)
 
   const k8sClient = createK8sClient(ConnectionFrom.insideCluster)
 
-  await deleteAllTempResources({ k8sClient, namespaceName: k8testNamespaceName() })
+  await deleteResourceIf({ k8sClient, namespaceName, predicate: isTempResource })
 
-  const { redisClient, redisDeployment, syncTask } = await setupInternalRedis(k8sClient)
+  const { redisClient, redisDeployment, syncTask } = await setupInternalRedis(k8sClient, namespaceName)
 
-  const app = buildService({ k8sClient, redisClient, redisDeployment, syncTask })
+  const app = buildService({ k8sClient, redisClient, redisDeployment, syncTask, namespaceName })
 
   await new Promise(res => app.listen(80, res))
 

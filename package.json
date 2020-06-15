@@ -10,6 +10,7 @@
     "pretest": "(kubectl delete clusterrole k8test || exit 0) && (kubectl delete clusterrolebinding k8test || exit 0) && (kubectl delete namespace k8test || exit 0) && yarn && yarn tsc -b tsconfig-build.json && eval $(minikube docker-env --shell sh) && yarn --cwd packages/monitoring build:docker",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
+    "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "build": "yarn tsc -b tsconfig-build.json"
   },
   "workspaces": [

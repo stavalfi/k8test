@@ -1,15 +1,17 @@
 import { command, run, subcommands, boolean, flag, string, option } from 'cmd-ts'
 import { deleteMonitoring, startMonitoring } from './monitoring'
+import { defaultK8testNamespaceName } from 'k8s-api'
 
 // eslint-disable-next-line no-console
 process.on('unhandledRejection', e => console.error(e))
 
-const namespace = option({
-  type: string,
-  long: 'namespace',
-  defaultValue: () => 'k8test',
-  description: 'for internal use in k8test tests - in which k8s-namespace k8test will allocate resources',
-})
+const namespace = (hasDefaultValue: boolean) =>
+  option({
+    type: string,
+    long: 'namespace',
+    defaultValue: () => (hasDefaultValue ? defaultK8testNamespaceName() : ''),
+    description: 'for internal use in k8test tests - in which k8s-namespace k8test will allocate resources',
+  })
 
 const app = subcommands({
   name: 'k8test-cli',
@@ -24,14 +26,14 @@ const app = subcommands({
           description:
             'for internal use in k8test tests - before tests, we build a local version of stavalfi/k8test-monitoring image from the source code and it is not exist in docker-registry yet',
         }),
-        namespace,
+        namespace: namespace(true),
       },
       handler: startMonitoring,
     }),
     'delete-monitoring': command({
       name: 'delete-monitoring',
       args: {
-        namespace,
+        namespace: namespace(false),
       },
       handler: deleteMonitoring,
     }),

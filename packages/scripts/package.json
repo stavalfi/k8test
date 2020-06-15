@@ -5,9 +5,13 @@
   "main": "dist/src/index.js",
   "private": true,
   "scripts": {
-    "clean": "src/index.ts clean"
+    "clean": "ts-node src/index.ts clean",
+    "delete-k8test-resources": "yarn --cwd ../.. build && node dist/src/index.js delete-k8test-resources"
   },
   "dependencies": {
-    "cmd-ts": "^0.6.3"
+    "cmd-ts": "^0.6.3",
+    "k8test-cli-logic": "^1.0.0",
+    "k8s-api": "^1.0.0",
+    "execa": "^4.0.1"
   }
 }

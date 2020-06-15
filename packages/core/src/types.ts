@@ -15,6 +15,7 @@ export type SubscribeCreatorOptions = {
   singletonStrategy?: SingletonStrategy
   containerPortToExpose: number
   containerOptions?: ContainerOptions
+  namespaceName?: string
   isReadyPredicate?: (
     deployedImageUrl: string,
     deployedImageAddress: string,

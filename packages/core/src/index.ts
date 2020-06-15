@@ -2,20 +2,19 @@ import got from 'got'
 import {
   ConnectionFrom,
   createK8sClient,
+  defaultK8testNamespaceName,
+  DeployedImage,
   ExposeStrategy,
   generateResourceName,
   getDeployedImageConnectionDetails,
-  grantAdminRoleToCluster,
-  k8testNamespaceName,
   randomAppId,
   SingletonStrategy,
-  DeployedImage,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import { waitUntilReady } from './utils'
 
-export { deleteNamespaceIfExist, randomAppId, SingletonStrategy } from 'k8s-api'
+export { defaultK8testNamespaceName, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
 
 const log = k8testLog('core')
@@ -23,23 +22,21 @@ const log = k8testLog('core')
 export const subscribe: Subscribe = async options => {
   assertOptions(options)
 
+  const namespaceName = options.namespaceName || defaultK8testNamespaceName()
+
   const appId = getAppId(options.appId)
 
   const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
 
-  await grantAdminRoleToCluster(k8sClient)
-
   const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
-
-  const namespaceName = k8testNamespaceName()
 
   const { deployedImageUrl: monitoringDeployedImageUrl } = await getDeployedImageConnectionDetails({
     k8sClient,
     exposeStrategy: ExposeStrategy.userMachine,
-    namespaceName: k8testNamespaceName(),
+    namespaceName,
     serviceName: generateResourceName({
       imageName: 'stavalfi/k8test-monitoring',
-      namespaceName: k8testNamespaceName(),
+      namespaceName,
       singletonStrategy: SingletonStrategy.oneInNamespace,
     }),
   })

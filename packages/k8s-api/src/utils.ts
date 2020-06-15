@@ -68,6 +68,19 @@ export const generateResourceName = ({
   }
 }
 
+export function isTempResource(resource: K8sResource): boolean {
+  const singletonStrategy = resource.metadata?.labels?.['singleton-strategy']
+  switch (singletonStrategy) {
+    case SingletonStrategy.oneInNamespace:
+      return false
+    case SingletonStrategy.manyInAppId:
+    case SingletonStrategy.oneInAppId:
+      return true
+    default:
+      return false
+  }
+}
+
 export async function createResource<Resource extends K8sResource>(options: {
   appId?: string
   namespaceName: string

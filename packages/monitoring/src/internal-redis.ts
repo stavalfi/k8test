@@ -1,12 +1,5 @@
 import Redis from 'ioredis'
-import {
-  ExposeStrategy,
-  K8sClient,
-  k8testNamespaceName,
-  SingletonStrategy,
-  subscribeToImage,
-  DeployedImage,
-} from 'k8s-api'
+import { ExposeStrategy, K8sClient, SingletonStrategy, subscribeToImage, DeployedImage } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import Redlock from 'redlock'
 
@@ -50,15 +43,16 @@ export type SyncTask = <SyncTaskReturnType>(
 
 export async function setupInternalRedis(
   k8sClient: K8sClient,
+  namespaceName: string,
 ): Promise<{
   redisDeployment: DeployedImage
   redisClient: Redis.Redis
   syncTask: SyncTask
 }> {
-  log('setting up redis for k8test internal use inside namespace "%s"', k8testNamespaceName())
+  log('setting up redis for k8test internal use inside namespace "%s"', namespaceName)
   const redisDeployment = await subscribeToImage({
     k8sClient,
-    namespaceName: k8testNamespaceName(),
+    namespaceName,
     imageName: 'redis',
     containerPortToExpose: 6379,
     exposeStrategy: ExposeStrategy.insideCluster,

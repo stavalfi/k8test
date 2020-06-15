@@ -4,7 +4,7 @@ import chance from 'chance'
 export const cliMonitoringPath = require.resolve('k8test-cli-logic/dist/src/index.js')
 
 export const randomNamespaceName = () =>
-  `k8test-${chance()
+  `k8test-test-mode-${chance()
     .hash()
     .toLocaleLowerCase()}`
 

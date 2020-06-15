@@ -1,23 +1,35 @@
-import { subscribe, randomAppId } from '../src'
-import { cleanupAfterEach, isRedisReadyPredicate, redisClient, cliMonitoringPath } from './utils'
 import execa from 'execa'
-import { k8testNamespaceName } from 'k8s-api'
+import { randomAppId, subscribe } from '../src'
+import { cleanupAfterEach, cliMonitoringPath, isRedisReadyPredicate, redisClient, randomNamespaceName } from './utils'
 
 describe('reach endpoints in the cluster', () => {
   let cleanups = cleanupAfterEach()
 
-  test('endpoint is available while the endpoint has active subscription', async () => {
-    const namespaceName = k8testNamespaceName()
-    await execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`)
+  test.only('endpoint is available while the endpoint has active subscription', async () => {
+    const namespaceName = randomNamespaceName()
+    await execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`, {
+      extendEnv: false,
+      // eslint-disable-next-line no-process-env
+      env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+      stdio: 'inherit',
+    })
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,
+      namespaceName,
       appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
     })
 
     cleanups.push(unsubscribe)
-    cleanups.push(() => execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`))
+    cleanups.push(() =>
+      execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`, {
+        extendEnv: false,
+        // eslint-disable-next-line no-process-env
+        env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+        stdio: 'inherit',
+      }),
+    )
 
     const redis = redisClient({
       host: deployedImageAddress,
