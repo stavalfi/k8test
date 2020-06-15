@@ -13,6 +13,9 @@
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "build": "yarn tsc -b tsconfig-build.json"
   },
+  "repository":{
+    "url": "https://github.com/stavalfi/k8test"
+  },
   "workspaces": [
     "packages/*"
   ],
