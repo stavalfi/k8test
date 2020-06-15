@@ -4,7 +4,7 @@ import { isRedisReadyPredicate, prepareEachTest, redisClient } from './utils'
 describe('reach endpoints in the cluster', () => {
   const { cleanups, randomNamespaceName, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
 
-  test.only('endpoint is available while the endpoint has active subscription', async () => {
+  test('endpoint is available while the endpoint has active subscription', async () => {
     const namespaceName = randomNamespaceName()
     await startMonitorNamespace(namespaceName)
 
@@ -36,6 +36,7 @@ describe('reach endpoints in the cluster', () => {
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,
+      namespaceName,
       appId: randomAppId(),
       isReadyPredicate: isRedisReadyPredicate,
     })
