@@ -25,7 +25,9 @@ const isRedisReadyPredicate = (host: string, port: number) => {
     connectTimeout: 1000,
     showFriendlyErrorStack: true,
   })
-  redisClient.on('error', () => {})
+  redisClient.on('error', () => {
+    // ignore
+  })
 
   return redisClient.connect().finally(() => {
     try {
@@ -72,7 +74,9 @@ export async function setupInternalRedis(
   log('image "%s". is reachable using the address: "%s" from inside the cluster', 'redis', `${host}:${port}`)
 
   const redisClient = new Redis({ host, port, showFriendlyErrorStack: true })
-  redisClient.on('error', () => {})
+  redisClient.on('error', () => {
+    // ignore
+  })
   await redisClient.set('x', 1)
   const locker = new Redlock([redisClient])
   // eslint-disable-next-line no-console

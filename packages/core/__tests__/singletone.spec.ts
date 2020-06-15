@@ -4,8 +4,8 @@ import { isRedisReadyPredicate, prepareEachTest, randomNamespaceName, redisClien
 describe('test singleton option', () => {
   const { cleanups, startMonitorNamespace, registerNamespaceRemoval, attachMonitoringService } = prepareEachTest()
 
-  describe.only('all use same singleton option', () => {
-    test.only('endpoint should be different when we do not use singleton option', async () => {
+  describe('all use same singleton option', () => {
+    test('endpoint should be different when we do not use singleton option', async () => {
       const namespaceName = randomNamespaceName()
       await startMonitorNamespace(namespaceName)
       await attachMonitoringService(namespaceName)

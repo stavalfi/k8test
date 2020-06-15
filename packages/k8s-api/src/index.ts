@@ -45,6 +45,46 @@ export type SerializedSubscribeToImageOptions = {
   containerOptions?: ContainerOptions
 }
 
+export const getMasterIp: GetMasterAddress = async options => {
+  const response = await options.k8sClient.apiClient.listNode(
+    undefined,
+    false,
+    undefined,
+    undefined,
+    'node-role.kubernetes.io/master',
+  )
+  const items = response.body.items
+  if (items.length !== 1) {
+    throw new Error('could not find a single master-node to extract its address')
+  }
+  const result = items[0].status?.addresses?.find(address => address.type === 'InternalIP')
+  if (!result?.address) {
+    throw new Error(`could not find the address of the master node. master node: ${JSON.stringify(items[0], null, 0)}`)
+  }
+  return result.address
+}
+
+export async function getDeployedImageConnectionDetails(options: {
+  k8sClient: K8sClient
+  namespaceName: string
+  exposeStrategy: ExposeStrategy
+  serviceName: string
+}) {
+  const [deployedImageAddress, deployedImagePort] = await Promise.all([
+    options.exposeStrategy === ExposeStrategy.userMachine
+      ? getMasterIp({ k8sClient: options.k8sClient })
+      : getServiceIp(options.serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
+    getDeployedImagePort(options.serviceName, {
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+      exposeStrategy: options.exposeStrategy,
+    }),
+  ])
+
+  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
+  return { deployedImageAddress, deployedImagePort, deployedImageUrl }
+}
+
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
   const logSubs = options.appId ? log.extend(options.appId) : log
 
@@ -130,27 +170,6 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
   }
 }
 
-export async function getDeployedImageConnectionDetails(options: {
-  k8sClient: K8sClient
-  namespaceName: string
-  exposeStrategy: ExposeStrategy
-  serviceName: string
-}) {
-  const [deployedImageAddress, deployedImagePort] = await Promise.all([
-    options.exposeStrategy === ExposeStrategy.userMachine
-      ? getMasterIp({ k8sClient: options.k8sClient })
-      : getServiceIp(options.serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
-    getDeployedImagePort(options.serviceName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-      exposeStrategy: options.exposeStrategy,
-    }),
-  ])
-
-  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
-  return { deployedImageAddress, deployedImagePort, deployedImageUrl }
-}
-
 export type UnsubscribeFromImageOptions = {
   appId?: string
   imageName: string
@@ -202,25 +221,6 @@ export async function unsubscribeFromImage(options: UnsubscribeFromImageOptions)
 }
 
 export type GetMasterAddress = (options: { k8sClient: K8sClient }) => Promise<string>
-
-export const getMasterIp: GetMasterAddress = async options => {
-  const response = await options.k8sClient.apiClient.listNode(
-    undefined,
-    false,
-    undefined,
-    undefined,
-    'node-role.kubernetes.io/master',
-  )
-  const items = response.body.items
-  if (items.length !== 1) {
-    throw new Error('could not find a single master-node to extract its address')
-  }
-  const result = items[0].status?.addresses?.find(address => address.type === 'InternalIP')
-  if (!result?.address) {
-    throw new Error(`could not find the address of the master node. master node: ${JSON.stringify(items[0], null, 0)}`)
-  }
-  return result.address
-}
 
 export async function deleteResourceIf({
   k8sClient,

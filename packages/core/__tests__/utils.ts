@@ -53,7 +53,7 @@ export function cleanupAfterEach() {
 }
 
 export function prepareEachTest() {
-  let cleanups = cleanupAfterEach()
+  const cleanups = cleanupAfterEach()
 
   return {
     cleanups,

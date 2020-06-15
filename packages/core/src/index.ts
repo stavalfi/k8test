@@ -19,6 +19,32 @@ export { SubscribeCreatorOptions, Subscription } from './types'
 
 const log = k8testLog('core')
 
+function assertOptions(options: SubscribeCreatorOptions): void {
+  if (options.appId && options.appId.length !== randomAppId().length) {
+    throw new Error(
+      'please use `randomAppId` function for generating the appId. k8s apis expect specific length when we use `appId` to generate k8s resources names.',
+    )
+  }
+}
+
+const getAppId = (appId?: string): string => {
+  const result = [
+    appId,
+    // eslint-disable-next-line no-process-env
+    process.env['APP_ID'],
+    // @ts-ignore
+    this['APP_ID'],
+    // @ts-ignore
+    global['APP_ID'],
+    // @ts-ignore
+    globalThis['APP_ID'],
+  ].find(Boolean)
+  if (result) {
+    return result
+  }
+  throw new Error(`APP_ID can't be falsy`)
+}
+
 export const subscribe: Subscribe = async options => {
   assertOptions(options)
 
@@ -97,30 +123,4 @@ export const subscribe: Subscribe = async options => {
       })
     },
   }
-}
-
-function assertOptions(options: SubscribeCreatorOptions): void {
-  if (options.appId && options.appId.length !== randomAppId().length) {
-    throw new Error(
-      'please use `randomAppId` function for generating the appId. k8s apis expect specific length when we use `appId` to generate k8s resources names.',
-    )
-  }
-}
-
-const getAppId = (appId?: string): string => {
-  const result = [
-    appId,
-    // eslint-disable-next-line no-process-env
-    process.env['APP_ID'],
-    // @ts-ignore
-    this['APP_ID'],
-    // @ts-ignore
-    global['APP_ID'],
-    // @ts-ignore
-    globalThis['APP_ID'],
-  ].find(Boolean)
-  if (result) {
-    return result
-  }
-  throw new Error(`APP_ID can't be falsy`)
 }

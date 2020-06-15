@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 const k8test = require('k8test')
 const baseConfig = require('../../base-jest.config')
 const deepmerge = require('deepmerge')

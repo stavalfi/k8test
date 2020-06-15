@@ -2,6 +2,7 @@ import debug from 'debug'
 
 export default (namespace: string) => debug('k8test').extend(namespace)
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function minimal(obj: any): object {
   const copy = { ...obj }
   delete copy.k8sClient

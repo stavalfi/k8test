@@ -4,7 +4,7 @@ import { isRedisReadyPredicate, prepareEachTest, redisClient, randomNamespaceNam
 describe('reach endpoints in the cluster', () => {
   const { cleanups, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
 
-  test.only('endpoint is available while the endpoint has active subscription', async () => {
+  test('endpoint is available while the endpoint has active subscription', async () => {
     const namespaceName = randomNamespaceName()
     await startMonitorNamespace(namespaceName)
     const appId = randomAppId()

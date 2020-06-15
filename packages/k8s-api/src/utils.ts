@@ -13,6 +13,12 @@ export const randomAppId = () =>
 
 const validateImageName = (imageName: string): string => imageName.split('/').join('-')
 
+export function isResourceAlreadyExistError(error?: {
+  response?: { statusCode?: number; body?: { reason?: string } }
+}): boolean {
+  return error?.response?.statusCode === 409 && error?.response?.body?.reason === 'AlreadyExists'
+}
+
 export const generateResourceLabels = ({
   appId,
   singletonStrategy,
@@ -132,10 +138,6 @@ export async function createResource<Resource extends K8sResource>(options: {
     resource: await options.waitUntilReady(resourceName),
     isNewResource: true,
   }
-}
-
-export function isResourceAlreadyExistError(error: any): boolean {
-  return error?.response?.statusCode === 409 && error?.response?.body?.reason === 'AlreadyExists'
 }
 
 // improved promise-based timeout to ensure that if there was no timeout,

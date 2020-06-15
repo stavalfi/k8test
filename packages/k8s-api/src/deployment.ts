@@ -8,6 +8,29 @@ import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-re
 
 const log = k8testLog('k8s-api:deployment')
 
+function getSubscriptionLabel(operation: SubscriptionOperation) {
+  return {
+    [`subscription-${chance()
+      .hash()
+      .slice(0, 10)}`]: operation,
+  }
+}
+
+export async function deleteDeployment(options: {
+  k8sClient: K8sClient
+  namespaceName: string
+  deploymentName: string
+}) {
+  const [, response] = await Promise.all([
+    waitUntilDeploymentDeleted(options.deploymentName, {
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+    }),
+    options.k8sClient.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName),
+  ])
+  return response
+}
+
 export async function createDeployment(options: {
   appId?: string
   k8sClient: K8sClient
@@ -91,14 +114,6 @@ export async function createDeployment(options: {
   return deployment
 }
 
-function getSubscriptionLabel(operation: SubscriptionOperation) {
-  return {
-    [`subscription-${chance()
-      .hash()
-      .slice(0, 10)}`]: operation,
-  }
-}
-
 function isSubscriptionLabel(key: string, value: string): boolean {
   return (
     key.startsWith('subscription-') &&
@@ -139,21 +154,6 @@ export async function addSubscriptionsLabel(
     .map(([, value]) => value)
     .map(value => (value === SubscriptionOperation.subscribe ? 1 : -1))
     .reduce((acc, value) => acc + value, 0)
-}
-
-export async function deleteDeployment(options: {
-  k8sClient: K8sClient
-  namespaceName: string
-  deploymentName: string
-}) {
-  const [, response] = await Promise.all([
-    waitUntilDeploymentDeleted(options.deploymentName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-    }),
-    options.k8sClient.appsApiClient.deleteNamespacedDeployment(options.deploymentName, options.namespaceName),
-  ])
-  return response
 }
 
 export async function deleteDeploymentIf(options: {

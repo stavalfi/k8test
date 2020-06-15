@@ -1,12 +1,23 @@
 import * as k8s from '@kubernetes/client-node'
 import { Address4 } from 'ip-address'
 import k8testLog from 'k8test-log'
-import { ExposeStrategy, K8sClient, SingletonStrategy, K8sResource } from './types'
+import { NotFoundError } from './errors'
+import { ExposeStrategy, K8sClient, SingletonStrategy } from './types'
 import { createResource, generateResourceLabels } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
-import { NotFoundError } from './errors'
 
 const log = k8testLog('k8s-api:service')
+
+export async function deleteService(options: { k8sClient: K8sClient; namespaceName: string; serviceName: string }) {
+  const [, response] = await Promise.all([
+    waitUntilServiceDeleted(options.serviceName, {
+      k8sClient: options.k8sClient,
+      namespaceName: options.namespaceName,
+    }),
+    options.k8sClient.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName),
+  ])
+  return response
+}
 
 export async function createService(options: {
   appId?: string
@@ -54,17 +65,6 @@ export async function createService(options: {
         namespaceName: options.namespaceName,
       }),
   })
-}
-
-export async function deleteService(options: { k8sClient: K8sClient; namespaceName: string; serviceName: string }) {
-  const [, response] = await Promise.all([
-    waitUntilServiceDeleted(options.serviceName, {
-      k8sClient: options.k8sClient,
-      namespaceName: options.namespaceName,
-    }),
-    options.k8sClient.apiClient.deleteNamespacedService(options.serviceName, options.namespaceName),
-  ])
-  return response
 }
 
 export async function deleteServiceIf(options: {

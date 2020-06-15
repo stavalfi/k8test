@@ -23,7 +23,11 @@ const remove = (
   )
 
 export async function clean(options: { silent: boolean }) {
-  const log = options.silent ? () => {} : console.log.bind(console)
+  const log = options.silent
+    ? () => {
+        // ignore
+      }
+    : console.log.bind(console)
   log(`removing globs: ${GLOBS_TO_REMOVE.join(', ')}`)
   log(`from: ${BASE_PATH}`)
   log('-------------------')
