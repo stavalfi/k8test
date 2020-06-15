@@ -97,17 +97,22 @@ export async function deleteMonitoring(options: { namespace: string }) {
   const namespaceName = options.namespace
 
   if (namespaceName) {
-    log('deleting all k8test resources in namespace: "%s"', namespaceName)
+    log('deleting all k8test resources in (or related to) namespace: "%s"', namespaceName)
     if (namespaceName === 'default') {
       await deleteResourceIf({
         k8sClient,
-        namespaceName: 'default',
+        namespaceName,
         predicate: resource => resource.metadata?.labels?.['k8test'] === 'true',
       })
     } else {
       await deleteNamespaceIf({ k8sClient, predicate: namespaceName1 => namespaceName1 === namespaceName })
     }
-    log('deleted all k8test resources in namespace: "%s"', namespaceName)
+    await deleteRolesIf({
+      k8sClient,
+      predicate: resource =>
+        resource.metadata?.labels?.['k8test'] === 'true' && resource.metadata?.namespace === namespaceName,
+    })
+    log('deleted all k8test resources in (or related to) namespace: "%s"', namespaceName)
   } else {
     log('deleting all k8test resources in all namespaces')
     log('deleting all k8test namespaces')

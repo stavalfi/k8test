@@ -1,18 +1,13 @@
-import execa from 'execa'
 import { randomAppId, subscribe } from '../src'
-import { cleanupAfterEach, cliMonitoringPath, isRedisReadyPredicate, redisClient, randomNamespaceName } from './utils'
+import { isRedisReadyPredicate, prepareEachTest, redisClient } from './utils'
 
 describe('reach endpoints in the cluster', () => {
-  let cleanups = cleanupAfterEach()
+  const { cleanups, randomNamespaceName, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
 
   test.only('endpoint is available while the endpoint has active subscription', async () => {
     const namespaceName = randomNamespaceName()
-    await execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`, {
-      extendEnv: false,
-      // eslint-disable-next-line no-process-env
-      env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
-      stdio: 'inherit',
-    })
+    await startMonitorNamespace(namespaceName)
+
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,
@@ -22,14 +17,7 @@ describe('reach endpoints in the cluster', () => {
     })
 
     cleanups.push(unsubscribe)
-    cleanups.push(() =>
-      execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`, {
-        extendEnv: false,
-        // eslint-disable-next-line no-process-env
-        env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
-        stdio: 'inherit',
-      }),
-    )
+    registerNamespaceRemoval(namespaceName)
 
     const redis = redisClient({
       host: deployedImageAddress,
@@ -41,6 +29,10 @@ describe('reach endpoints in the cluster', () => {
   })
 
   test('endpoint is not available after unsubscribe', async () => {
+    const namespaceName = randomNamespaceName()
+    await startMonitorNamespace(namespaceName)
+    registerNamespaceRemoval(namespaceName)
+
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
       imageName: 'redis',
       containerPortToExpose: 6379,

@@ -15,35 +15,33 @@ export async function deleteRolesIf(options: {
   k8sClient: K8sClient
   predicate: (resource: k8s.V1ClusterRole | k8s.V1ClusterRoleBinding) => boolean
 }): Promise<void> {
-  const clusterRoles = await options.k8sClient.authClient
-    .listClusterRole()
-    .then(clusterRolesRespond => clusterRolesRespond.body.items.filter(options.predicate))
-
-  await Promise.all(
-    clusterRoles.map(clusterRole => options.k8sClient.authClient.deleteClusterRole(clusterRole.metadata?.name!)),
-  )
-  await Promise.all(
-    clusterRoles.map(clusterRole =>
-      waitUntilClusterRoleDeleted(clusterRole.metadata?.name!, {
-        k8sClient: options.k8sClient,
-      }),
-    ),
-  )
-
   const clusterRolesBindings = await options.k8sClient.authClient
     .listClusterRole()
     .then(clusterRolesBindingsRespond => clusterRolesBindingsRespond.body.items.filter(options.predicate))
 
   await Promise.all(
     clusterRolesBindings.map(clusterRoleBinding =>
-      options.k8sClient.authClient.deleteClusterRoleBinding(clusterRoleBinding.metadata?.name!),
+      Promise.all([
+        waitUntilClusterRoleBindingDeleted(clusterRoleBinding.metadata?.name!, {
+          k8sClient: options.k8sClient,
+        }),
+        options.k8sClient.authClient.deleteClusterRoleBinding(clusterRoleBinding.metadata?.name!),
+      ]),
     ),
   )
+
+  const clusterRoles = await options.k8sClient.authClient
+    .listClusterRole()
+    .then(clusterRolesRespond => clusterRolesRespond.body.items.filter(options.predicate))
+
   await Promise.all(
-    clusterRolesBindings.map(clusterRoleBinding =>
-      waitUntilClusterRoleBindingDeleted(clusterRoleBinding.metadata?.name!, {
-        k8sClient: options.k8sClient,
-      }),
+    clusterRoles.map(clusterRole =>
+      Promise.all([
+        waitUntilClusterRoleDeleted(clusterRole.metadata?.name!, {
+          k8sClient: options.k8sClient,
+        }),
+        options.k8sClient.authClient.deleteClusterRole(clusterRole.metadata?.name!),
+      ]),
     ),
   )
 }

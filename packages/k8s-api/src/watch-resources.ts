@@ -2,6 +2,7 @@ import * as k8s from '@kubernetes/client-node'
 import { timeout } from './utils'
 import _omit from 'lodash/omit'
 import { K8sClient, K8sResource } from './types'
+import { minimal } from 'k8test-log'
 
 enum ResourceEventType {
   resourceAdded = 'ADDED',
@@ -151,7 +152,7 @@ async function waitForResource<Resource extends K8sResource>(options: {
       e === 'timeout'
         ? Promise.reject(
             `timeout: resource not found or did not meet the predicate. params: ${JSON.stringify(
-              _omit(options, ['watchClient']),
+              minimal(options),
               null,
               2,
             )}.`,

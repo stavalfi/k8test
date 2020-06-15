@@ -1,12 +1,14 @@
 import Redis from 'ioredis'
 import chance from 'chance'
+import execa from 'execa'
 
 export const cliMonitoringPath = require.resolve('k8test-cli-logic/dist/src/index.js')
 
 export const randomNamespaceName = () =>
   `k8test-test-mode-${chance()
     .hash()
-    .toLocaleLowerCase()}`
+    .toLocaleLowerCase()
+    .slice(0, 8)}`
 
 export const isRedisReadyPredicate = (url: string, host: string, port: number) => {
   const redis = new Redis({
@@ -24,6 +26,7 @@ export const isRedisReadyPredicate = (url: string, host: string, port: number) =
     }
   })
 }
+
 export function redisClient(options: Redis.RedisOptions) {
   const redis = new Redis({
     maxRetriesPerRequest: 1,
@@ -46,4 +49,27 @@ export function cleanupAfterEach() {
   })
 
   return cleanups
+}
+
+export function prepareEachTest() {
+  let cleanups = cleanupAfterEach()
+
+  return {
+    cleanups,
+    randomNamespaceName,
+    startMonitorNamespace: (namespaceName: string) =>
+      execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`, {
+        // eslint-disable-next-line no-process-env
+        env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+        stdio: 'inherit',
+      }),
+    registerNamespaceRemoval: (namespaceName: string) =>
+      cleanups.push(() =>
+        execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`, {
+          // eslint-disable-next-line no-process-env
+          env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+          stdio: 'inherit',
+        }),
+      ),
+  }
 }
