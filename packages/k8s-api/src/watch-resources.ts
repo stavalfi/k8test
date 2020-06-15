@@ -57,7 +57,7 @@ async function waitForResource<Resource extends K8sResource>(options: {
           )
         : Promise.reject(e),
     )
-    .finally(async () => {
+    .finally(() => {
       if (watchResult) {
         watchResult.abort()
       }

@@ -13,7 +13,7 @@
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "build": "yarn tsc -b tsconfig-build.json"
   },
-  "repository":{
+  "repository": {
     "url": "https://github.com/stavalfi/k8test"
   },
   "workspaces": [
@@ -44,6 +44,7 @@
     "eslint-config-prettier": "4.3.0",
     "eslint-plugin-jest": "22.6.4",
     "eslint-plugin-json": "^2.0.1",
+    "eslint-plugin-no-floating-promise": "https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-spellcheck": "^0.0.17",
     "execa": "^4.0.1",

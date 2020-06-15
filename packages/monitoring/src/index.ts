@@ -122,4 +122,5 @@ async function main() {
   log('service is listening on port 80 inside the cluster (this service will be used only outside of cluster)')
 }
 
+// eslint-disable-next-line no-floating-promise/no-floating-promise
 main()
