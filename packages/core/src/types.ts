@@ -20,7 +20,7 @@ export type SubscribeCreatorOptions = {
     deployedImageUrl: string,
     deployedImageAddress: string,
     deployedImagePort: number,
-  ) => Promise<void>
+  ) => Promise<unknown>
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>

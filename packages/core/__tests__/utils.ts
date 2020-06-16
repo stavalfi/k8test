@@ -2,6 +2,7 @@ import Redis from 'ioredis'
 import chance from 'chance'
 import execa from 'execa'
 import { attach, ConnectionFrom, createK8sClient, SingletonStrategy } from 'k8s-api'
+import got from 'got'
 
 export const cliMonitoringPath = require.resolve('k8test-cli-logic/dist/src/index.js')
 
@@ -11,7 +12,13 @@ export const randomNamespaceName = () =>
     .toLocaleLowerCase()
     .slice(0, 8)}`
 
-export const isRedisReadyPredicate = (url: string, host: string, port: number) => {
+export const isServiceReadyPredicate = (url: string, _host: string, _port: number) => {
+  return got.get(url, {
+    timeout: 100,
+  })
+}
+
+export const isRedisReadyPredicate = (_url: string, host: string, port: number) => {
   const redis = new Redis({
     host,
     port,
@@ -100,7 +107,7 @@ export function prepareEachTest() {
         imageName,
         namespaceName,
       })
-      cleanups.push(() => socket.close())
+      cleanups.push(() => socket.terminate())
     },
   }
 }

@@ -2,51 +2,47 @@ import { randomAppId, SingletonStrategy, subscribe } from '../src'
 import { isRedisReadyPredicate, prepareEachTest, randomNamespaceName, redisClient } from './utils'
 
 describe('test singleton option', () => {
-  const { cleanups, startMonitorNamespace, registerNamespaceRemoval, attachMonitoringService } = prepareEachTest()
+  const { cleanups, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
 
   describe('all use same singleton option', () => {
     test('endpoint should be different when we do not use singleton option', async () => {
       const namespaceName = randomNamespaceName()
       await startMonitorNamespace(namespaceName)
-      await attachMonitoringService(namespaceName)
 
       const appId = randomAppId()
 
-      const subscription1 = await subscribe({
-        imageName: 'hello-world',
-        containerPortToExpose: 6379,
-        namespaceName,
-        appId,
-        isReadyPredicate: isRedisReadyPredicate,
-      })
+      const [subscription1, subscription2] = await Promise.all([
+        subscribe({
+          imageName: 'redis',
+          containerPortToExpose: 6379,
+          namespaceName,
+          appId,
+          isReadyPredicate: isRedisReadyPredicate,
+        }),
+        subscribe({
+          imageName: 'redis',
+          containerPortToExpose: 6379,
+          namespaceName,
+          appId,
+          isReadyPredicate: isRedisReadyPredicate,
+        }),
+      ])
       cleanups.push(subscription1.unsubscribe)
-
-      // const client1 = redisClient({
-      //   host: subscription1.deployedImageAddress,
-      //   port: subscription1.deployedImagePort,
-      // })
-      // cleanups.push(() => client1.disconnect())
-
-      // await client1.set('x', '1')
-
-      const subscription2 = await subscribe({
-        imageName: 'verdaccio/verdaccio',
-        containerPortToExpose: 6379,
-        namespaceName,
-        appId,
-        isReadyPredicate: isRedisReadyPredicate,
-      })
-
       cleanups.push(subscription2.unsubscribe)
 
-      // const client2 = redisClient({
-      //   host: subscription2.deployedImageAddress,
-      //   port: subscription2.deployedImagePort,
-      // })
-      // cleanups.push(() => client2.disconnect())
+      const client1 = redisClient({
+        host: subscription1.deployedImageAddress,
+        port: subscription1.deployedImagePort,
+      })
+      cleanups.push(() => client1.disconnect())
 
-      // expect(subscription1.deployedImageUrl).not.toEqual(subscription2.deployedImageUrl)
-      // await expect(client2.get('x')).resolves.not.toEqual('1')
+      const client2 = redisClient({
+        host: subscription2.deployedImageAddress,
+        port: subscription2.deployedImagePort,
+      })
+      cleanups.push(() => client2.disconnect())
+
+      await expect(client2.get('x')).resolves.not.toEqual('1')
       registerNamespaceRemoval(namespaceName)
     })
 

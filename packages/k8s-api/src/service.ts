@@ -27,12 +27,13 @@ export async function createService(options: {
   podPortToExpose: number
   singletonStrategy: SingletonStrategy
 }): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
+  log('creating service to image "%s" in namespace: "%s"', options.imageName, options.namespaceName)
   const podLabels = generateResourceLabels({
     appId: options.appId,
     singletonStrategy: options.singletonStrategy,
     imageName: options.imageName,
   })
-  return createResource<k8s.V1Service>({
+  const serviceResult = await createResource<k8s.V1Service>({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
@@ -65,6 +66,12 @@ export async function createService(options: {
         namespaceName: options.namespaceName,
       }),
   })
+  log(
+    `${serviceResult.isNewResource ? 'created' : 'using existing'} service to image "%s" in namespace: "%s"`,
+    options.imageName,
+    options.namespaceName,
+  )
+  return serviceResult
 }
 
 export async function deleteServiceIf(options: {

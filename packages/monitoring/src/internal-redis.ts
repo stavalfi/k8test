@@ -1,7 +1,6 @@
 import Redis from 'ioredis'
 import { ExposeStrategy, K8sClient, SingletonStrategy, subscribeToImage, DeployedImage } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import Redlock from 'redlock'
 
 const log = k8testLog('monitoring:internal-redis')
 
@@ -38,18 +37,12 @@ const isRedisReadyPredicate = (host: string, port: number) => {
   })
 }
 
-export type SyncTask = <SyncTaskReturnType>(
-  lockIdentifier: string,
-  task: () => Promise<SyncTaskReturnType>,
-) => Promise<SyncTaskReturnType>
-
 export async function setupInternalRedis(
   k8sClient: K8sClient,
   namespaceName: string,
 ): Promise<{
   redisDeployment: DeployedImage
   redisClient: Redis.Redis
-  syncTask: SyncTask
 }> {
   log('setting up redis for k8test internal use inside namespace "%s"', namespaceName)
   const redisDeployment = await subscribeToImage({
@@ -77,18 +70,8 @@ export async function setupInternalRedis(
   redisClient.on('error', () => {
     // ignore
   })
-  await redisClient.set('x', 1)
-  const locker = new Redlock([redisClient])
-  // eslint-disable-next-line no-console
-  locker.on('clientError', e => console.error('lock-error', e))
   return {
     redisClient,
     redisDeployment,
-    syncTask: async (lockIdentifier, task) => {
-      const lock = await locker.lock(lockIdentifier, 10_000)
-      const result = await task()
-      await lock.unlock()
-      return result
-    },
   }
 }

@@ -1100,11 +1100,6 @@ bindings@^1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
-bluebird@^3.3.3:
-  version "3.7.2"
-  resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
-  integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
-
 body-parser@1.19.0, body-parser@^1.19.0:
   version "1.19.0"
   resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.19.0.tgz#96b2709e57c9c4e09a6fd66a8fd979844f69f08a"
@@ -1494,6 +1489,11 @@ concat-map@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz#d8a96bd77fd68df7793a73036a3ba0d5405d477b"
   integrity sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=
+
+concurrentp@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/concurrentp/-/concurrentp-1.0.3.tgz#169feee1103aaee9a639f370a2a7e393f438ebb7"
+  integrity sha1-Fp/u4RA6rummOfNwoqfjk/Q467c=
 
 content-disposition@0.5.3:
   version "0.5.3"
@@ -5061,13 +5061,6 @@ redis-parser@^3.0.0:
   integrity sha1-tm2CjNyv5rS4pCin3vTGvKwxyLQ=
   dependencies:
     redis-errors "^1.0.0"
-
-redlock@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/redlock/-/redlock-4.1.0.tgz#2c8d6a348d1b8a10af61574fa3664eced003babc"
-  integrity sha512-6EdtGpk5aoZZJtclZGHAd77OJmBtMekD0t8fWUbBsm53pqHwLP+EqAEn3+a6lG+VZzClwjkLbePxpNaP1deGXw==
-  dependencies:
-    bluebird "^3.3.3"
 
 regenerator-runtime@^0.13.4:
   version "0.13.5"

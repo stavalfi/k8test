@@ -43,13 +43,14 @@ export async function createDeployment(options: {
   containerOptions?: ContainerOptions
   failFastIfExist?: boolean
 }): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
+  log('creating deployment to image "%s" in namespace: "%s"', options.imageName, options.namespaceName)
   const containerName = generateResourceName({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletonStrategy: options.singletonStrategy,
   })
-  const deployment = await createResource<k8s.V1Deployment>({
+  const deploymentResult = await createResource<k8s.V1Deployment>({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
@@ -111,7 +112,13 @@ export async function createDeployment(options: {
       }),
   })
 
-  return deployment
+  log(
+    `${deploymentResult.isNewResource ? 'created' : 'using existing'} deployment to image "%s" in namespace: "%s"`,
+    options.imageName,
+    options.namespaceName,
+  )
+
+  return deploymentResult
 }
 
 function isSubscriptionLabel(key: string, value: string): boolean {

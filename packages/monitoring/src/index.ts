@@ -16,9 +16,20 @@ import {
   isTempResource,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import { setupInternalRedis, SyncTask } from './internal-redis'
+import { setupInternalRedis } from './internal-redis'
+import { Lock } from 'concurrentp'
 
 const log = k8testLog('monitoring')
+
+function getLock(locks: Map<string, Lock>, lockIdentifier: string): Lock {
+  const lock = locks.get(lockIdentifier)
+  if (!lock) {
+    const newLock = new Lock()
+    locks.set(lockIdentifier, newLock)
+    return newLock
+  }
+  return lock
+}
 
 function buildService({
   k8sClient,
@@ -29,7 +40,10 @@ function buildService({
 }: {
   k8sClient: K8sClient
   redisClient: Redis.Redis
-  syncTask: SyncTask
+  syncTask: <SyncTaskReturnType>(
+    lockIdentifier: string,
+    task: () => Promise<SyncTaskReturnType>,
+  ) => Promise<SyncTaskReturnType>
   redisDeployment: DeployedImage
   namespaceName: string
 }): Express {
@@ -113,9 +127,24 @@ async function main() {
 
   await deleteResourceIf({ k8sClient, namespaceName, predicate: isTempResource })
 
-  const { redisClient, redisDeployment, syncTask } = await setupInternalRedis(k8sClient, namespaceName)
+  const { redisClient, redisDeployment } = await setupInternalRedis(k8sClient, namespaceName)
 
-  const app = buildService({ k8sClient, redisClient, redisDeployment, syncTask, namespaceName })
+  const locks = new Map<string, Lock>()
+
+  const app = buildService({
+    k8sClient,
+    redisClient,
+    redisDeployment,
+    namespaceName,
+    syncTask: async (lockIdentifier, task) => {
+      const lock = getLock(locks, lockIdentifier)
+      await lock.acquire()
+      // const lock = await locker.lock(lockIdentifier, 10_000)
+      const result = await task()
+      await lock.release()
+      return result
+    },
+  })
 
   await new Promise(res => app.listen(80, res))
 

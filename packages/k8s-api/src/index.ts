@@ -88,7 +88,6 @@ export async function getDeployedImageConnectionDetails(options: {
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
   const logSubs = options.appId ? log.extend(options.appId) : log
 
-  logSubs('subscribing to image "%s" with options: %O', options.imageName, minimal(options))
   const serviceResult = await createService({
     appId: options.appId,
     k8sClient: options.k8sClient,
@@ -110,7 +109,6 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
       `failed to create a service for image: ${options.imageName} - service-name is missing after creating it.`,
     )
   }
-  logSubs(`${serviceResult.isNewResource ? 'created' : 'using existing'} service to image "%s"`, options.imageName)
 
   const deploymentResult = await createDeployment({
     appId: options.appId,
@@ -135,10 +133,6 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
       `k8test detected inconsistent cluster state. some resources that k8test created were deleted (manually?). please remove all k8test resources. if it's allocated on namespace "k8test", please run the following command and start what you were doing again: "kubectl delete namespace k8test"`,
     )
   }
-  logSubs(
-    `${deploymentResult.isNewResource ? 'created' : 'using existing'} deployment to image "%s"`,
-    options.imageName,
-  )
 
   if (!deploymentResult.isNewResource) {
     await addSubscriptionsLabel(deploymentName, {
