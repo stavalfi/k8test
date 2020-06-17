@@ -10,8 +10,9 @@ describe('reach endpoints in the cluster', () => {
     const appId = randomAppId()
 
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
-      imageName: 'redis',
-      containerPortToExpose: 6379,
+      imageName: 'stavalfi/simple-service',
+      containerPortToExpose: 80,
+      containerOptions: { imagePullPolicy: 'Never' },
       namespaceName,
       appId,
       isReadyPredicate: isRedisReadyPredicate,
@@ -36,8 +37,9 @@ describe('reach endpoints in the cluster', () => {
     registerNamespaceRemoval(namespaceName)
 
     const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
-      imageName: 'redis',
-      containerPortToExpose: 6379,
+      imageName: 'stavalfi/simple-service',
+      containerPortToExpose: 80,
+      containerOptions: { imagePullPolicy: 'Never' },
       namespaceName,
       appId,
       isReadyPredicate: isRedisReadyPredicate,
