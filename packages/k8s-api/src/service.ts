@@ -2,8 +2,8 @@ import * as k8s from '@kubernetes/client-node'
 import { Address4 } from 'ip-address'
 import k8testLog from 'k8test-log'
 import { NotFoundError } from './errors'
-import { ExposeStrategy, K8sClient, SingletonStrategy } from './types'
-import { createResource, generateResourceLabels } from './utils'
+import { ExposeStrategy, K8sClient, Labels, SingletonStrategy } from './types'
+import { createResource } from './utils'
 import { waitUntilServiceCreated, waitUntilServiceDeleted } from './watch-resources'
 
 const log = k8testLog('k8s-api:service')
@@ -26,51 +26,50 @@ export async function createService(options: {
   imageName: string
   podPortToExpose: number
   singletonStrategy: SingletonStrategy
+  serviceName: string
+  serviceLabels: Labels
 }): Promise<{ resource: k8s.V1Service; isNewResource: boolean }> {
-  log('creating service to image "%s" in namespace: "%s"', options.imageName, options.namespaceName)
-  const podLabels = generateResourceLabels({
-    appId: options.appId,
-    singletonStrategy: options.singletonStrategy,
-    imageName: options.imageName,
-  })
+  log('creating service to resource "%s"', options.serviceName)
   const serviceResult = await createResource<k8s.V1Service>({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletonStrategy: options.singletonStrategy,
-    createResource: (resourceName, resourceLabels) => ({
+    resourceName: options.serviceName,
+    resourcesLabels: options.serviceLabels,
+    createResource: () => ({
       apiVersion: 'v1',
       kind: 'Service',
       metadata: {
-        name: resourceName,
-        labels: resourceLabels,
+        name: options.serviceName,
+        labels: options.serviceLabels,
       },
       spec: {
         type: 'NodePort',
-        selector: podLabels,
+        selector: options.serviceLabels,
         ports: [
           {
             // docs: https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
-            port: options.podPortToExpose, // other pods on the cluster can access to this service using this port and this service will direct the request to the relevant pods
+            port: options.podPortToExpose, // other pods on the cluster can access this service using this port and this service will direct the request to the relevant pods
             targetPort: Object(options.podPortToExpose), // this service will forward requests to pods in this port. those ports are expected to expose this port
           },
         ],
       },
     }),
     createInK8s: resource => options.k8sClient.apiClient.createNamespacedService(options.namespaceName, resource),
-    deleteResource: serviceName =>
-      deleteService({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, serviceName }),
-    waitUntilReady: resourceName =>
-      waitUntilServiceCreated(resourceName, {
+    deleteResource: () =>
+      deleteService({
+        k8sClient: options.k8sClient,
+        namespaceName: options.namespaceName,
+        serviceName: options.serviceName,
+      }),
+    waitUntilReady: () =>
+      waitUntilServiceCreated(options.serviceName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
-  log(
-    `${serviceResult.isNewResource ? 'created' : 'using existing'} service to image "%s" in namespace: "%s"`,
-    options.imageName,
-    options.namespaceName,
-  )
+  log(`%s service to resource "%s"`, serviceResult.isNewResource ? 'created' : 'using existing', options.serviceName)
   return serviceResult
 }
 

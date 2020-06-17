@@ -23,10 +23,12 @@ export const generateResourceLabels = ({
   appId,
   singletonStrategy,
   imageName,
+  postfix,
 }: {
   appId?: string
   imageName?: string
   singletonStrategy: SingletonStrategy
+  postfix?: string
 }) => {
   const letter = chance()
     .letter()
@@ -40,6 +42,7 @@ export const generateResourceLabels = ({
     'k8test-resource-id': `${letter}${hash}`,
     ...(appId && { 'app-id': appId }),
     ...(imageName && { image: validateImageName(imageName) }),
+    ...(postfix && { postfix }),
   }
 }
 
@@ -48,29 +51,22 @@ export const generateResourceName = ({
   imageName,
   namespaceName,
   singletonStrategy,
+  postfix,
 }: {
   appId?: string
   namespaceName: string
   imageName?: string
   singletonStrategy: SingletonStrategy
+  postfix?: string
 }): string => {
-  const letter = chance()
-    .letter()
-    .toLocaleLowerCase()
-  const hash = chance()
-    .hash()
-    .toLocaleLowerCase()
-    .slice(0, 5)
-
   const validatedImageName = imageName ? validateImageName(imageName) : ''
   const join = (values: (string | undefined)[]) => values.filter(Boolean).join('-')
   switch (singletonStrategy) {
     case SingletonStrategy.oneInNamespace:
-      return join([namespaceName, validatedImageName])
+      return join([namespaceName, validatedImageName, postfix])
     case SingletonStrategy.oneInAppId:
-      return join([appId, validatedImageName])
     case SingletonStrategy.manyInAppId:
-      return join([`${letter}${hash}`, appId, validatedImageName])
+      return join([appId, validatedImageName, postfix])
   }
 }
 
@@ -92,42 +88,31 @@ export async function createResource<Resource extends K8sResource>(options: {
   namespaceName: string
   imageName?: string
   singletonStrategy: SingletonStrategy
-  createResource: (resourceName: string, labels: Labels) => Resource
+  resourceName: string
+  resourcesLabels: Labels
+  createResource: () => Resource
   createInK8s: (
     resourceToCreate: Resource,
   ) => Promise<{
     response: http.IncomingMessage
     body: Resource
   }>
-  deleteResource: (resourceName: string) => Promise<unknown>
-  waitUntilReady: (resourceName: string) => Promise<Resource>
+  deleteResource: () => Promise<unknown>
+  waitUntilReady: () => Promise<Resource>
 }): Promise<{ resource: Resource; isNewResource: boolean }> {
-  const resourceName = generateResourceName({
-    appId: options.appId,
-    imageName: options.imageName,
-    namespaceName: options.namespaceName,
-    singletonStrategy: options.singletonStrategy,
-  })
-  const resourceToCreate = options.createResource(
-    resourceName,
-    generateResourceLabels({
-      appId: options.appId,
-      imageName: options.imageName,
-      singletonStrategy: options.singletonStrategy,
-    }),
-  )
+  const resourceToCreate = options.createResource()
   try {
     await options.createInK8s(resourceToCreate)
   } catch (error) {
     if (isResourceAlreadyExistError(error)) {
-      const resource = await options.waitUntilReady(resourceName)
+      const resource = await options.waitUntilReady()
       if (objectDeepContain(resource, resourceToCreate)) {
         return {
           resource,
           isNewResource: false,
         }
       } else {
-        await options.deleteResource(resourceName)
+        await options.deleteResource()
         return createResource(options)
       }
     } else {
@@ -135,7 +120,7 @@ export async function createResource<Resource extends K8sResource>(options: {
     }
   }
   return {
-    resource: await options.waitUntilReady(resourceName),
+    resource: await options.waitUntilReady(),
     isNewResource: true,
   }
 }

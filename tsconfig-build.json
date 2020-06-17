@@ -22,6 +22,9 @@
     },
     {
       "path": "packages/cli-logic/tsconfig-build.json"
+    },
+    {
+      "path": "packages/simple-service/tsconfig-build.json"
     }
   ]
 }

@@ -13,6 +13,7 @@ import {
 import k8testLog from 'k8test-log'
 import { SubscribeCreator as Subscribe, SubscribeCreatorOptions } from './types'
 import { waitUntilReady } from './utils'
+import chance from 'chance'
 
 export { defaultK8testNamespaceName, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
@@ -56,6 +57,14 @@ export const subscribe: Subscribe = async options => {
 
   const singletonStrategy = options.singletonStrategy || SingletonStrategy.manyInAppId
 
+  const postfix =
+    options.postfix || singletonStrategy === SingletonStrategy.manyInAppId
+      ? chance()
+          .hash()
+          .toLocaleLowerCase()
+          .slice(0, 5)
+      : ''
+
   const { deployedImageUrl: monitoringDeployedImageUrl } = await getDeployedImageConnectionDetails({
     k8sClient,
     exposeStrategy: ExposeStrategy.userMachine,
@@ -73,6 +82,7 @@ export const subscribe: Subscribe = async options => {
       appId,
       namespaceName,
       imageName: options.imageName,
+      postfix,
       containerPortToExpose: options.containerPortToExpose,
       exposeStrategy: ExposeStrategy.userMachine,
       singletonStrategy,
@@ -104,8 +114,6 @@ export const subscribe: Subscribe = async options => {
   )
 
   return {
-    deploymentName: deployedImage.deploymentName,
-    serviceName: deployedImage.serviceName,
     deployedImageUrl: deployedImage.deployedImageUrl,
     deployedImageAddress: deployedImage.deployedImageAddress,
     deployedImagePort: deployedImage.deployedImagePort,

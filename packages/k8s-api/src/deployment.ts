@@ -41,26 +41,23 @@ export async function createDeployment(options: {
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
-  failFastIfExist?: boolean
+  deploymentName: string
+  deploymentLabels: Labels
 }): Promise<{ resource: k8s.V1Deployment; isNewResource: boolean }> {
-  log('creating deployment to image "%s" in namespace: "%s"', options.imageName, options.namespaceName)
-  const containerName = generateResourceName({
-    appId: options.appId,
-    imageName: options.imageName,
-    namespaceName: options.namespaceName,
-    singletonStrategy: options.singletonStrategy,
-  })
+  log('creating deployment to resource "%s"', options.deploymentName)
   const deploymentResult = await createResource<k8s.V1Deployment>({
     appId: options.appId,
     imageName: options.imageName,
     namespaceName: options.namespaceName,
     singletonStrategy: options.singletonStrategy,
-    createResource: (resourceName, resourceLabels) => ({
+    resourceName: options.deploymentName,
+    resourcesLabels: options.deploymentLabels,
+    createResource: () => ({
       apiVersion: 'apps/v1',
       kind: 'Deployment',
       metadata: {
-        name: resourceName,
-        labels: { ...resourceLabels, ...getSubscriptionLabel(SubscriptionOperation.subscribe) },
+        name: options.deploymentName,
+        labels: { ...options.deploymentLabels, ...getSubscriptionLabel(SubscriptionOperation.subscribe) },
       },
       spec: {
         replicas: 1,
@@ -83,7 +80,7 @@ export async function createDeployment(options: {
             containers: [
               {
                 ...options.containerOptions,
-                name: containerName,
+                name: options.deploymentName,
                 image: options.imageName,
                 ports: [
                   {
@@ -103,19 +100,23 @@ export async function createDeployment(options: {
     }),
     createInK8s: resource =>
       options.k8sClient.appsApiClient.createNamespacedDeployment(options.namespaceName, resource),
-    deleteResource: deploymentName =>
-      deleteDeployment({ k8sClient: options.k8sClient, namespaceName: options.namespaceName, deploymentName }),
-    waitUntilReady: resourceName =>
-      waitUntilDeploymentReady(resourceName, {
+    deleteResource: () =>
+      deleteDeployment({
+        k8sClient: options.k8sClient,
+        namespaceName: options.namespaceName,
+        deploymentName: options.deploymentName,
+      }),
+    waitUntilReady: () =>
+      waitUntilDeploymentReady(options.deploymentName, {
         k8sClient: options.k8sClient,
         namespaceName: options.namespaceName,
       }),
   })
 
   log(
-    `${deploymentResult.isNewResource ? 'created' : 'using existing'} deployment to image "%s" in namespace: "%s"`,
-    options.imageName,
-    options.namespaceName,
+    `%s deployment to resource "%s"`,
+    deploymentResult.isNewResource ? 'created' : 'using existing',
+    options.deploymentName,
   )
 
   return deploymentResult

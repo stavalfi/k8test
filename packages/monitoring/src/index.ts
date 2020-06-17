@@ -1,23 +1,21 @@
 import bodyParser from 'body-parser'
+import { Lock } from 'concurrentp'
 import express, { Express } from 'express'
-import Redis from 'ioredis'
 import {
   ConnectionFrom,
   createK8sClient,
   deleteResourceIf,
   DeployedImage,
+  generateResourceName,
+  isTempResource,
   K8sClient,
   SerializedSubscribeToImageOptions,
+  SingletonStrategy,
   subscribeToImage,
   unsubscribeFromImage,
   UnsubscribeFromImageOptions,
-  SingletonStrategy,
-  generateResourceName,
-  isTempResource,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
-import { setupInternalRedis } from './internal-redis'
-import { Lock } from 'concurrentp'
 
 const log = k8testLog('monitoring')
 
@@ -33,24 +31,20 @@ function getLock(locks: Map<string, Lock>, lockIdentifier: string): Lock {
 
 function buildService({
   k8sClient,
-  redisClient,
   syncTask,
-  redisDeployment,
   namespaceName,
 }: {
   k8sClient: K8sClient
-  redisClient: Redis.Redis
   syncTask: <SyncTaskReturnType>(
     lockIdentifier: string,
     task: () => Promise<SyncTaskReturnType>,
   ) => Promise<SyncTaskReturnType>
-  redisDeployment: DeployedImage
   namespaceName: string
 }): Express {
   const app = express()
   app.use(bodyParser.json())
 
-  app.get('/is-alive', (_req, res) => res.end())
+  app.get('/is-alive', (_req, res) => res.end('true'))
 
   app.post<{}, DeployedImage, SerializedSubscribeToImageOptions>('/subscribe', (req, res) =>
     syncTask('subscribe', async () => {
@@ -60,6 +54,7 @@ function buildService({
         appId: options.appId,
         namespaceName: options.namespaceName,
         imageName: options.imageName,
+        postfix: options.postfix,
         containerPortToExpose: options.containerPortToExpose,
         exposeStrategy: options.exposeStrategy,
         singletonStrategy: options.singletonStrategy,
@@ -107,6 +102,8 @@ function buildService({
     }),
   )
 
+  app.get('/', (_req, res) => res.end('alive'))
+
   return app
 }
 
@@ -127,19 +124,14 @@ async function main() {
 
   await deleteResourceIf({ k8sClient, namespaceName, predicate: isTempResource })
 
-  const { redisClient, redisDeployment } = await setupInternalRedis(k8sClient, namespaceName)
-
   const locks = new Map<string, Lock>()
 
   const app = buildService({
     k8sClient,
-    redisClient,
-    redisDeployment,
     namespaceName,
     syncTask: async (lockIdentifier, task) => {
       const lock = getLock(locks, lockIdentifier)
       await lock.acquire()
-      // const lock = await locker.lock(lockIdentifier, 10_000)
       const result = await task()
       await lock.release()
       return result

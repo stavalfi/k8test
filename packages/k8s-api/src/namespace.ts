@@ -13,6 +13,9 @@ export async function createNamespaceIfNotExist(options: {
     await options.k8sClient.apiClient.createNamespace({
       metadata: {
         name: options.namespaceName,
+        labels: {
+          k8test: 'true',
+        },
       },
     })
   } catch (error) {

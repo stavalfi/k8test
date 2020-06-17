@@ -86,7 +86,7 @@ export function prepareEachTest() {
         singletonStrategy: SingletonStrategy.oneInNamespace,
         imageName: 'stavalfi/k8test-monitoring',
       })
-      cleanups.push(() => socket.close())
+      cleanups.push(() => socket.terminate())
     },
     attachContainer: async ({
       appId,

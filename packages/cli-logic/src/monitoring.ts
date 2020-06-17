@@ -13,6 +13,7 @@ import {
   K8sClient,
   SingletonStrategy,
   subscribeToImage,
+  generateResourceLabels,
 } from 'k8s-api'
 import k8testLog from 'k8test-log'
 import { waitUntilReady } from './utils'
@@ -37,6 +38,11 @@ async function isMonitoringServiceAlive(k8sClient: K8sClient, namespaceName: str
     await got.get(`${deployedImageUrl}/is-alive`, {
       timeout: 1000,
     })
+    log(
+      'image "%s" is reachable using the address: "%s" from outside the cluster',
+      'k8test-monitoring',
+      deployedImageUrl,
+    )
     return true
   } catch {
     return false
@@ -52,7 +58,17 @@ export async function startMonitoring(options: { 'local-image': boolean; namespa
     return
   }
 
-  await grantAdminRoleToCluster(k8sClient, namespaceName)
+  await grantAdminRoleToCluster({
+    k8sClient,
+    namespaceName,
+    roleName: generateResourceName({
+      namespaceName,
+      singletonStrategy: SingletonStrategy.oneInNamespace,
+    }),
+    roleLabels: generateResourceLabels({
+      singletonStrategy: SingletonStrategy.oneInNamespace,
+    }),
+  })
 
   await createNamespaceIfNotExist({
     k8sClient,

@@ -12,6 +12,7 @@ export type SubscribeCreatorOptions = {
   appId?: string
   ttlMs?: number
   imageName: string
+  postfix?: string
   singletonStrategy?: SingletonStrategy
   containerPortToExpose: number
   containerOptions?: ContainerOptions

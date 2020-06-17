@@ -4,7 +4,7 @@ import k8testLog from 'k8test-log'
 
 const log = k8testLog('monitoring:internal-redis')
 
-async function waitUntilReady(isReadyPredicate: () => Promise<void>): Promise<void> {
+async function waitUntilReady(isReadyPredicate: () => Promise<unknown>): Promise<void> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     try {

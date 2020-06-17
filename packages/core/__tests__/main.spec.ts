@@ -1,5 +1,5 @@
 import { randomAppId, subscribe } from '../src'
-import { isRedisReadyPredicate, prepareEachTest, redisClient, randomNamespaceName } from './utils'
+import { isRedisReadyPredicate, prepareEachTest, randomNamespaceName, redisClient } from './utils'
 
 describe('reach endpoints in the cluster', () => {
   const { cleanups, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()

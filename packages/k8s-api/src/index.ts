@@ -11,6 +11,7 @@ import {
   SingletonStrategy,
   SubscriptionOperation,
 } from './types'
+import { generateResourceName, generateResourceLabels } from './utils'
 
 export { NotFoundError } from './errors'
 export { createK8sClient } from './k8s-client'
@@ -18,14 +19,14 @@ export { createNamespaceIfNotExist, defaultK8testNamespaceName, deleteNamespaceI
 export { deleteRolesIf, grantAdminRoleToCluster } from './role'
 export { getDeployedImagePort } from './service'
 export { ConnectionFrom, ExposeStrategy, K8sClient, SingletonStrategy } from './types'
-export { generateResourceName, isTempResource, randomAppId } from './utils'
+export { generateResourceName, isTempResource, randomAppId, generateResourceLabels } from './utils'
 export { attach } from './attach'
 
 const log = k8testLog('k8s-api')
 
 export type DeployedImage = {
-  deploymentName: string
   serviceName: string
+  deploymentName: string
   deployedImageUrl: string
   deployedImageAddress: string
   deployedImagePort: number
@@ -39,6 +40,7 @@ export type SerializedSubscribeToImageOptions = {
   appId?: string
   namespaceName: string
   imageName: string
+  postfix?: string
   containerPortToExpose: number
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
@@ -86,7 +88,20 @@ export async function getDeployedImageConnectionDetails(options: {
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
-  const logSubs = options.appId ? log.extend(options.appId) : log
+  const resourcesName = generateResourceName({
+    namespaceName: options.namespaceName,
+    singletonStrategy: options.singletonStrategy,
+    appId: options.appId,
+    imageName: options.imageName,
+    postfix: options.postfix,
+  })
+
+  const resourcesLabels = generateResourceLabels({
+    appId: options.appId,
+    imageName: options.imageName,
+    singletonStrategy: options.singletonStrategy,
+    postfix: options.postfix,
+  })
 
   const serviceResult = await createService({
     appId: options.appId,
@@ -95,20 +110,9 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     imageName: options.imageName,
     podPortToExpose: options.containerPortToExpose,
     singletonStrategy: options.singletonStrategy,
+    serviceName: resourcesName,
+    serviceLabels: resourcesLabels,
   })
-  const podLabels = serviceResult.resource.spec?.selector
-  if (!podLabels) {
-    throw new Error(
-      `failed to create a service for image: ${options.imageName} - container-labels are missing after creating them.`,
-    )
-  }
-
-  const serviceName = serviceResult.resource.metadata?.name
-  if (!serviceName) {
-    throw new Error(
-      `failed to create a service for image: ${options.imageName} - service-name is missing after creating it.`,
-    )
-  }
 
   const deploymentResult = await createDeployment({
     appId: options.appId,
@@ -116,17 +120,13 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     namespaceName: options.namespaceName,
     imageName: options.imageName,
     containerPortToExpose: options.containerPortToExpose,
-    podLabels,
+    podLabels: resourcesLabels,
     exposeStrategy: options.exposeStrategy,
     singletonStrategy: options.singletonStrategy,
     containerOptions: options.containerOptions,
+    deploymentName: resourcesName,
+    deploymentLabels: resourcesLabels,
   })
-  const deploymentName = deploymentResult.resource.metadata?.name
-  if (!deploymentName) {
-    throw new Error(
-      `failed to create a deployment for image: ${options.imageName} - deployment-name is missing after creating it.`,
-    )
-  }
 
   if (serviceResult.isNewResource !== deploymentResult.isNewResource) {
     throw new Error(
@@ -135,7 +135,7 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
   }
 
   if (!deploymentResult.isNewResource) {
-    await addSubscriptionsLabel(deploymentName, {
+    await addSubscriptionsLabel(resourcesName, {
       k8sClient: options.k8sClient,
       namespaceName: options.namespaceName,
       operation: SubscriptionOperation.subscribe,
@@ -146,18 +146,18 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     k8sClient: options.k8sClient,
     exposeStrategy: options.exposeStrategy,
     namespaceName: options.namespaceName,
-    serviceName,
+    serviceName: resourcesName,
   })
 
-  logSubs(
-    'subscribed to image "%s". address of the container: "%s"',
-    options.imageName,
+  log(
+    'subscribed to resource "%s". resource is reachable through: "%s"',
+    resourcesName,
     `${deployedImageAddress}:${deployedImagePort}`,
   )
 
   return {
-    serviceName,
-    deploymentName,
+    deploymentName: resourcesName,
+    serviceName: resourcesName,
     deployedImageUrl,
     deployedImageAddress,
     deployedImagePort,
