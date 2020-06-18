@@ -3,17 +3,10 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
-  "files": [
-    "src",
-    "__tests__",
-    "dist"
-  ],
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
+    "pretest": "k8test start-k8test-monitoring",
     "test": "jest"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
     "k8test": "^1.0.0"
