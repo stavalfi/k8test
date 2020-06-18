@@ -132,7 +132,6 @@ async function main() {
     syncTask: async (lockIdentifier, task) => {
       const lock = getLock(locks, lockIdentifier)
       await lock.acquire()
-      log('new task!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %s', lockIdentifier)
       const result = await task()
       await lock.release()
       return result
