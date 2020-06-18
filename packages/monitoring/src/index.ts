@@ -55,7 +55,7 @@ function buildService({
         namespaceName: options.namespaceName,
         imageName: options.imageName,
         postfix: options.postfix,
-        containerPortToExpose: options.containerPortToExpose,
+        imagePort: options.imagePort,
         exposeStrategy: options.exposeStrategy,
         singletonStrategy: options.singletonStrategy,
         containerOptions: options.containerOptions,

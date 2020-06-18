@@ -15,7 +15,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           containerOptions: { imagePullPolicy: 'Never' },
           namespaceName,
           appId,
@@ -23,7 +23,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -50,7 +50,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -59,7 +59,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -85,7 +85,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -94,7 +94,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -118,7 +118,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -127,7 +127,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -153,7 +153,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -162,7 +162,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           namespaceName,
           appId,
           isReadyPredicate: isServiceReadyPredicate,
@@ -189,7 +189,7 @@ describe('test singleton option', () => {
       const [subscription1, subscription2, subscription3] = await Promise.all([
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           appId,
           namespaceName,
           singletonStrategy: SingletonStrategy.manyInAppId,
@@ -198,7 +198,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           appId,
           namespaceName,
           singletonStrategy: SingletonStrategy.manyInAppId,
@@ -207,7 +207,7 @@ describe('test singleton option', () => {
         }),
         subscribe({
           imageName: 'stavalfi/simple-service',
-          containerPortToExpose: 80,
+          imagePort: 80,
           appId,
           namespaceName,
           singletonStrategy: SingletonStrategy.oneInNamespace,

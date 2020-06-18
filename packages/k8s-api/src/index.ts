@@ -41,7 +41,7 @@ export type SerializedSubscribeToImageOptions = {
   namespaceName: string
   imageName: string
   postfix?: string
-  containerPortToExpose: number
+  imagePort: number
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
   containerOptions?: ContainerOptions
@@ -108,7 +108,7 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
-    podPortToExpose: options.containerPortToExpose,
+    podPortToExpose: options.imagePort,
     singletonStrategy: options.singletonStrategy,
     serviceName: resourcesName,
     serviceLabels: resourcesLabels,
@@ -119,7 +119,7 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
     imageName: options.imageName,
-    containerPortToExpose: options.containerPortToExpose,
+    imagePort: options.imagePort,
     podLabels: resourcesLabels,
     exposeStrategy: options.exposeStrategy,
     singletonStrategy: options.singletonStrategy,

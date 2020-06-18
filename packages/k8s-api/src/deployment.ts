@@ -27,7 +27,7 @@ export async function createDeployment(options: {
   k8sClient: K8sClient
   namespaceName: string
   imageName: string
-  containerPortToExpose: number
+  imagePort: number
   podLabels: Labels
   exposeStrategy: ExposeStrategy
   singletonStrategy: SingletonStrategy
@@ -75,7 +75,7 @@ export async function createDeployment(options: {
                 image: options.imageName,
                 ports: [
                   {
-                    containerPort: options.containerPortToExpose,
+                    containerPort: options.imagePort,
                   },
                 ],
                 env: [

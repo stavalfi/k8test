@@ -54,7 +54,7 @@ export async function setupInternalRedis(
     k8sClient,
     namespaceName,
     imageName: 'redis',
-    containerPortToExpose: 6379,
+    imagePort: 6379,
     exposeStrategy: ExposeStrategy.insideCluster,
     singletonStrategy: SingletonStrategy.oneInNamespace,
   })

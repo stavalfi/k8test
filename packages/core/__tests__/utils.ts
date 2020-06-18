@@ -45,7 +45,7 @@ export function prepareEachTest() {
       }),
     registerNamespaceRemoval: (namespaceName: string) =>
       cleanups.push(() =>
-        execa.command(`node ${cliMonitoringPath} delete-monitoring --namespace ${namespaceName}`, {
+        execa.command(`node ${cliMonitoringPath} delete-k8test-resources --namespace ${namespaceName}`, {
           // eslint-disable-next-line no-process-env
           env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
           stdio: 'inherit',

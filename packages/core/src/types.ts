@@ -10,11 +10,10 @@ export type Subscription = {
 
 export type SubscribeCreatorOptions = {
   appId?: string
-  ttlMs?: number
   imageName: string
-  postfix?: string
+  postfix?: string // incase you want to have multiple singleton instances (oneInAppId,oneInNamespace) of same kind
   singletonStrategy?: SingletonStrategy
-  containerPortToExpose: number
+  imagePort: number
   containerOptions?: ContainerOptions
   namespaceName?: string
   isReadyPredicate?: (

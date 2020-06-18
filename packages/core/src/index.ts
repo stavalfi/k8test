@@ -83,7 +83,7 @@ export const subscribe: Subscribe = async options => {
       namespaceName,
       imageName: options.imageName,
       postfix,
-      containerPortToExpose: options.containerPortToExpose,
+      imagePort: options.imagePort,
       exposeStrategy: ExposeStrategy.userMachine,
       singletonStrategy,
       containerOptions: options.containerOptions,

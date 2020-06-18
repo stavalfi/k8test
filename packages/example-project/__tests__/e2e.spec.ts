@@ -9,10 +9,9 @@ describe('simple use-case', () => {
   beforeEach(async () => {
     exposedRedisInfo = await subscribe({
       imageName: 'redis',
-      containerPortToExpose: 6379,
+      imagePort: 6379,
       isReadyPredicate: isRedisReadyPredicate,
       singletonStrategy: SingletonStrategy.manyInAppId,
-      ttlMs: 100_000_000,
     })
 
     redis = new Redis({

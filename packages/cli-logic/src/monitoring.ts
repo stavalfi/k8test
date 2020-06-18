@@ -79,7 +79,7 @@ export async function startMonitoring(options: { 'local-image': boolean; namespa
     k8sClient,
     namespaceName: namespaceName,
     imageName: 'stavalfi/k8test-monitoring',
-    containerPortToExpose: 80,
+    imagePort: 80,
     exposeStrategy: ExposeStrategy.userMachine,
     singletonStrategy: SingletonStrategy.oneInNamespace,
     ...(options['local-image'] && {
@@ -106,7 +106,7 @@ export async function startMonitoring(options: { 'local-image': boolean; namespa
   )
 }
 
-export async function deleteMonitoring(options: { namespace: string }) {
+export async function deleteK8testResources(options: { namespace: string }) {
   const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
 
   const namespaceName = options.namespace

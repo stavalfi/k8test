@@ -12,7 +12,7 @@ describe('reach endpoints in the cluster', () => {
 
     const { unsubscribe, deployedImageUrl } = await subscribe({
       imageName: 'stavalfi/simple-service',
-      containerPortToExpose: 80,
+      imagePort: 80,
       containerOptions: { imagePullPolicy: 'Never' },
       namespaceName,
       appId,
@@ -33,7 +33,7 @@ describe('reach endpoints in the cluster', () => {
 
     const { unsubscribe, deployedImageUrl } = await subscribe({
       imageName: 'stavalfi/simple-service',
-      containerPortToExpose: 80,
+      imagePort: 80,
       containerOptions: { imagePullPolicy: 'Never' },
       namespaceName,
       appId,

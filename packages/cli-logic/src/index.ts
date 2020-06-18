@@ -1,5 +1,5 @@
 import { command, run, subcommands, boolean, flag, string, option } from 'cmd-ts'
-import { deleteMonitoring, startMonitoring } from './monitoring'
+import { deleteK8testResources, startMonitoring } from './monitoring'
 import { defaultK8testNamespaceName } from 'k8s-api'
 
 // eslint-disable-next-line no-console
@@ -30,12 +30,12 @@ const app = subcommands({
       },
       handler: startMonitoring,
     }),
-    'delete-monitoring': command({
-      name: 'delete-monitoring',
+    'delete-k8test-resources': command({
+      name: 'delete-k8test-resources',
       args: {
         namespace: namespace(false),
       },
-      handler: deleteMonitoring,
+      handler: deleteK8testResources,
     }),
   },
 })
