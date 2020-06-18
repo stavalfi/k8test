@@ -6,7 +6,10 @@
 1. [Install](#install)
 2. [Introduction](#introduction)
 3. [Setup](#setup)
-4. [Core Team](#core-team)
+4. [Api](#api)
+5. [Supported OS](#supported-os)
+6. [Questions & Debugging & Advanced Operations](#Questions-&-Debugging-&-Advanced-Operations)
+7. [Development & contributing](#Development-&-contributing)
 
 ---
 
@@ -156,19 +159,3 @@ PRs about Api/ speed improvement are welcome.
 - secrethub
 - yarn
 - node 14
-
-## Core Team
-
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top">
-        <img width="150" height="150" src="https://github.com/stavalfi.png?s=150">
-        <br>
-        <a href="https://github.com/stavalfi">Stav Alfi</a>
-        <p>Core</p>
-        <br>
-      </td>
-     </tr>
-  </tbody>
-</table>
