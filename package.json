@@ -7,7 +7,7 @@
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
-    "pretest": "eval $(minikube docker-env --shell sh) && yarn && yarn tsc -b tsconfig-build.json && yarn workspace simple-service build:docker && yarn delete-k8test-resources && yarn --cwd packages/monitoring build:docker",
+    "123pretest": "eval $(minikube docker-env --shell sh) && yarn && yarn build && yarn workspace simple-service build:docker && yarn delete-k8test-resources && yarn --cwd packages/monitoring build:docker",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
