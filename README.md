@@ -130,6 +130,20 @@ await subscribe({
 })
 ```
 
+## Run your tests in CI
+
+You should have k8s internal api exposed in your CI. it's very simple to set it up in Github-Actions: [Example](https://github.com/stavalfi/k8test/blob/master/.github/workflows/nodejs.yml):
+
+```yaml
+- name: install k8s
+  uses: engineerd/setup-kind@v0.4.0
+- run: yarn run your-tests
+```
+
+Thats it.
+
+- I have a more advanced setup to test docker-images of other sub-packages of this repository.
+
 ## Supported OS
 
 I'm developing on macOS Mojave and in CI we are running on linux debian
