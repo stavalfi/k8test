@@ -23,15 +23,14 @@ jobs:
       - name: install k8s
         uses: engineerd/setup-kind@v0.4.0
       - run: minikube start
-      - run: eval $(minikube docker-env --shell sh)
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn workspace simple-service build:docker
-      - run: yarn workspace k8test-monitoring build:docker
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace k8test-monitoring build:docker
       - run: docker images
       - run: minikube ssh -- docker images
       # - run: yarn test
