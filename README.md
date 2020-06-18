@@ -8,8 +8,9 @@
 3. [Setup](#setup)
 4. [Api](#api)
 5. [Supported OS](#supported-os)
-6. [Questions & Debugging & Advanced Operations](#Questions-&-Debugging-&-Advanced-Operations)
-7. [Development & contributing](#Development-&-contributing)
+6. [Run your tests in CI](#Run-your-tests-in-CI)
+7. [Questions & Debugging & Advanced Operations](#Questions-&-Debugging-&-Advanced-Operations)
+8. [Development & contributing](#Development-&-contributing)
 
 ---
 
