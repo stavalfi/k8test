@@ -24,6 +24,7 @@ jobs:
       #   uses: actions-hub/docker/login@master
       - name: install k8s
         uses: engineerd/setup-kind@v0.4.0
+      - run: minikube start
       - run: minikube docker-env
       - run: minikube version
       - run: docker --version
