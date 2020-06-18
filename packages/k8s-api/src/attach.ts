@@ -2,7 +2,6 @@ import { K8sClient, SingletonStrategy } from './types'
 import { findPodByLabels } from './pod'
 import { generateResourceLabels } from './utils'
 import WebSocket from 'ws'
-import _omit from 'lodash/omit'
 
 export async function attach(options: {
   k8sClient: K8sClient
@@ -14,14 +13,11 @@ export async function attach(options: {
   const pod = await findPodByLabels({
     k8sClient: options.k8sClient,
     namespaceName: options.namespaceName,
-    podLabels: _omit(
-      generateResourceLabels({
-        appId: options.appId,
-        imageName: options.imageName,
-        singletonStrategy: options.singletonStrategy,
-      }),
-      ['k8test-resource-id'],
-    ),
+    podLabels: generateResourceLabels({
+      appId: options.appId,
+      imageName: options.imageName,
+      singletonStrategy: options.singletonStrategy,
+    }),
   })
 
   const podName = pod.metadata?.name

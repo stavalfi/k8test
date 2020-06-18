@@ -1,20 +1,11 @@
 import * as k8s from '@kubernetes/client-node'
-import chance from 'chance'
 import k8testLog from 'k8test-log'
 import process from 'process'
 import { ContainerOptions, ExposeStrategy, K8sClient, Labels, SingletonStrategy, SubscriptionOperation } from './types'
-import { createResource, generateResourceName } from './utils'
+import { createResource, generateResourceName, getSubscriptionLabel, isSubscriptionLabel } from './utils'
 import { waitUntilDeploymentDeleted, waitUntilDeploymentReady } from './watch-resources'
 
 const log = k8testLog('k8s-api:deployment')
-
-function getSubscriptionLabel(operation: SubscriptionOperation) {
-  return {
-    [`subscription-${chance()
-      .hash()
-      .slice(0, 10)}`]: operation,
-  }
-}
 
 export async function deleteDeployment(options: {
   k8sClient: K8sClient
@@ -120,13 +111,6 @@ export async function createDeployment(options: {
   )
 
   return deploymentResult
-}
-
-function isSubscriptionLabel(key: string, value: string): boolean {
-  return (
-    key.startsWith('subscription-') &&
-    (value === SubscriptionOperation.subscribe || value === SubscriptionOperation.unsubscribe)
-  )
 }
 
 type UpdatedBalance = number

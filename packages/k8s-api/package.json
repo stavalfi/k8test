@@ -24,6 +24,7 @@
     "ip-address": "^6.3.0",
     "k8test-log": "^1.0.0",
     "lodash": "^4.17.15",
-    "object-deep-contain": "^1.0.24"
+    "object-deep-contain": "^1.0.24",
+    "object-delete-key": "^1.9.29"
   }
 }

@@ -91,8 +91,8 @@ export const subscribe: Subscribe = async options => {
   })
 
   log(
-    'waiting until the service in image "%s" is reachable using the address: "%s" from outside the cluster',
-    options.imageName,
+    'waiting until the service in resource "%s" is reachable using the address: "%s" from outside the cluster',
+    deployedImage.deploymentName,
     deployedImage.deployedImageUrl,
   )
 
@@ -108,8 +108,8 @@ export const subscribe: Subscribe = async options => {
   }
 
   log(
-    'image "%s" is reachable using the address: "%s" from outside the cluster',
-    options.imageName,
+    'resource "%s" is reachable using the address: "%s" from outside the cluster',
+    deployedImage.deploymentName,
     deployedImage.deployedImageUrl,
   )
 

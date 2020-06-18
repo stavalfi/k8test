@@ -35,7 +35,9 @@ describe('test singleton option', () => {
 
       await got.post(`${subscription1.deployedImageUrl}/set?x=1`)
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/get?key=x`)).resolves.not.toEqual('1')
+      await expect(got.get(`${subscription2.deployedImageUrl}/get/x`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '1',
+      )
       registerNamespaceRemoval(namespaceName)
     })
 
@@ -65,13 +67,13 @@ describe('test singleton option', () => {
           containerOptions: { imagePullPolicy: 'Never' },
         }),
       ])
-      cleanups.push(subscription1.unsubscribe)
-      cleanups.push(subscription2.unsubscribe)
+      // cleanups.push(subscription1.unsubscribe)
+      // cleanups.push(subscription2.unsubscribe)
 
       await got.post(`${subscription1.deployedImageUrl}/set?x=1`)
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/get?key=x`)).resolves.toEqual('1')
-      registerNamespaceRemoval(namespaceName)
+      await expect(got.get(`${subscription2.deployedImageUrl}/get/x`, { resolveBodyOnly: true })).resolves.toEqual('1')
+      // registerNamespaceRemoval(namespaceName)
     })
 
     test('endpoint should be the same when we share instance per namespace', async () => {
@@ -105,7 +107,7 @@ describe('test singleton option', () => {
 
       await got.post(`${subscription1.deployedImageUrl}/set?x=1`)
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/get?key=x`)).resolves.toEqual('1')
+      await expect(got.get(`${subscription2.deployedImageUrl}/get/x`, { resolveBodyOnly: true })).resolves.toEqual('1')
       registerNamespaceRemoval(namespaceName)
     })
     test('subscription-2 is still available after subscription-1 unsubscribes', async () => {
@@ -137,7 +139,9 @@ describe('test singleton option', () => {
 
       await subscription1.unsubscribe()
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/is-alive`)).resolves.toEqual('true')
+      await expect(got.get(`${subscription2.deployedImageUrl}/is-alive`, { resolveBodyOnly: true })).resolves.toEqual(
+        'true',
+      )
       registerNamespaceRemoval(namespaceName)
     })
 
@@ -170,7 +174,9 @@ describe('test singleton option', () => {
       await subscription1.unsubscribe()
       await subscription2.unsubscribe()
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/is-alive`)).rejects.toThrow('true')
+      await expect(got.get(`${subscription2.deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
+        expect.objectContaining({ name: 'TimeoutError' }),
+      )
       registerNamespaceRemoval(namespaceName)
     })
   })
@@ -221,14 +227,26 @@ describe('test singleton option', () => {
         got.post(`${subscription3.deployedImageUrl}/set?z=3`),
       ])
 
-      await expect(got.get(`${subscription1.deployedImageUrl}/get?key=y`)).resolves.not.toEqual('2')
-      await expect(got.get(`${subscription1.deployedImageUrl}/get?key=z`)).resolves.not.toEqual('3')
+      await expect(got.get(`${subscription1.deployedImageUrl}/get/y`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '2',
+      )
+      await expect(got.get(`${subscription1.deployedImageUrl}/get/z`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '3',
+      )
 
-      await expect(got.get(`${subscription2.deployedImageUrl}/get?key=x`)).resolves.not.toEqual('1')
-      await expect(got.get(`${subscription2.deployedImageUrl}/get?key=z`)).resolves.not.toEqual('3')
+      await expect(got.get(`${subscription2.deployedImageUrl}/get/x`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '1',
+      )
+      await expect(got.get(`${subscription2.deployedImageUrl}/get/z`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '3',
+      )
 
-      await expect(got.get(`${subscription3.deployedImageUrl}/get?key=x`)).resolves.not.toEqual('1')
-      await expect(got.get(`${subscription3.deployedImageUrl}/get?key=y`)).resolves.not.toEqual('2')
+      await expect(got.get(`${subscription3.deployedImageUrl}/get/x`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '1',
+      )
+      await expect(got.get(`${subscription3.deployedImageUrl}/get/y`, { resolveBodyOnly: true })).resolves.not.toEqual(
+        '2',
+      )
 
       registerNamespaceRemoval(namespaceName)
     })

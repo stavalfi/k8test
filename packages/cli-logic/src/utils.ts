@@ -1,7 +1,7 @@
 export async function waitUntilReady(isReadyPredicate: () => Promise<unknown>): Promise<void> {
   let i = 0
   // eslint-disable-next-line no-constant-condition
-  while (true) {
+  while (i < 20) {
     try {
       // eslint-disable-next-line no-console
       console.log(`try ${i}`)
@@ -12,4 +12,5 @@ export async function waitUntilReady(isReadyPredicate: () => Promise<unknown>): 
     }
     i++
   }
+  throw new Error('fuck')
 }

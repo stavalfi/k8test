@@ -1,8 +1,7 @@
-import Redis from 'ioredis'
 import chance from 'chance'
 import execa from 'execa'
-import { attach, ConnectionFrom, createK8sClient, SingletonStrategy } from 'k8s-api'
 import got from 'got'
+import { attach, ConnectionFrom, createK8sClient, SingletonStrategy } from 'k8s-api'
 
 export const cliMonitoringPath = require.resolve('k8test-cli-logic/dist/src/index.js')
 
@@ -16,32 +15,6 @@ export const isServiceReadyPredicate = (url: string, _host: string, _port: numbe
   return got.get(url, {
     timeout: 100,
   })
-}
-
-export const isRedisReadyPredicate = (_url: string, host: string, port: number) => {
-  const redis = new Redis({
-    host,
-    port,
-    lazyConnect: true, // because i will try to connect manually in the next line,
-    connectTimeout: 1000,
-  })
-
-  return redis.connect().finally(() => {
-    try {
-      redis.disconnect()
-    } catch {
-      // ignore error
-    }
-  })
-}
-
-export function redisClient(options: Redis.RedisOptions) {
-  const redis = new Redis({
-    maxRetriesPerRequest: 1,
-    connectTimeout: 1000,
-    ...options,
-  })
-  return redis
 }
 
 export function cleanupAfterEach() {

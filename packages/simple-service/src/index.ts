@@ -19,7 +19,7 @@ async function main() {
       res.end()
     })
     .get('/get/:key', (req, res) => {
-      const key = req.query.key as string
+      const key = req.params.key
       res.end(map.get(key))
     })
     .get('/is-alive', (_req, res) => res.end('true'))

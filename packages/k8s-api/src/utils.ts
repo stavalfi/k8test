@@ -2,9 +2,9 @@
 
 import chance from 'chance'
 import http from 'http'
-import { SingletonStrategy } from './types'
-import { K8sResource, Labels } from './types'
 import objectDeepContain from 'object-deep-contain'
+import objectDeleteKey from 'object-delete-key'
+import { K8sResource, Labels, SingletonStrategy, SubscriptionOperation } from './types'
 
 export const randomAppId = () =>
   `app-id-${chance()
@@ -19,6 +19,10 @@ export function isResourceAlreadyExistError(error?: {
   return error?.response?.statusCode === 409 && error?.response?.body?.reason === 'AlreadyExists'
 }
 
+function isK8testLabel(key: string) {
+  return key.startsWith('k8test')
+}
+
 export const generateResourceLabels = ({
   appId,
   singletonStrategy,
@@ -30,19 +34,12 @@ export const generateResourceLabels = ({
   singletonStrategy: SingletonStrategy
   postfix?: string
 }) => {
-  const letter = chance()
-    .letter()
-    .toLocaleLowerCase()
-  const hash = chance()
-    .hash()
-    .toLocaleLowerCase()
   return {
     k8test: 'true',
-    'singleton-strategy': singletonStrategy,
-    'k8test-resource-id': `${letter}${hash}`,
-    ...(appId && { 'app-id': appId }),
-    ...(imageName && { image: validateImageName(imageName) }),
-    ...(postfix && { postfix }),
+    'k8test-singleton-strategy': singletonStrategy,
+    ...(appId && { 'k8test-app-id': appId }),
+    ...(imageName && { 'k8test-image': validateImageName(imageName) }),
+    ...(postfix && { 'k8test-postfix': postfix }),
   }
 }
 
@@ -71,7 +68,7 @@ export const generateResourceName = ({
 }
 
 export function isTempResource(resource: K8sResource): boolean {
-  const singletonStrategy = resource.metadata?.labels?.['singleton-strategy']
+  const singletonStrategy = resource.metadata?.labels?.['k8test-singleton-strategy']
   switch (singletonStrategy) {
     case SingletonStrategy.oneInNamespace:
       return false
@@ -81,6 +78,26 @@ export function isTempResource(resource: K8sResource): boolean {
     default:
       return false
   }
+}
+
+export function getSubscriptionLabel(operation: SubscriptionOperation) {
+  return {
+    [`k8test-subscription-${chance()
+      .hash()
+      .slice(0, 10)}`]: operation,
+  }
+}
+
+export function isSubscriptionLabel(key: string, value: string): boolean {
+  return (
+    isK8testLabel(key) &&
+    key.startsWith('k8test-subscription-') &&
+    (value === SubscriptionOperation.subscribe || value === SubscriptionOperation.unsubscribe)
+  )
+}
+
+function removeDeepProps(obj: object, keys: string[]): object {
+  return keys.reduce((acc, key) => objectDeleteKey(acc, { cleanup: false, key }), obj)
 }
 
 export async function createResource<Resource extends K8sResource>(options: {
@@ -106,7 +123,15 @@ export async function createResource<Resource extends K8sResource>(options: {
   } catch (error) {
     if (isResourceAlreadyExistError(error)) {
       const resource = await options.waitUntilReady()
-      if (objectDeepContain(resource, resourceToCreate)) {
+      const resourceToCreateClone = removeDeepProps(resourceToCreate, ['k8test-subscription-*', 'serviceAccount'])
+
+      if (
+        objectDeepContain(
+          // this is a workaround to compare only the json properties and exclude everything else
+          JSON.parse(JSON.stringify(resource, null, 2)),
+          JSON.parse(JSON.stringify(resourceToCreateClone, null, 2)),
+        )
+      ) {
         return {
           resource,
           isNewResource: false,
