@@ -31,6 +31,4 @@ jobs:
       - run: yarn build
       - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker
       - run: eval $(minikube docker-env --shell sh) && yarn workspace k8test-monitoring build:docker
-      - run: docker images
-      - run: minikube ssh -- docker images
-      # - run: yarn test
+      - run: yarn test
