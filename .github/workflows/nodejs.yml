@@ -20,22 +20,14 @@ jobs:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
           DOCKER_USERNAME: secrethub://stavalfi/dockerhub/username
           DOCKER_PASSWORD: secrethub://stavalfi/dockerhub/access-token
-      # - name: Login to docker hub
-      #   uses: actions-hub/docker/login@master
       - name: install k8s
         uses: engineerd/setup-kind@v0.4.0
       - run: minikube start
       - run: eval $(minikube docker-env --shell sh)
-      - run: minikube version
-      - run: docker --version
-      - run: kind
-      # - name: Use Node.js ${{ matrix.node-version }}
-      #   uses: actions/setup-node@v1
-      #   with:
-      #     node-version: ${{ matrix.node-version }}
-      # - run: yarn install
-      # - run: yarn build
-      # - run: eval $(minikube docker-env)
-      # - run: yarn workspace simple-service build:docker
-      # - run: yarn workspace k8test-monitoring build:docker
-      # - run: yarn test
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install
+      - run: yarn build
+      - run: yarn test
