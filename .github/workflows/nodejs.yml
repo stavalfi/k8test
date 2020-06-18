@@ -32,4 +32,6 @@ jobs:
       - run: yarn build
       - run: yarn workspace simple-service build:docker
       - run: yarn workspace k8test-monitoring build:docker
-      - run: yarn test
+      - run: docker images
+      - run: minikube ssh -- docker images
+      # - run: yarn test
