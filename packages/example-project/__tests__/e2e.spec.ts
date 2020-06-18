@@ -11,7 +11,7 @@ describe('simple use-case', () => {
       imageName: 'redis',
       containerPortToExpose: 6379,
       isReadyPredicate: isRedisReadyPredicate,
-      singletonStrategy: SingletonStrategy.oneInAppId,
+      singletonStrategy: SingletonStrategy.manyInAppId,
       ttlMs: 100_000_000,
     })
 

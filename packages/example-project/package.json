@@ -5,10 +5,13 @@
   "private": true,
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "pretest": "k8test start-k8test-monitoring",
-    "test": "jest"
+    "pretest": "../core/dist/src/k8test-cli.js start-monitoring --local-image # remove '--local-image'",
+    "test": "jest",
+    "posttest": "../core/dist/src/k8test-cli.js delete-monitoring # don't write this line!!"
   },
   "devDependencies": {
-    "k8test": "^1.0.0"
+    "k8test": "^1.0.0",
+    "ioredis": "^4.17.1",
+    "execa": "^4.0.1"
   }
 }

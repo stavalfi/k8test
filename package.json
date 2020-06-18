@@ -12,7 +12,7 @@
     "clean": "yarn workspace scripts clean",
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",
-    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && ln -s ./packages/core/dist/src/k8test-cli.js ./node_modules/.bin/k8test"
+    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && ln -sf ./packages/core/dist/src/k8test-cli.js ./node_modules/.bin/k8test"
   },
   "repository": {
     "url": "https://github.com/stavalfi/k8test"

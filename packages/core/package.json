@@ -6,19 +6,20 @@
   "bin": {
     "k8test": "./dist/k8test-cli/index.js"
   },
+  "private": false,
   "files": [
     "src",
     "__tests__",
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
     "test": "jest",
     "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
     "k8test-log": "^1.0.0",
