@@ -43,7 +43,7 @@ describe('reach endpoints in the cluster', () => {
     await unsubscribe()
 
     await expect(got.get(`${deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
-      expect.objectContaining({ name: 'TimeoutError' }),
+      expect.objectContaining({ name: expect.stringMatching(/TimeoutError|RequestError/) }),
     )
   })
 })

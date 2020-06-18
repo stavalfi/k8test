@@ -171,11 +171,10 @@ describe('test singleton option', () => {
         }),
       ])
 
-      await subscription1.unsubscribe()
-      await subscription2.unsubscribe()
+      await Promise.all([subscription1.unsubscribe(), subscription2.unsubscribe()])
 
       await expect(got.get(`${subscription2.deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
-        expect.objectContaining({ name: 'TimeoutError' }),
+        expect.objectContaining({ name: expect.stringMatching(/TimeoutError|RequestError/) }),
       )
       registerNamespaceRemoval(namespaceName)
     })
