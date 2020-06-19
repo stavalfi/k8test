@@ -45,7 +45,8 @@ async function publishNpm(packageInfo: PackageInfo, options: { isDryRun: boolean
 
   await execa.command(`yarn publish ${packageInfo.packagePath}`, { stdio: 'inherit' })
 
-  await execa.command(`yarn tag add ${packageInfo.packageJson.name}@${newVersion} ${packageInfo.packageHash}`, {
+  // yarn tag add - is not working
+  await execa.command(`npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} ${packageInfo.packageHash}`, {
     stdio: 'inherit',
   })
 
