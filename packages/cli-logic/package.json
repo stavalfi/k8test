@@ -1,6 +1,6 @@
 {
   "name": "k8test-cli-logic",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
