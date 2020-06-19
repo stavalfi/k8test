@@ -1,0 +1,30 @@
+{
+  "name": "k8s-api",
+  "version": "1.2.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "src",
+    "__tests__",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig-build.json",
+    "test": "jest",
+    "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^0.11.2",
+    "chance": "^1.1.5",
+    "ip-address": "^6.3.0",
+    "k8test-log": "^1.0.0",
+    "lodash": "^4.17.15",
+    "object-deep-contain": "^1.0.24",
+    "object-delete-key": "^1.9.29"
+  }
+}

@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { SingletonStrategy, subscribe, Subscription } from 'k8test'
+import { subscribe, Subscription, SingletonStrategy } from 'k8test'
 import { isRedisReadyPredicate } from './utils'
 
 describe('simple use-case', () => {
@@ -9,10 +9,9 @@ describe('simple use-case', () => {
   beforeEach(async () => {
     exposedRedisInfo = await subscribe({
       imageName: 'redis',
-      containerPortToExpose: 6379,
+      imagePort: 6379,
       isReadyPredicate: isRedisReadyPredicate,
-      singletonStrategy: SingletonStrategy.appId,
-      ttlMs: 100_000_000,
+      singletonStrategy: SingletonStrategy.manyInAppId,
     })
 
     redis = new Redis({

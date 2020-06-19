@@ -3,7 +3,7 @@
 
 name: Node.js CI
 
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   build:
@@ -15,11 +15,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: engineerd/setup-kind@v0.4.0
+      - uses: secrethub/actions/env-export@v0.1.0
+        env:
+          SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+          DOCKER_USERNAME: secrethub://stavalfi/dockerhub/username
+          DOCKER_PASSWORD: secrethub://stavalfi/dockerhub/access-token
+      - name: install k8s
+        uses: engineerd/setup-kind@v0.4.0
+      - run: minikube start
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn test
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace k8test-monitoring build:docker
+      - run: DEBUG=k8test:* yarn test

@@ -1,44 +1,49 @@
-import { subscribe, randomAppId } from '../src'
-import { cleanupAfterEach, isRedisReadyPredicate, redisClient } from './utils'
+import got from 'got'
+import { randomAppId, subscribe } from '../src'
+import { isServiceReadyPredicate, prepareEachTest, randomNamespaceName } from './utils'
 
 describe('reach endpoints in the cluster', () => {
-  let cleanups = cleanupAfterEach()
+  const { cleanups, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
 
   test('endpoint is available while the endpoint has active subscription', async () => {
-    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
-      imageName: 'redis',
-      containerPortToExpose: 6379,
-      appId: randomAppId(),
-      isReadyPredicate: isRedisReadyPredicate,
+    const namespaceName = randomNamespaceName()
+    await startMonitorNamespace(namespaceName)
+    const appId = randomAppId()
+
+    const { unsubscribe, deployedImageUrl } = await subscribe({
+      imageName: 'stavalfi/simple-service',
+      imagePort: 80,
+      containerOptions: { imagePullPolicy: 'Never' },
+      namespaceName,
+      appId,
+      isReadyPredicate: isServiceReadyPredicate,
     })
 
     cleanups.push(unsubscribe)
+    registerNamespaceRemoval(namespaceName)
 
-    const redis = redisClient({
-      host: deployedImageAddress,
-      port: deployedImagePort,
-    })
-    cleanups.push(() => redis.disconnect())
-
-    await expect(redis.ping()).resolves.toEqual('PONG')
+    await expect(got.get(`${deployedImageUrl}/is-alive`, { resolveBodyOnly: true })).resolves.toEqual('true')
   })
 
   test('endpoint is not available after unsubscribe', async () => {
-    const { unsubscribe, deployedImageAddress, deployedImagePort } = await subscribe({
-      imageName: 'redis',
-      containerPortToExpose: 6379,
-      appId: randomAppId(),
-      isReadyPredicate: isRedisReadyPredicate,
-    })
+    const namespaceName = randomNamespaceName()
+    await startMonitorNamespace(namespaceName)
+    const appId = randomAppId()
+    registerNamespaceRemoval(namespaceName)
 
-    const redis = redisClient({
-      host: deployedImageAddress,
-      port: deployedImagePort,
+    const { unsubscribe, deployedImageUrl } = await subscribe({
+      imageName: 'stavalfi/simple-service',
+      imagePort: 80,
+      containerOptions: { imagePullPolicy: 'Never' },
+      namespaceName,
+      appId,
+      isReadyPredicate: isServiceReadyPredicate,
     })
-    cleanups.push(() => redis.disconnect())
 
     await unsubscribe()
 
-    await expect(redis.ping()).rejects.toThrow(expect.objectContaining({ name: 'MaxRetriesPerRequestError' }))
+    await expect(got.get(`${deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
+      expect.objectContaining({ name: expect.stringMatching(/TimeoutError|RequestError/) }),
+    )
   })
 })

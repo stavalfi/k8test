@@ -10,6 +10,21 @@
     },
     {
       "path": "packages/example-project/tsconfig-build.json"
+    },
+    {
+      "path": "packages/k8s-api/tsconfig-build.json"
+    },
+    {
+      "path": "packages/monitoring/tsconfig-build.json"
+    },
+    {
+      "path": "packages/log/tsconfig-build.json"
+    },
+    {
+      "path": "packages/cli-logic/tsconfig-build.json"
+    },
+    {
+      "path": "packages/simple-service/tsconfig-build.json"
     }
   ]
 }

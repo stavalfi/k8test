@@ -7,9 +7,16 @@
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
+    "pretest": "eval $(minikube docker-env --shell sh) && yarn && yarn build && yarn workspace simple-service build:docker && yarn delete-k8test-resources && yarn --cwd packages/monitoring build:docker",
     "test": "jest --verbose",
     "clean": "yarn workspace scripts clean",
-    "build": "yarn tsc -b tsconfig-build.json"
+    "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
+    "start-k8test-monitoring": "y arn workspace scripts start-k8test-monitoring",
+    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && ln -sf ./packages/core/dist/src/k8test-cli.js ./node_modules/.bin/k8test",
+    "docker-hub-login": "secrethub run -- docker login --username=$DOCKER_HUB_USERNAME --password=$DOCKER_HUB_PASSWORD"
+  },
+  "repository": {
+    "url": "https://github.com/stavalfi/k8test"
   },
   "workspaces": [
     "packages/*"
@@ -20,14 +27,16 @@
     }
   },
   "devDependencies": {
-    "@kubernetes/client-node": "^0.11.2",
     "@types/chance": "^1.0.8",
+    "@types/debug": "^4.1.5",
     "@types/express": "~4.0.0",
     "@types/fs-extra": "^8.0.1",
     "@types/ioredis": "^4.16.2",
+    "@types/ip-address": "^5.8.2",
     "@types/jest": "^24.0.0",
     "@types/lodash": "^4.14.149",
-    "@types/node": "^13.5.1",
+    "@types/node": "^14.0.13",
+    "@types/redlock": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
     "chance": "^1.1.5",
@@ -37,6 +46,7 @@
     "eslint-config-prettier": "4.3.0",
     "eslint-plugin-jest": "22.6.4",
     "eslint-plugin-json": "^2.0.1",
+    "eslint-plugin-no-floating-promise": "https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-spellcheck": "^0.0.17",
     "execa": "^4.0.1",
@@ -47,6 +57,7 @@
     "globby": "^11.0.0",
     "husky": "^4.2.5",
     "ignore": "^5.1.4",
+    "ioredis": "^4.17.1",
     "jest": "24.8.0",
     "lint-staged": "^9.5.0",
     "pkg": "^4.4.2",

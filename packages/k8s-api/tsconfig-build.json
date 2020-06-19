@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "__tests__"],
+  "references": [
+    {
+      "path": "../log/tsconfig-build.json"
+    }]
+}

@@ -3,9 +3,9 @@ import { isResourceAlreadyExistError } from './utils'
 import { waitUntilNamespaceCreated, waitUntilNamespaceDeleted } from './watch-resources'
 import { K8sClient } from './types'
 
-// synchromized operation to create a new namespace in k8s
+export const defaultK8testNamespaceName = () => `k8test`
+
 export async function createNamespaceIfNotExist(options: {
-  appId: string
   k8sClient: K8sClient
   namespaceName: string
 }): Promise<k8s.V1Namespace> {
@@ -13,6 +13,9 @@ export async function createNamespaceIfNotExist(options: {
     await options.k8sClient.apiClient.createNamespace({
       metadata: {
         name: options.namespaceName,
+        labels: {
+          k8test: 'true',
+        },
       },
     })
   } catch (error) {
@@ -25,17 +28,23 @@ export async function createNamespaceIfNotExist(options: {
   })
 }
 
-export async function deleteNamespaceIfExist(options: {
-  appId: string
+export async function deleteNamespaceIf(options: {
   k8sClient: K8sClient
-  namespaceName: string
+  predicate: (namespaceName: string) => boolean
 }): Promise<void> {
   const namespacesResult = await options.k8sClient.apiClient.listNamespace()
-  const namespace = namespacesResult.body.items.find(namespace => namespace.metadata?.name === options.namespaceName)
-  if (namespace) {
-    await options.k8sClient.apiClient.deleteNamespace(options.namespaceName)
-    await waitUntilNamespaceDeleted(options.namespaceName, {
-      k8sClient: options.k8sClient,
-    })
-  }
+  const namespaces = namespacesResult.body.items
+    .map(namespace => namespace.metadata?.name)
+    .filter(Boolean)
+    // @ts-ignore
+    .filter(options.predicate) as string[]
+
+  await Promise.all(namespaces.map(namespaceName => options.k8sClient.apiClient.deleteNamespace(namespaceName)))
+  await Promise.all(
+    namespaces.map(namespaceName =>
+      waitUntilNamespaceDeleted(namespaceName, {
+        k8sClient: options.k8sClient,
+      }),
+    ),
+  )
 }

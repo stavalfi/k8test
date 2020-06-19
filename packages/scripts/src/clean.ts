@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
+import glob from 'fast-glob'
 import fs from 'fs-extra'
 import path from 'path'
-import glob from 'fast-glob'
 
-const BASE_PATH = path.join(__dirname, '..')
+const BASE_PATH = path.join(__dirname, '../..')
 const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
 
 const remove = (
@@ -23,7 +23,11 @@ const remove = (
   )
 
 export async function clean(options: { silent: boolean }) {
-  const log = options.silent ? () => {} : console.log.bind(console)
+  const log = options.silent
+    ? () => {
+        // ignore
+      }
+    : console.log.bind(console)
   log(`removing globs: ${GLOBS_TO_REMOVE.join(', ')}`)
   log(`from: ${BASE_PATH}`)
   log('-------------------')

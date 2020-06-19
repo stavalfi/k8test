@@ -4,5 +4,15 @@
     "outDir": "dist"
   },
   "include": ["src", "__tests__"],
-  "references": []
+  "references": [
+    {
+      "path": "../k8s-api/tsconfig-build.json"
+    },
+    {
+      "path": "../log/tsconfig-build.json"
+    },
+    {
+      "path": "../cli-logic/tsconfig-build.json"
+    }
+  ]
 }

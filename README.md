@@ -6,7 +6,11 @@
 1. [Install](#install)
 2. [Introduction](#introduction)
 3. [Setup](#setup)
-4. [Core Team](#core-team)
+4. [Api](#api)
+5. [Supported OS](#supported-os)
+6. [Run your tests in CI](#Run-your-tests-in-CI)
+7. [Questions & Debugging & Advanced Operations](#Questions-&-Debugging-&-Advanced-Operations)
+8. [Development & contributing](#Development-&-contributing)
 
 ---
 
@@ -20,24 +24,36 @@ yarn add --dev k8test
 
 Use all k8s features to deploy and expose images during tests :heavy_check_mark:
 
-#### Benefits
+### Benefits
 
 - Faster tests - deploying an image is slow. k8test deployments added a scope property to the game:
-  - singleton in cluster (a single resource will be available at most in the cluster),
-  - singleton is all tests-run (in the next test run, there will be new deployment)
-  - not a singleton (each subscription will create new deployment)
+  - a single deployment at most in a namespace (cluster),
+  - in the next test run, there will be new deployment
+  - each subscription will create new deployment
 - [wip] Monitoring tests resources - you can safely stop/cancel/shutdown the tests when/how ever you want and eventually all the resources will be deleted.
-- There is no need to learn k8s. There are good defaults.
+- There is no need to learn k8s. There are very good defaults.
 
-#### No Surprises
+### No Surprises
 
-- :hankey: No external resources are allocated on your machine
 - :surfer: No external synchronization is used (your file-system/network/...)
-- :rocket: No pulling: Event based implementation (https://github.com/kubernetes-client/javascript)
+- :rocket: No pulling: Event based implementation: [kubernetes-client/javascript](https://github.com/kubernetes-client/javascript)
 
 ## Setup
 
-From `packages/example-project`:
+Fast setup to deploy redis in your tests:
+
+```json
+{
+  "name": "your-project",
+  "scripts": {
+    "pretest": "k8test start-monitoring", // after the first run, it will take up to 1-2 seconds
+    "test": "jest"
+  },
+  "devDependencies": {
+    "k8test": "^1.0.0"
+  }
+}
+```
 
 ```javascript
 // jest.config.js
@@ -45,7 +61,7 @@ const k8test = require('k8test')
 
 module.exports = {
   globals: {
-    // to differentiate k8s resources between different runs of test-runners
+    // to differentiate k8s resources between different runs
     APP_ID: k8test.randomAppId(),
   },
 })
@@ -65,7 +81,7 @@ describe('simple use-case', () => {
   beforeEach(async () => {
     exposedRedisInfo = await subscribe({
       imageName: 'redis',
-      containerPortToExpose: 6379,
+      imagePort: 6379,
     })
   })
 
@@ -88,53 +104,73 @@ describe('simple use-case', () => {
 ## Api
 
 ```typescript
-import { subscribe, Subscribe } from 'k8test'
+import { subscribe } from 'k8test'
+import * as k8s from '@kubernetes/client-node' // you don't need to install it
 
-await subscribe('redis', {
-  imageName: 'redis',
-  containerPortToExpose: 6379,
-  appId: 'your APP_ID',
-  isReadyPredicate: (url, host, port) => {
-    const redis = new Redis({
-      host,
-      port,
-      lazyConnect: true, // because i will try to connect manually in the next line
-      connectTimeout: 1000,
-    })
+export enum SingletonStrategy {
+  manyInAppId = 'many-in-app-id',
+  oneInNamespace = 'one-in-namespace',
+  oneInAppId = 'one-in-app-id',
+}
 
-    return redis.connect().finally(() => {
-      try {
-        redis.disconnect()
-      } catch {
-        // ignore error
-      }
-    })
-  },
-  SingletonStrategy: SingletonStrategy.appId,
-  ttlMs: 100_000_000,
+export type ContainerOptions = Omit<k8s.V1Container, 'name' | 'image' | 'ports'>
+
+await subscribe({
+  imageName: string
+  postfix?: string
+  appId?: string
+  singletonStrategy?: SingletonStrategy
+  imagePort: number
+  containerOptions?: ContainerOptions  // for mounting and any other options
+  namespaceName?: string
+  isReadyPredicate?: (
+    deployedImageUrl: string,
+    deployedImageAddress: string,
+    deployedImagePort: number,
+  ) => Promise<unknown>
 })
 ```
 
-## Debugging & Advanced Operstions
+## Run your tests in CI
 
-> How do I manually remove all the tests resources?
+You should have k8s internal api exposed in your CI. it's very simple to set it up in Github-Actions: [Example](https://github.com/stavalfi/k8test/blob/master/.github/workflows/nodejs.yml):
 
-Depends on the namespace you chose to deploy all the tests resources to. it's its `k8test` namespace: `kubectl delete namespace k8test`. That easy.
+```yaml
+- name: install k8s
+  uses: engineerd/setup-kind@v0.4.0
+- run: yarn run your-tests
+```
 
-If it's a custom namespace (or default), you will need to search for all the resources with the label `k8test=true` and delete them.
+Thats it.
 
-## Core Team
+- I have a more advanced setup to test docker-images of other sub-packages of this repository.
 
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top">
-        <img width="150" height="150" src="https://github.com/stavalfi.png?s=150">
-        <br>
-        <a href="https://github.com/stavalfi">Stav Alfi</a>
-        <p>Core</p>
-        <br>
-      </td>
-     </tr>
-  </tbody>
-</table>
+## Supported OS
+
+I'm developing on macOS Mojave and in CI we are running on linux debian
+
+## Questions & Debugging & Advanced Operations
+
+> How do I manually remove all the tests and k8test resources from my k8s cluster?
+
+```bash
+yarn k8test delete-k8test-resources
+```
+
+> How do I listen to stdout & stderr of a specific image?
+
+work in progress. hold on. for now, you can manually search the container you need to attach to using kubectl cli, the app-id and namespace (which is k8test).
+
+## Development & contributing
+
+this library is in a early stage but it is functional. I don't have a draft for a better api to the end-users. Feel free to drastically change the api.
+
+Keep in mind that tests are the first priority. production code can use this library but it has a lower level of priority.
+
+PRs about Api/ speed improvement are welcome.
+
+### Internal Tools
+
+- secrethub
+- yarn
+- node 14
