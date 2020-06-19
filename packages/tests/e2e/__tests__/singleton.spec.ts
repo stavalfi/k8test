@@ -1,5 +1,5 @@
 import got from 'got'
-import { randomAppId, SingletonStrategy, subscribe } from '../src'
+import { randomAppId, SingletonStrategy, subscribe } from 'k8test'
 import { isServiceReadyPredicate, prepareEachTest, randomNamespaceName } from './utils'
 
 describe('test singleton option', () => {

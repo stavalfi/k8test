@@ -1,5 +1,5 @@
 import got from 'got'
-import { randomAppId, subscribe } from '../src'
+import { randomAppId, subscribe } from 'k8test'
 import { isServiceReadyPredicate, prepareEachTest, randomNamespaceName } from './utils'
 
 describe('reach endpoints in the cluster', () => {
