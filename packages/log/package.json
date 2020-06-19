@@ -15,8 +15,7 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "test": "jest",
-    "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
+    "test": "jest"
   },
   "dependencies": {
     "debug": "^4.1.1"

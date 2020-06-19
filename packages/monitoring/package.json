@@ -12,8 +12,7 @@
   "scripts": {
     "build": "yarn --cwd ../.. build",
     "build:docker": "docker build -f Dockerfile -t stavalfi/k8test-monitoring ../..",
-    "test": "jest",
-    "prepublishOnly": "yarn --cwd ../.. test && yarn build && yarn version --minor"
+    "test": "jest"
   },
   "dependencies": {
     "body-parser": "^1.19.0",

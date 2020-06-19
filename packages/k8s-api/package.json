@@ -15,8 +15,7 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "test": "jest",
-    "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
+    "test": "jest"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.11.2",
