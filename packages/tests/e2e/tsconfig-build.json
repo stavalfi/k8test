@@ -1,0 +1,21 @@
+{
+  "extends": "../../../tsconfig",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "__tests__"],
+  "references": [
+    {
+      "path": "../../k8s-api/tsconfig-build.json"
+    },
+    {
+      "path": "../../log/tsconfig-build.json"
+    },
+    {
+      "path": "../../cli-logic/tsconfig-build.json"
+    },
+    {
+      "path": "../../core/tsconfig-build.json"
+    }
+  ]
+}

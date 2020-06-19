@@ -25,6 +25,9 @@
     },
     {
       "path": "packages/tests/simple-service/tsconfig-build.json"
+    },
+    {
+      "path": "packages/tests/e2e/tsconfig-build.json"
     }
   ]
 }
