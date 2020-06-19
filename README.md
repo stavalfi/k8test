@@ -46,7 +46,7 @@ Fast setup to deploy redis in your tests:
 {
   "name": "your-project",
   "scripts": {
-    "pretest": "k8test start-monitoring", // after the first run, it will take up to 1-2 seconds
+    "pretest": "k8test start-monitoring",
     "test": "jest"
   },
   "devDependencies": {
@@ -54,6 +54,8 @@ Fast setup to deploy redis in your tests:
   }
 }
 ```
+
+- note: `k8test start-monitoring` - after the first run, it will take up to 1-2 seconds
 
 ```javascript
 // jest.config.js
