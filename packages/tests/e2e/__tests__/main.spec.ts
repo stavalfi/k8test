@@ -1,48 +1,38 @@
 import got from 'got'
-import { randomAppId, subscribe } from 'k8test'
-import { isServiceReadyPredicate, prepareEachTest, randomNamespaceName } from './utils'
+import { driver } from './utils'
 
 describe('reach endpoints in the cluster', () => {
-  const { cleanups, startMonitorNamespace, registerNamespaceRemoval } = prepareEachTest()
+  const newEnv = driver()
 
   test('endpoint is available while the endpoint has active subscription', async () => {
-    const namespaceName = randomNamespaceName()
-    await startMonitorNamespace(namespaceName)
-    const appId = randomAppId()
+    const {
+      subscriptions: [subscription1],
+    } = await newEnv([
+      {
+        imageName: 'stavalfi/simple-service',
+        imagePort: 80,
+      },
+    ])
 
-    const { unsubscribe, deployedImageUrl } = await subscribe({
-      imageName: 'stavalfi/simple-service',
-      imagePort: 80,
-      containerOptions: { imagePullPolicy: 'Never' },
-      namespaceName,
-      appId,
-      isReadyPredicate: isServiceReadyPredicate,
-    })
-
-    cleanups.push(unsubscribe)
-    registerNamespaceRemoval(namespaceName)
-
-    await expect(got.get(`${deployedImageUrl}/is-alive`, { resolveBodyOnly: true })).resolves.toEqual('true')
+    await expect(got.get(`${subscription1.deployedImageUrl}/is-alive`, { resolveBodyOnly: true })).resolves.toEqual(
+      'true',
+    )
   })
 
   test('endpoint is not available after unsubscribe', async () => {
-    const namespaceName = randomNamespaceName()
-    await startMonitorNamespace(namespaceName)
-    const appId = randomAppId()
-    registerNamespaceRemoval(namespaceName)
+    const {
+      subscriptions: [subscription1],
+    } = await newEnv([
+      {
+        imageName: 'stavalfi/simple-service',
+        imagePort: 80,
+        manualUnsubscribe: true,
+      },
+    ])
 
-    const { unsubscribe, deployedImageUrl } = await subscribe({
-      imageName: 'stavalfi/simple-service',
-      imagePort: 80,
-      containerOptions: { imagePullPolicy: 'Never' },
-      namespaceName,
-      appId,
-      isReadyPredicate: isServiceReadyPredicate,
-    })
+    await subscription1.unsubscribe()
 
-    await unsubscribe()
-
-    await expect(got.get(`${deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
+    await expect(got.get(`${subscription1.deployedImageUrl}/is-alive`, { timeout: 50 })).rejects.toThrow(
       expect.objectContaining({ name: expect.stringMatching(/TimeoutError|RequestError/) }),
     )
   })
