@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-const baseConfig = require('../../base-jest.config')
+const baseConfig = require('../../../base-jest.config')
 const deepmerge = require('deepmerge')
 const path = require('path')
 
