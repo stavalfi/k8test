@@ -22,11 +22,11 @@
     "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
   },
   "dependencies": {
-    "k8test-log": "^1.0.0",
+    "chance": "^1.1.5",
+    "cmd-ts": "^0.6.3",
     "got": "^11.3.0",
     "k8s-api": "^1.0.0",
-    "cmd-ts": "^0.6.3",
     "k8test-cli-logic": "^1.0.0",
-    "chance": "^1.1.5"
+    "k8test-log": "^1.0.0"
   }
 }

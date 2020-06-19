@@ -4,7 +4,9 @@ import { command, run, subcommands, boolean, flag } from 'cmd-ts'
 import { clean } from './clean'
 import { deleteK8testResources } from './delete-k8test-resources'
 import execa from 'execa'
-import { release } from './release'
+import { ci } from './ci'
+import path from 'path'
+import ciInfo from 'ci-info'
 
 // eslint-disable-next-line no-console
 process.on('unhandledRejection', e => console.error(e))
@@ -17,16 +19,38 @@ const app = subcommands({
       args: {
         silent: flag({
           type: boolean,
-          long: 'silent',
+          long: 'clean',
           defaultValue: () => false,
         }),
       },
       handler: clean,
     }),
-    release: command({
-      name: 'release',
-      args: {},
-      handler: release,
+    'run-ci': command({
+      name: 'ci',
+      args: {
+        'dry-run': flag({
+          type: boolean,
+          long: 'dry-run',
+          defaultValue: () => false,
+        }),
+        'master-build': flag({
+          type: boolean,
+          long: 'master-build',
+          defaultValue: () => !ciInfo.isPR,
+        }),
+        'run-tests': flag({
+          type: boolean,
+          long: 'run-tests',
+          defaultValue: () => true,
+        }),
+      },
+      handler: args =>
+        ci({
+          isDryRun: args['dry-run'],
+          rootPath: path.join(__dirname, '../../../'),
+          isMasterBuild: false,
+          runTests: args['run-tests'],
+        }),
     }),
     'delete-k8test-resources': command({
       name: 'delete-k8test-resources',

@@ -30,6 +30,4 @@ jobs:
       - run: apt-get update && apt-get install skopeo
       - run: yarn install
       - run: yarn build
-      - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker
-      - run: eval $(minikube docker-env --shell sh) && yarn workspace k8test-monitoring build:docker
-      - run: DEBUG=k8test:* yarn test
+      - run: DEBUG=k8test:* yarn run-ci
