@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - run: apt-get update && apt-get install skopeo
       - run: yarn install
       - run: yarn build
       - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker

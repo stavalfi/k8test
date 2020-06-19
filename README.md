@@ -174,5 +174,6 @@ PRs about Api/ speed improvement are welcome.
 ### Internal Tools
 
 - secrethub
+- skopeo
 - yarn
 - node 14

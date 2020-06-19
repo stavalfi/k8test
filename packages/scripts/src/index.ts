@@ -1,7 +1,10 @@
+/// <reference path="../../../declarations.d.ts" />
+
 import { command, run, subcommands, boolean, flag } from 'cmd-ts'
 import { clean } from './clean'
 import { deleteK8testResources } from './delete-k8test-resources'
 import execa from 'execa'
+import { release } from './release'
 
 // eslint-disable-next-line no-console
 process.on('unhandledRejection', e => console.error(e))
@@ -19,6 +22,11 @@ const app = subcommands({
         }),
       },
       handler: clean,
+    }),
+    release: command({
+      name: 'release',
+      args: {},
+      handler: release,
     }),
     'delete-k8test-resources': command({
       name: 'delete-k8test-resources',
