@@ -141,7 +141,7 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
       log('logging in to docker-hub registry')
       await execa.command(
         // eslint-disable-next-line no-process-env
-        `docker login --username=${process.env.DOCKER_HUB_USERNAME} --password=${process.env.DOCKER_HUB_PASSWORD}`,
+        `docker login --username=${process.env.DOCKER_HUB_USERNAME} --password=${process.env.DOCKER_HUB_TOKEN}`,
         { stdio: 'inherit' },
       )
       log('logged in to docker-hub registry')
