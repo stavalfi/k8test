@@ -4,16 +4,8 @@
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": true,
-  "files": [
-    "src",
-    "__tests__",
-    "dist"
-  ],
   "scripts": {
-    "build": "yarn --cwd ../.. build",
-    "build:docker": "docker build -f Dockerfile -t stavalfi/simple-service ../..",
-    "test": "jest",
-    "prepublishOnly": "yarn --cwd ../.. test && yarn build && yarn version --minor"
+    "build:docker": "docker build -f Dockerfile -t stavalfi/simple-service ../../.."
   },
   "dependencies": {
     "body-parser": "^1.19.0",
