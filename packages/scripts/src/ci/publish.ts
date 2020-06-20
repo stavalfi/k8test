@@ -146,6 +146,7 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
           npmTarget: node.target as TargetInfo<TargetType.npm>,
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           isDryRun: options.isDryRun,
+          rootPath: options.rootPath,
         }),
       ),
     )
