@@ -7,6 +7,7 @@ import { getPackageInfo } from './package-info'
 import { PackageInfo, Graph } from './types'
 import { publish } from './publish'
 import k8testLog from 'k8test-log'
+import { promote } from './promote'
 
 const log = k8testLog('scripts:ci')
 
@@ -20,8 +21,7 @@ async function getPackages(rootPath: string): Promise<string[]> {
     .map(relativePackagePath => path.join(rootPath, relativePackagePath))
 }
 
-async function getOrderedGraph(rootPath: string): Promise<Graph<PackageInfo>> {
-  const packagesPath = await getPackages(rootPath)
+async function getOrderedGraph(rootPath: string, packagesPath: string[]): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
   return Promise.all(
     orderedGraph.map(async node => ({
@@ -36,7 +36,8 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 
   log('calculate hash of every package and check which packages we already published')
 
-  const orderedGraph = await getOrderedGraph(options.rootPath)
+  const packagesPath = await getPackages(options.rootPath)
+  const orderedGraph = await getOrderedGraph(options.rootPath, packagesPath)
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
 
@@ -48,10 +49,22 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
   }
 
   if (options.isMasterBuild) {
-    await publish(orderedGraph, {
-      isDryRun: options.isDryRun,
-      rootPath: options.rootPath,
-    })
+    const promoted = await promote(orderedGraph)
+    if (promoted.length > 0) {
+      // Note: we mutated some of the packageJSONs so the hashes we calculated earlier are no longer valid
+      const updatedHashes = await calculatePackagesHash(options.rootPath, packagesPath)
+      const updatedOrderedGraph = updatedHashes.map((node, index) => ({
+        ...node,
+        data: {
+          ...orderedGraph[index].data,
+          packageHash: node.data.packageHash,
+        },
+      }))
+      await publish(updatedOrderedGraph, {
+        isDryRun: options.isDryRun,
+        rootPath: options.rootPath,
+      })
+    }
   }
 }
 

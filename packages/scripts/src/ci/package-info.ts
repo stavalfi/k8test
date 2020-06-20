@@ -1,7 +1,7 @@
 import execa from 'execa'
 import fs from 'fs-extra'
 import path from 'path'
-import { PackageInfo } from './types'
+import { PackageInfo, TargetInfo, TargetType } from './types'
 
 async function getNpmLatestVersionInfo(
   packageName: string,
@@ -45,13 +45,12 @@ export async function getPackageInfo(packagePath: string, packageHash: string): 
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
   const isNpm = !packageJson.private
-  const npmLatestVersionInfo = isNpm ? await getNpmLatestVersionInfo(packageJson.name) : undefined
-  const dockerLatestTagInfo = isDocker ? await getDockerLatestTagInfo(packageJson.name) : undefined
-  return {
-    packagePath,
-    packageJson,
-    packageHash,
-    ...(isNpm && {
+
+  const targets: TargetInfo[] = []
+  if (isNpm) {
+    const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name)
+    targets.push({
+      targetType: TargetType.npm,
       npm: {
         isAlreadyPublished: npmLatestVersionInfo?.latestVersionHash === packageHash,
         ...(npmLatestVersionInfo && {
@@ -61,8 +60,12 @@ export async function getPackageInfo(packagePath: string, packageHash: string): 
           },
         }),
       },
-    }),
-    ...(isDocker && {
+    })
+  }
+  if (isDocker) {
+    const dockerLatestTagInfo = await getDockerLatestTagInfo(packageJson.name)
+    targets.push({
+      targetType: TargetType.docker,
       docker: {
         isAlreadyPublished: dockerLatestTagInfo?.latestTagHash === packageHash,
         ...(dockerLatestTagInfo && {
@@ -72,6 +75,12 @@ export async function getPackageInfo(packagePath: string, packageHash: string): 
           },
         }),
       },
-    }),
+    })
+  }
+  return {
+    packagePath,
+    packageJson,
+    packageHash,
+    targets,
   }
 }
