@@ -87,6 +87,9 @@ async function calculateHashOfPackage(
       })),
     )
   ).reduce((hasher, { filePath, fileContent }) => {
+    if (filePath === '/Users/stavalfi-dev/projects/k8test/packages/log/package.json') {
+      console.log('stav1', JSON.stringify(fileContent, null, 2))
+    }
     const relativePathInPackage = path.relative(packagePath, filePath)
     hasher.update(relativePathInPackage)
     hasher.update(fileContent)
