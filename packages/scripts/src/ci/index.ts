@@ -67,7 +67,7 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
     if (promoted.length > 0) {
       // Note: we mutated some of the packageJSONs in the promote function so the hashes we calculated earlier are no longer valid
       const updatedHashes = await calculatePackagesHash(options.rootPath, packagesPath)
-      const updatedOrderedGraph = updatedHashes.map((node, index) => ({
+      const updatedOrderedGraph: Graph<PackageInfo> = updatedHashes.map((node, index) => ({
         ...node,
         data: {
           ...orderedGraph[index].data,

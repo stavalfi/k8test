@@ -37,13 +37,13 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  // we are assuming that process.env.NPM_TOKEN is set by secrethub
-  await execa.command(`npm publish ${packageInfo.packagePath}`, { stdio: 'inherit', cwd: rootPath })
+  // eslint-disable-next-line no-process-env
+  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'pipe' })
+  await execa.command(`yarn publish`, { stdio: 'pipe', cwd: packageInfo.packagePath })
   await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
+    `yarn tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
     {
-      stdio: 'inherit',
-      cwd: rootPath,
+      stdio: 'pipe',
     },
   )
 
@@ -161,6 +161,8 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
         2,
       ),
     )
+
+    process.exit(0)
 
     const dockerResult = await Promise.all(
       docker.map(node =>

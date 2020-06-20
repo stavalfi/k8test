@@ -5,9 +5,7 @@ import { Graph, PackageInfo } from './types'
 const log = k8testLog('scripts:ci:promote')
 
 export async function promote(orderedGraph: Graph<PackageInfo>): Promise<PackageInfo[]> {
-  const toPromote = orderedGraph
-    .map(node => node.data)
-    .filter(data => data.target?.needPublish && data.target.newVersion !== data.packageJson.version)
+  const toPromote = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   if (toPromote.length === 0) {
     log(`there is no need to promote anything. all packages that we should eventually publish, didn't change.`)
