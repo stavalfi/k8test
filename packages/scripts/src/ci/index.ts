@@ -54,6 +54,8 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
     log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, node.data)
   })
 
+  process.exit(0)
+
   if (options.runTests) {
     await execa.command('yarn test', {
       cwd: options.rootPath,
