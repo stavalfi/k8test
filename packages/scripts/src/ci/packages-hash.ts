@@ -176,7 +176,9 @@ export async function calculatePackagesHash(
 
   log('calculated hashes to every package in the monorepo:')
   log('root-files -> %s', rootFilesHash)
-  result.forEach(node => log(`%s -> %s`, node.data.relativePackagePath, node.data.packageHash))
+  result.forEach(node =>
+    log(`%s (%s) -> %s`, node.data.relativePackagePath, node.data.packageJson.name, node.data.packageHash),
+  )
   log('---------------------------------------------------')
   return result
 }
