@@ -17,6 +17,7 @@ export async function promote(orderedGraph: Graph<PackageInfo>): Promise<Package
     await Promise.all(
       toPromote.map(data => {
         const newVersion = data.target?.needPublish && data.target?.newVersion // it can't be false.
+        log(`promoting %s to version %s`, data.relativePackagePath, newVersion)
         execa.command(`yarn --cwd ${data.packagePath} version --no-git-tag-version ${newVersion}`, {
           stdio: 'inherit',
         })
