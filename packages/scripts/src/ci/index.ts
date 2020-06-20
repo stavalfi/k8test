@@ -34,6 +34,15 @@ async function getOrderedGraph(rootPath: string, packagesPath: string[]): Promis
 export async function ci(options: { rootPath: string; isMasterBuild: boolean; isDryRun: boolean; runTests: boolean }) {
   log('starting ci execution. options: %O', options)
 
+  const isRepoModified = await execa.command('git diff-index --quiet HEAD --').then(
+    () => false,
+    () => true,
+  )
+
+  if (isRepoModified) {
+    throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
+  }
+
   log('calculate hash of every package and check which packages we already published')
 
   const packagesPath = await getPackages(options.rootPath)
