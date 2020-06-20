@@ -4,9 +4,30 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType } from './types'
-import setNpmToken from '@hutson/set-npm-auth-token-for-ci'
+import path from 'path'
+import os from 'os'
+import fs from 'fs'
 
 const log = k8testLog('scripts:ci:publish')
+
+async function setNpmToken() {
+  const globalNpmRcFile = path.join(os.homedir(), `.npmrc`)
+
+  const registryUrlWithoutHttp = `registry.npmjs.org`
+
+  const isAlreadyLoggedIn =
+    fs.existsSync(globalNpmRcFile) &&
+    fs
+      .readFileSync(globalNpmRcFile)
+      .toString()
+      .includes(registryUrlWithoutHttp)
+
+  if (!isAlreadyLoggedIn) {
+    // eslint-disable-next-line no-process-env
+    const authData = `//${registryUrlWithoutHttp}/:_authToken=${process.env['NPM_TOKEN']}`
+    fs.appendFileSync(globalNpmRcFile, `${authData}`)
+  }
+}
 
 async function publishNpm({
   isDryRun,
@@ -40,11 +61,10 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  // eslint-disable-next-line no-process-env
-  setNpmToken() // it expect process.env.NPM_TOKEN to be set and it will write to the global .npmrc
-  await execa.command(`yarn publish`, { stdio: 'inherit', cwd: packageInfo.packagePath })
+  await setNpmToken()
+  await execa.command(`npm publish`, { stdio: 'inherit', cwd: packageInfo.packagePath })
   await execa.command(
-    `yarn tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
+    `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
     {
       stdio: 'inherit',
     },
