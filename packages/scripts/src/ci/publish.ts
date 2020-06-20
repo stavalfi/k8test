@@ -36,9 +36,10 @@ async function publishNpm({
   }
 
   // we are assuming that process.env.NPM_TOKEN is set by secrethub
-  await execa.command(`npm publish ${packageInfo.packagePath}`, { stdio: 'inherit' })
-  await execa.command(`npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} ${packageInfo.packageHash}`, {
+  await execa.command('npm publish', { stdio: 'inherit', cwd: packageInfo.packagePath })
+  await execa.command(`npm dist-tag add ${packageInfo.packageJson.name}@${newVersion}`, {
     stdio: 'inherit',
+    cwd: packageInfo.packagePath,
   })
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
