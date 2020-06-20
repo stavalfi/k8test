@@ -1,28 +1,37 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
-import { DockerTargetInfo, Graph, NpmTargetInfo, PackageInfo, PublishResult, TargetType } from './types'
-import { shouldPublish } from './utils'
+import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType } from './types'
 
 const log = k8testLog('scripts:ci:publish')
 
-async function publishNpm(
-  packageInfo: Omit<PackageInfo, 'targets'>,
-  target: NpmTargetInfo,
-  options: { isDryRun: boolean },
-): Promise<PublishResult> {
+async function publishNpm({
+  isDryRun,
+  newVersion,
+  npmTarget,
+  packageInfo,
+}: {
+  packageInfo: PackageInfo
+  npmTarget: TargetInfo<TargetType.npm>
+  newVersion: string
+  isDryRun: boolean
+}): Promise<PublishResult> {
   log('publishing npm target in package: "%s"', packageInfo.packageJson.name)
 
-  const npmLatestVersion = target.npm.latestVersion?.version
-
-  if (npmLatestVersion === packageInfo.packageJson.version) {
-    // it looks like someone manually published the promoted version before the ci publish it. all in all, the result in valid.
-    return { published: true, newVersion: packageInfo.packageJson.version, packagePath: packageInfo.packagePath }
+  if (!npmTarget.needPublish) {
+    // it looks like someone manually published the promoted version before the ci publish it. all in all, the res
+    log(
+      'npm target in package: "%s" is already published with the correct hash and version',
+      packageInfo.packageJson.name,
+    )
+    return {
+      published: true,
+      newVersion,
+      packagePath: packageInfo.packagePath,
+    }
   }
 
-  const newVersion = packageInfo.packageJson.version
-
-  if (options.isDryRun) {
+  if (isDryRun) {
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
@@ -37,28 +46,40 @@ async function publishNpm(
   return { published: true, newVersion, packagePath: packageInfo.packagePath }
 }
 
-async function publishDocker(
-  packageInfo: Omit<PackageInfo, 'targets'>,
-  target: DockerTargetInfo,
-  options: { rootPath: string; isDryRun: boolean },
-): Promise<PublishResult> {
+async function publishDocker({
+  rootPath,
+  isDryRun,
+  newVersion,
+  dockerTarget,
+  packageInfo,
+}: {
+  packageInfo: PackageInfo
+  dockerTarget: TargetInfo<TargetType.docker>
+  newVersion: string
+  isDryRun: boolean
+  rootPath: string
+}): Promise<PublishResult> {
   log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
 
-  const dockerLatestTag = target.docker.latestTag?.tag
-
-  if (dockerLatestTag === packageInfo.packageJson.version) {
-    // it looks like someone manually published the promoted version before the ci publish it. all in all, the result in valid.
-    return { published: true, newVersion: packageInfo.packageJson.version, packagePath: packageInfo.packagePath }
+  if (!dockerTarget.needPublish) {
+    // it looks like someone manually published the promoted version before the ci publish it. all in all, the res
+    log(
+      'npm target in package: "%s" is already published with the correct hash and version',
+      packageInfo.packageJson.name,
+    )
+    return {
+      published: true,
+      newVersion: dockerTarget.latestPublishedVersion.version,
+      packagePath: packageInfo.packagePath,
+    }
   }
-
-  const newTag = packageInfo.packageJson.version
 
   const dockerImageWithRepo = `stavalfi/${packageInfo.packageJson.name}`
 
   log('building docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
 
   await execa.command(
-    `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newTag} -f Dockerfile -t ${dockerImageWithRepo}:latest ${options.rootPath}`,
+    `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${dockerImageWithRepo}:latest ${rootPath}`,
     {
       cwd: packageInfo.packagePath,
       stdio: 'inherit',
@@ -67,37 +88,39 @@ async function publishDocker(
   log('built docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
   log(
     'creating tags: "%s" and "%s" to docker image "%s" in package: "%s"',
-    newTag,
+    newVersion,
     dockerImageWithRepo,
     packageInfo.packageHash,
     packageInfo.packageJson.name,
   )
-  await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${newTag}`, { stdio: 'inherit' })
+  await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${newVersion}`, {
+    stdio: 'inherit',
+  })
   await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${packageInfo.packageHash}`, {
     stdio: 'inherit',
   })
 
-  if (options.isDryRun) {
+  if (isDryRun) {
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
   await execa.command(`docker push ${dockerImageWithRepo}:latest`, { stdio: 'inherit' })
-  await execa.command(`docker push ${dockerImageWithRepo}:${newTag}`, { stdio: 'inherit' })
+  await execa.command(`docker push ${dockerImageWithRepo}:${newVersion}`, { stdio: 'inherit' })
   await execa.command(`docker push ${dockerImageWithRepo}:${packageInfo.packageHash}`, {
     stdio: 'inherit',
   })
 
   log('published docker target in package: "%s"', packageInfo.packageJson.name)
 
-  return { published: true, newVersion: newTag, packagePath: packageInfo.packagePath }
+  return { published: true, newVersion: newVersion, packagePath: packageInfo.packagePath }
 }
 
 export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootPath: string; isDryRun: boolean }) {
-  const toPublish = orderedGraph.map(node => node.data).filter(shouldPublish)
+  const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   // todo: optimize it even more - we can run all in parallel but we must make sure that every docker has all it's npm dep already published
-  const npm = toPublish.filter(data => data.targets.some(target => target.targetType === TargetType.npm))
-  const docker = toPublish.filter(data => data.targets.some(target => target.targetType === TargetType.docker))
+  const npm = toPublish.filter(data => data.target?.targetType === TargetType.npm)
+  const docker = toPublish.filter(data => data.target?.targetType === TargetType.docker)
 
   if (toPublish.length === 0) {
     log(`there is no need to publish anything. all packages that should publish, didn't change.`)
@@ -115,7 +138,10 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
 
     const npmResult = await Promise.all(
       npm.map(node =>
-        publishNpm(node, node.targets.find(target => target.targetType === TargetType.npm) as NpmTargetInfo, {
+        publishNpm({
+          packageInfo: node,
+          npmTarget: node.target as TargetInfo<TargetType.npm>,
+          newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           isDryRun: options.isDryRun,
         }),
       ),
@@ -131,7 +157,10 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
 
     const dockerResult = await Promise.all(
       docker.map(node =>
-        publishDocker(node, node.targets.find(target => target.targetType === TargetType.docker) as DockerTargetInfo, {
+        publishDocker({
+          packageInfo: node,
+          dockerTarget: node.target as TargetInfo<TargetType.docker>,
+          newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           rootPath: options.rootPath,
           isDryRun: options.isDryRun,
         }),

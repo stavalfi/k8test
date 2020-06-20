@@ -10,29 +10,24 @@ export enum TargetType {
   npm = 'npm',
 }
 
-export type NpmTargetInfo = {
-  targetType: TargetType.npm
-  npm: {
-    isAlreadyPublished: boolean
-    latestVersion?: { version: string; hash: string }
-  }
-}
-
-export type DockerTargetInfo = {
-  targetType: TargetType.docker
-  docker: {
-    isAlreadyPublished: boolean
-    latestTag?: { tag: string; hash: string }
-  }
-}
-
-export type TargetInfo = NpmTargetInfo | DockerTargetInfo
+export type TargetInfo<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
+  | {
+      needPublish: true
+      newVersion: string
+      // if we didn't publish this hash yet, it maybe because we modified something or we never published before
+      latestPublishedVersion?: { version: string; hash: string }
+    }
+  | {
+      needPublish: false
+      latestPublishedVersion: { version: string; hash: string }
+    }
+)
 
 export type PackageInfo = {
   packagePath: string
   packageHash: string
   packageJson: PackageJson
-  targets: TargetInfo[]
+  target?: TargetInfo<TargetType.npm> | TargetInfo<TargetType.docker>
 }
 
 export type Node<T> = {
