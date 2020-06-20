@@ -1,3 +1,5 @@
+/// <reference path="../../../../declarations.d.ts" />
+
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
