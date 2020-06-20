@@ -2,7 +2,7 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType } from './types'
-import setNpmToken from `@hutson/set-npm-auth-token-for-ci`
+import setNpmToken from '@hutson/set-npm-auth-token-for-ci'
 
 const log = k8testLog('scripts:ci:publish')
 

@@ -2,6 +2,10 @@ declare module 'object-deep-contain' {
   export default function(bigObject: unknown, smallerObject: unknown): boolean
 }
 
+declare module '@hutson/set-npm-auth-token-for-ci' {
+  export default function(): void
+}
+
 declare module 'object-delete-key' {
   export default function(
     originalInput: unknown,
