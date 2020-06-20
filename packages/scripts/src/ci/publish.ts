@@ -38,12 +38,13 @@ async function publishNpm({
   }
 
   // eslint-disable-next-line no-process-env
-  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'pipe' })
-  await execa.command(`yarn publish`, { stdio: 'pipe', cwd: packageInfo.packagePath })
+  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'inherit' })
+  await execa.command(`yarn publish`, { stdio: 'inherit', cwd: packageInfo.packagePath })
+  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'inherit' })
   await execa.command(
     `yarn tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
     {
-      stdio: 'pipe',
+      stdio: 'inherit',
     },
   )
 
