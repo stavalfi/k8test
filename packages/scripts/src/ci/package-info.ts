@@ -6,14 +6,26 @@ import { PackageInfo, TargetInfo, TargetType } from './types'
 
 async function getNpmLatestVersionInfo(
   packageName: string,
-): Promise<{ latestVersionHash: string; latestVersion: string } | undefined> {
+): Promise<
+  | {
+      latestVersion: string
+      // it can be undefine if the ci failed after publishing the package but before setting this tag remotely.
+      // in this case, the local-hash will be different and we will push again. its ok.
+      latestVersionHash: string
+    }
+  | undefined
+> {
   try {
     const result = await execa.command(`npm view ${packageName} --json`)
     const resultJson = JSON.parse(result.stdout) || {}
-    const distTags = resultJson['dist-tags']
+    const distTags = resultJson['dist-tags'] as { [key: string]: string }
+    const latestVersion = distTags['latest']
+    const latestVersionHash =
+      Object.entries(distTags).find(([key, value]) => value === latestVersion && key.startsWith('latest-hash'))?.[0] ||
+      `could-not-find-remote-hash-that-points-to-version-${latestVersion}`
     return {
-      latestVersionHash: distTags['latest-hash'],
-      latestVersion: distTags['latest'],
+      latestVersionHash,
+      latestVersion,
     }
   } catch (e) {
     if (!e.message.includes('code E404')) {
