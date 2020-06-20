@@ -54,8 +54,6 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
     log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, node.data)
   })
 
-  process.exit(0)
-
   if (options.runTests) {
     await execa.command('yarn test', {
       cwd: options.rootPath,
@@ -86,6 +84,6 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 process.on('unhandledRejection', e => console.error(e))
 
 // eslint-disable-next-line no-floating-promise/no-floating-promise
-ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: true, isMasterBuild: true, runTests: false }).then(x =>
+ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: false, isMasterBuild: true, runTests: false }).then(x =>
   console.log(x),
 )
