@@ -2,6 +2,7 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType } from './types'
+import setNpmToken from `@hutson/set-npm-auth-token-for-ci`
 
 const log = k8testLog('scripts:ci:publish')
 
@@ -38,9 +39,8 @@ async function publishNpm({
   }
 
   // eslint-disable-next-line no-process-env
-  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'inherit' })
+  setNpmToken() // it expect process.env.NPM_TOKEN to be set and it will write to the global .npmrc
   await execa.command(`yarn publish`, { stdio: 'inherit', cwd: packageInfo.packagePath })
-  await execa.command(`yarn config set _authToken ${process.env.NPM_TOKEN}`, { stdio: 'inherit' })
   await execa.command(
     `yarn tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
     {
