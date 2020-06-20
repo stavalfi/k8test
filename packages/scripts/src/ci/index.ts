@@ -6,8 +6,8 @@ import path from 'path'
 import { getPackageInfo } from './package-info'
 import { PackageInfo, Graph } from './types'
 import { publish } from './publish'
-import k8testLog from 'k8test-log'
 import { promote } from './promote'
+import k8testLog from 'k8test-log'
 
 const log = k8testLog('scripts:ci')
 
@@ -26,7 +26,7 @@ async function getOrderedGraph(rootPath: string, packagesPath: string[]): Promis
   return Promise.all(
     orderedGraph.map(async node => ({
       ...node,
-      data: await getPackageInfo(node.data.packagePath, node.data.packageHash),
+      data: await getPackageInfo(node.data.relativePackagePath, node.data.packagePath, node.data.packageHash),
     })),
   )
 }
@@ -71,6 +71,6 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 process.on('unhandledRejection', e => console.error(e))
 
 // eslint-disable-next-line no-floating-promise/no-floating-promise
-ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: false, isMasterBuild: true, runTests: false }).then(x =>
+ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: true, isMasterBuild: true, runTests: false }).then(x =>
   console.log(x),
 )

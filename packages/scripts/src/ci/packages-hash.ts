@@ -4,6 +4,9 @@ import fs from 'fs-extra'
 import path from 'path'
 import _ from 'lodash'
 import { PackageJson, Graph } from './types'
+import k8testLog from 'k8test-log'
+
+const log = k8testLog('scripts:ci')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -16,6 +19,7 @@ type FileInfo = {
 }
 
 export type PackageHashInfo = {
+  relativePackagePath: string
   packagePath: string
   packageHash: string
   packageJson: PackageJson
@@ -43,7 +47,7 @@ function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>)
 
 function createOrderGraph(
   packageHashInfoByPath: Map<string, PackageHashInfo>,
-): Graph<{ packagePath: string; packageHash: string; packageJson: PackageJson }> {
+): Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }> {
   const heads = [...packageHashInfoByPath.values()].filter(packageHashInfo => packageHashInfo.children.length === 0)
   const orderedGraph: PackageHashInfo[] = []
   const visited = new Map<PackageHashInfo, boolean>()
@@ -63,6 +67,7 @@ function createOrderGraph(
     })
     .map(node => ({
       data: {
+        relativePackagePath: node.relativePackagePath,
         packageHash: node.packageHash,
         packageJson: node.packageJson,
         packagePath: node.packagePath,
@@ -107,7 +112,7 @@ const parseGitLs = (stdout: string): FileInfo[] =>
 export async function calculatePackagesHash(
   rootPath: string,
   packagesPath: string[],
-): Promise<Graph<{ packagePath: string; packageHash: string; packageJson: PackageJson }>> {
+): Promise<Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }>> {
   const allFilesResult = await execa.command('git ls-tree -r head', {
     cwd: rootPath,
   })
@@ -138,6 +143,7 @@ export async function calculatePackagesHash(
       return [
         packagePath,
         {
+          relativePackagePath: path.relative(rootPath, packagePath),
           packagePath,
           packageJson,
           packageHash: Buffer.from(packageHash.digest()).toString('hex'),
@@ -156,7 +162,7 @@ export async function calculatePackagesHash(
 
   const rootFilesHash = calculateHashOfFiles(rootFilesInfo)
 
-  return _.cloneDeep(orderedGraph).map((packageHashInfo, _index, array) => ({
+  const result = _.cloneDeep(orderedGraph).map((packageHashInfo, _index, array) => ({
     ...packageHashInfo,
     data: {
       ...packageHashInfo.data,
@@ -167,4 +173,10 @@ export async function calculatePackagesHash(
       ]),
     },
   }))
+
+  log('calculated hashes to every package in the monorepo:')
+  log('root-files -> %s', rootFilesHash)
+  result.forEach(node => log(`%s -> %s`, node.data.relativePackagePath, node.data.packageHash))
+  log('---------------------------------------------------')
+  return result
 }

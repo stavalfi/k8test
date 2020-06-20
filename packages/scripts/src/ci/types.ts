@@ -24,6 +24,7 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
 )
 
 export type PackageInfo = {
+  relativePackagePath: string
   packagePath: string
   packageHash: string
   packageJson: PackageJson

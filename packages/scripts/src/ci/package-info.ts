@@ -55,7 +55,11 @@ function calculateNewVersion(packageJsonVersion: string, latestPublishedVersion?
   return newVersion
 }
 
-export async function getPackageInfo(packagePath: string, packageHash: string): Promise<PackageInfo> {
+export async function getPackageInfo(
+  relativePackagePath: string,
+  packagePath: string,
+  packageHash: string,
+): Promise<PackageInfo> {
   const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
   const isNpm = !packageJson.private
   // @ts-ignore
@@ -109,6 +113,7 @@ export async function getPackageInfo(packagePath: string, packageHash: string): 
   const target = npmTarget || dockerTarget || undefined
 
   return {
+    relativePackagePath,
     packagePath,
     packageJson,
     packageHash,
