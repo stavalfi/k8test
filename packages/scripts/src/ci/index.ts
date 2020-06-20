@@ -40,6 +40,7 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
   )
 
   if (isRepoModified) {
+    // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
   }
 
