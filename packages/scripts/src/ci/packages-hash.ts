@@ -13,11 +13,6 @@ const isInParent = (parent: string, child: string) => {
   return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
 }
 
-type FileInfo = {
-  hash: string
-  relativeFilePath: string
-}
-
 export type PackageHashInfo = {
   relativePackagePath: string
   packagePath: string
@@ -104,11 +99,11 @@ async function calculateHashOfPackage(
 }
 
 function combineHashes(hashes: string[]): string {
-  const hash = hashes.reduce((hasher, hash, index) => {
+  const hasher = hashes.reduce((hasher, hash) => {
     hasher.update(hash)
     return hasher
   }, crypto.createHash('sha224'))
-  return Buffer.from(hash.digest()).toString('hex')
+  return Buffer.from(hasher.digest()).toString('hex')
 }
 
 const isRootFile = (rootPath: string, filePath: string) => !filePath.includes(path.join(rootPath, 'packages'))
