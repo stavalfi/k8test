@@ -8,6 +8,7 @@ import { PackageInfo, Graph } from './types'
 import { publish } from './publish'
 import { promote } from './promote'
 import k8testLog from 'k8test-log'
+import _ from 'lodash'
 
 const log = k8testLog('scripts:ci')
 
@@ -51,7 +52,7 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
   orderedGraph.forEach(node => {
-    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, node.data)
+    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, _.omit(node.data, ['packageJson']))
   })
 
   if (options.runTests) {
