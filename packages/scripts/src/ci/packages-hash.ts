@@ -79,12 +79,28 @@ function createOrderGraph(
     }))
 }
 
-function calculateHashOfFiles(filesInfo: FileInfo[]): string {
-  const hash = filesInfo.reduce((hasher, fileInfo) => {
-    hasher.update(fileInfo.hash)
+async function calculateHashOfPackage(
+  packagePath: string,
+  filesPath: string[],
+  rootFilesHash?: string,
+): Promise<string> {
+  const hasher = (
+    await Promise.all(
+      filesPath.map(async filePath => ({
+        filePath,
+        fileContent: await fs.readFile(filePath),
+      })),
+    )
+  ).reduce((hasher, { filePath, fileContent }) => {
+    const relativePathInPackage = path.relative(packagePath, filePath)
+    hasher.update(relativePathInPackage)
+    hasher.update(fileContent)
     return hasher
   }, crypto.createHash('sha224'))
-  return Buffer.from(hash.digest()).toString('hex')
+  if (rootFilesHash) {
+    hasher.update(rootFilesHash)
+  }
+  return Buffer.from(hasher.digest()).toString('hex')
 }
 
 function combineHashes(hashes: string[]): string {
@@ -95,29 +111,22 @@ function combineHashes(hashes: string[]): string {
   return Buffer.from(hash.digest()).toString('hex')
 }
 
-const isRootFile = (fileInfo: FileInfo) => !fileInfo.relativeFilePath.startsWith('packages')
-
-const parseGitLs = (stdout: string): FileInfo[] =>
-  stdout
-    .split('\n')
-    .map(line =>
-      line
-        .split(' ')
-        .slice(2)
-        .join('')
-        .split('\t'),
-    )
-    .map(([hash, relativeFilePath]) => ({ hash, relativeFilePath }))
+const isRootFile = (rootPath: string, filePath: string) => !filePath.includes(path.join(rootPath, 'packages'))
 
 export async function calculatePackagesHash(
   rootPath: string,
   packagesPath: string[],
 ): Promise<Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }>> {
-  const allFilesResult = await execa.command('git ls-tree -r head', {
+  const repoFilesPathResult = await execa.command('git ls-tree -r --name-only head', {
     cwd: rootPath,
   })
 
-  const allFilesInfo = parseGitLs(allFilesResult.stdout)
+  const repoFilesPath = repoFilesPathResult.stdout
+    .split('\n')
+    .map(relativeFilePath => path.join(rootPath, relativeFilePath))
+
+  const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(rootPath, filePath))
+  const rootFilesHash = await calculateHashOfPackage(rootPath, rootFilesInfo)
 
   const packagesWithPackageJson = await Promise.all(
     packagesPath.map<Promise<{ packagePath: string; packageJson: PackageJson }>>(async packagePath => ({
@@ -132,35 +141,38 @@ export async function calculatePackagesHash(
       .filter(Boolean)
       .map(p => p?.packagePath as string)
 
-  const packageHashInfoByPath: Map<string, PackageHashInfo> = new Map(
-    packagesWithPackageJson.map(({ packagePath, packageJson }) => {
-      const packageFiles = allFilesInfo.filter(fileInfo => isInParent(packagePath, fileInfo.relativeFilePath))
-      const packageHash = packageFiles.reduce((hasher, fileInfo) => {
-        hasher.update(fileInfo.hash)
-        return hasher
-      }, crypto.createHash('sha224'))
+  type PackageInfo = {
+    relativePackagePath: string
+    packagePath: string
+    packageJson: PackageJson
+    packageHash: string
+    children: string[]
+    parents: []
+  }
 
-      return [
-        packagePath,
-        {
-          relativePackagePath: path.relative(rootPath, packagePath),
+  const packageHashInfoByPath: Map<string, PackageHashInfo> = new Map(
+    await Promise.all(
+      packagesWithPackageJson.map<Promise<[string, PackageInfo]>>(async ({ packagePath, packageJson }) => {
+        const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
+        const packageHash = await calculateHashOfPackage(packagePath, packageFiles, rootFilesHash)
+        return [
           packagePath,
-          packageJson,
-          packageHash: Buffer.from(packageHash.digest()).toString('hex'),
-          children: [...getDepsPaths(packageJson?.dependencies), ...getDepsPaths(packageJson?.devDependencies)],
-          parents: [], // I will fill this soon
-        },
-      ]
-    }),
+          {
+            relativePackagePath: path.relative(rootPath, packagePath),
+            packagePath,
+            packageJson,
+            packageHash,
+            children: [...getDepsPaths(packageJson?.dependencies), ...getDepsPaths(packageJson?.devDependencies)],
+            parents: [], // I will fill this soon
+          },
+        ]
+      }),
+    ),
   )
 
   fillParentsInGraph(packageHashInfoByPath)
 
   const orderedGraph = createOrderGraph(packageHashInfoByPath)
-
-  const rootFilesInfo = allFilesInfo.filter(isRootFile)
-
-  const rootFilesHash = calculateHashOfFiles(rootFilesInfo)
 
   const result = _.cloneDeep(orderedGraph).map((packageHashInfo, _index, array) => ({
     ...packageHashInfo,
