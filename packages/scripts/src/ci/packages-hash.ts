@@ -83,7 +83,7 @@ async function calculateHashOfPackage(
     await Promise.all(
       filesPath.map(async filePath => ({
         filePath,
-        fileContent: await fs.readFile(filePath),
+        fileContent: await fs.readFile(filePath, 'utf-8'),
       })),
     )
   ).reduce((hasher, { filePath, fileContent }) => {
