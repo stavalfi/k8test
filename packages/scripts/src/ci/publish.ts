@@ -154,7 +154,7 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
         2,
       ),
     )
-
+    process.exit(0)
     const dockerResult = await Promise.all(
       docker.map(node =>
         publishDocker({
