@@ -50,6 +50,9 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
   const orderedGraph = await getOrderedGraph(options.rootPath, packagesPath)
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
+  orderedGraph.forEach(node => {
+    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, node.data)
+  })
 
   if (options.runTests) {
     await execa.command('yarn test', {
