@@ -103,7 +103,9 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
       })
-      await gitAmendChanges(options.rootPath)
+      if (!options.isDryRun) {
+        await gitAmendChanges(options.rootPath)
+      }
     }
   }
 }
