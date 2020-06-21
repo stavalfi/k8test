@@ -51,7 +51,8 @@ async function gitAmendChanges(rootPath: string) {
       )
     }
     log('committing changes to git')
-    await execa.command('git commit -am "ci - promoted packages versions"', { cwd: rootPath })
+    await execa.command('git add --all', { cwd: rootPath })
+    await execa.command(`git commit -m ci--promoted-packages-versions`, { cwd: rootPath })
     log('pushing commit to working-branch')
     await execa.command('git push', { cwd: rootPath })
     log('pushed commit to working-branch')
@@ -110,6 +111,8 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 process.on('unhandledRejection', e => console.error(e))
 
 // eslint-disable-next-line no-floating-promise/no-floating-promise
-ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: false, isMasterBuild: true, runTests: false }).then(x =>
-  console.log(x),
-)
+// ci({ rootPath: '/Users/stavalfi-dev/projects/k8test', isDryRun: false, isMasterBuild: true, runTests: false }).then(x =>
+//   console.log(x),
+// )
+// eslint-disable-next-line no-floating-promise/no-floating-promise
+gitAmendChanges('/Users/stavalfi-dev/projects/k8test')
