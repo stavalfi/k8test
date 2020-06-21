@@ -50,8 +50,11 @@ async function gitAmendChanges(rootPath: string) {
         { cwd: rootPath },
       )
     }
+    log('committing changes to git')
     await execa.command('git commit -am "ci - promoted packages versions"', { cwd: rootPath })
+    log('pushing commit to working-branch')
     await execa.command('git push', { cwd: rootPath })
+    log('pushed commit to working-branch')
   }
 }
 
