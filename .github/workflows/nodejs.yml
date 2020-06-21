@@ -18,9 +18,9 @@ jobs:
       - uses: secrethub/actions/env-export@v0.1.0
         env:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
-      - name: install k8s
-        uses: engineerd/setup-kind@v0.4.0
-      - run: minikube start
+      # - name: install k8s
+      #   uses: engineerd/setup-kind@v0.4.0
+      # - run: minikube start
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
