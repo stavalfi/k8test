@@ -52,7 +52,10 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
   orderedGraph.forEach(node => {
-    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, _.omit(node.data, ['packageJson']))
+    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, {
+      ..._.omit(node.data, ['packageJson']),
+      packageJsonVersion: node.data.packageJson.version,
+    })
   })
 
   if (options.runTests) {
