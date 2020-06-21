@@ -18,8 +18,6 @@ jobs:
       - uses: secrethub/actions/env-export@v0.1.0
         env:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
-          DOCKER_USERNAME: secrethub://stavalfi/dockerhub/username
-          DOCKER_PASSWORD: secrethub://stavalfi/dockerhub/access-token
       - name: install k8s
         uses: engineerd/setup-kind@v0.4.0
       - run: minikube start
@@ -27,7 +25,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: apt-get update && apt-get install skopeo
+      - run: sudo apt-get update && sudo apt-get install skopeo
       - run: yarn install
       - run: yarn build
       - run: yarn run-ci --run-tests false
