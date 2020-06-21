@@ -67,7 +67,7 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
   }
 
-  log('calculate hash of every package and check which packages we already published')
+  log('calculate hash of every package and check which packages changed since their last publish')
 
   const packagesPath = await getPackages(options.rootPath)
   const orderedGraph = await getOrderedGraph(options.rootPath, packagesPath)
