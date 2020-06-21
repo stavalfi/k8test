@@ -30,4 +30,6 @@ jobs:
       - run: apt-get update && apt-get install skopeo
       - run: yarn install
       - run: yarn build
-      # - run: DEBUG=k8test:* yarn run-ci
+      - run: yarn run-ci --run-tests false --dry-run
+        env:
+          DEBUG: k8test:*
