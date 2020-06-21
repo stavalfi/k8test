@@ -62,11 +62,11 @@ async function publishNpm({
   }
 
   await setNpmToken()
-  await execa.command(`npm publish`, { stdio: 'inherit', cwd: packageInfo.packagePath })
+  await execa.command(`npm publish`, { stdio: 'pipe', cwd: packageInfo.packagePath })
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
     {
-      stdio: 'inherit',
+      stdio: 'pipe',
     },
   )
 
@@ -184,8 +184,6 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
         2,
       ),
     )
-
-    process.exit(0)
 
     const dockerResult = await Promise.all(
       docker.map(node =>
