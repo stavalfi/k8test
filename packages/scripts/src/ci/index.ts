@@ -81,10 +81,10 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
   })
 
   if (options.runTests) {
-    await execa.command('yarn test', {
-      cwd: options.rootPath,
-      stdio: 'inherit',
-    })
+    // await execa.command('yarn test', {
+    //   cwd: options.rootPath,
+    //   stdio: 'inherit',
+    // })
   }
 
   if (options.isMasterBuild) {
