@@ -9,6 +9,8 @@ import { publish } from './publish'
 import { promote } from './promote'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
+import ciInfo from 'ci-info'
+import process from 'process'
 
 const log = k8testLog('scripts:ci')
 
@@ -32,15 +34,31 @@ async function getOrderedGraph(rootPath: string, packagesPath: string[]): Promis
   )
 }
 
-export async function ci(options: { rootPath: string; isMasterBuild: boolean; isDryRun: boolean; runTests: boolean }) {
-  log('starting ci execution. options: %O', options)
-
-  const isRepoModified = await execa.command('git diff-index --quiet HEAD --').then(
+const isRepoModified = (rootPath: string) =>
+  execa.command('git diff-index --quiet HEAD --', { cwd: rootPath }).then(
     () => false,
     () => true,
   )
 
-  if (isRepoModified) {
+async function gitAmendChanges(rootPath: string) {
+  if (await isRepoModified(rootPath)) {
+    if (ciInfo.isCI) {
+      await execa.command(
+        // eslint-disable-next-line no-process-env
+        `git remote set-url origin https://stavalfi:${process.env['GITHUB_TOKEN']}@github.com/stavalfi/k8test.git
+      `,
+        { cwd: rootPath },
+      )
+    }
+    await execa.command('git commit -am "ci - promoted packages versions"', { cwd: rootPath })
+    await execa.command('git push', { cwd: rootPath })
+  }
+}
+
+export async function ci(options: { rootPath: string; isMasterBuild: boolean; isDryRun: boolean; runTests: boolean }) {
+  log('starting ci execution. options: %O', options)
+
+  if (await isRepoModified(options.rootPath)) {
     // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
   }
@@ -81,6 +99,7 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
       })
+      await gitAmendChanges(options.rootPath)
     }
   }
 }
