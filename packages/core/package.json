@@ -1,12 +1,13 @@
 {
   "name": "k8test",
-  "version": "1.2.13",
+  "version": "1.2.12",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "bin": {
     "k8test": "./dist/k8test-cli/index.js"
   },
+  "bla": "blaaa",
   "private": false,
   "files": [
     "src",
