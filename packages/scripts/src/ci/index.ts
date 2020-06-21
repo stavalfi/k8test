@@ -42,7 +42,7 @@ const isRepoModified = (rootPath: string) =>
 
 async function gitAmendChanges(rootPath: string) {
   if (await isRepoModified(rootPath)) {
-    if (ciInfo.isCI) {
+    if (!ciInfo.isCI) {
       await execa.command(
         // eslint-disable-next-line no-process-env
         `git remote set-url origin https://stavalfi:${process.env['GITHUB_TOKEN']}@github.com/stavalfi/k8test.git
