@@ -4,6 +4,7 @@
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
+  "bla": "blaaa",
   "files": [
     "src",
     "__tests__",
