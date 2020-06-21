@@ -1,12 +1,12 @@
 /// <reference path="../../../declarations.d.ts" />
 
-import { command, run, subcommands, boolean, flag } from 'cmd-ts'
+import ciInfo from 'ci-info'
+import { boolean, command, flag, option, run, string, subcommands } from 'cmd-ts'
+import execa from 'execa'
+import findProjectRoot from 'find-project-root'
+import { ci } from './ci'
 import { clean } from './clean'
 import { deleteK8testResources } from './delete-k8test-resources'
-import execa from 'execa'
-import { ci } from './ci'
-import path from 'path'
-import ciInfo from 'ci-info'
 
 // eslint-disable-next-line no-console
 process.on('unhandledRejection', e => console.error(e))
@@ -43,12 +43,18 @@ const app = subcommands({
           long: 'run-tests',
           defaultValue: () => true,
         }),
+        cwd: option({
+          type: string,
+          long: 'cwd',
+          defaultValue: () => findProjectRoot(__dirname) as string,
+          description: 'from where to run the ci',
+        }),
       },
       handler: args =>
         ci({
           isDryRun: args['dry-run'],
-          rootPath: path.join(__dirname, '../../../'),
-          isMasterBuild: false,
+          rootPath: args.cwd,
+          isMasterBuild: args['master-build'],
           runTests: args['run-tests'],
         }),
     }),

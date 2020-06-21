@@ -545,6 +545,11 @@
     "@types/express-serve-static-core" "*"
     "@types/serve-static" "*"
 
+"@types/find-project-root@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@types/find-project-root/-/find-project-root-1.1.0.tgz#673ed514e9caac40c55d8c22b16b63be4938b62f"
+  integrity sha512-XcQl03WMn2pAwoDjxFNVuXCu15V4apQ9228DuxvD/7gm3HbXRGy+1K8xSZAXei+ZUjRIf3HkbuOjuZR2CdX1Wg==
+
 "@types/fs-extra@^8.0.1":
   version "8.1.0"
   resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-8.1.0.tgz#1114834b53c3914806cd03b3304b37b3bd221a4d"
@@ -2408,6 +2413,11 @@ finalhandler@~1.1.2:
     parseurl "~1.3.3"
     statuses "~1.5.0"
     unpipe "~1.0.0"
+
+find-project-root@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/find-project-root/-/find-project-root-1.1.1.tgz#d242727a2d904725df5714f23dfdcdedda0b6ef8"
+  integrity sha1-0kJyei2QRyXfVxTyPf3N7doLbvg=
 
 find-up@^2.1.0:
   version "2.1.0"
