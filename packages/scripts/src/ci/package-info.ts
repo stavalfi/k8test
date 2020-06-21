@@ -39,9 +39,7 @@ async function getDockerLatestTagInfo(
   imageNameWithRepository: string,
 ): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
   try {
-    const result = await execa.command(
-      `skopeo inspect docker://docker.io/stavalfi/${imageNameWithRepository}:latest --raw`,
-    )
+    const result = await execa.command(`skopeo inspect docker://docker.io/stavalfi/${imageNameWithRepository}:latest`)
     const resultJson = JSON.parse(result.stdout) || {}
     return {
       latestTagHash: resultJson.Labels?.['latest-hash'],

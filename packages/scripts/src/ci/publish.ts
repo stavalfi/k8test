@@ -115,6 +115,7 @@ async function publishDocker({
     },
   )
   log('built docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
+
   log(
     'creating tags: "%s" and "%s" to docker image "%s" in package: "%s"',
     newVersion,
@@ -125,9 +126,6 @@ async function publishDocker({
   await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${newVersion}`, {
     stdio: 'inherit',
   })
-  await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${packageInfo.packageHash}`, {
-    stdio: 'inherit',
-  })
 
   if (isDryRun) {
     return { published: false, packagePath: packageInfo.packagePath }
@@ -135,9 +133,6 @@ async function publishDocker({
 
   await execa.command(`docker push ${dockerImageWithRepo}:latest`, { stdio: 'inherit' })
   await execa.command(`docker push ${dockerImageWithRepo}:${newVersion}`, { stdio: 'inherit' })
-  await execa.command(`docker push ${dockerImageWithRepo}:${packageInfo.packageHash}`, {
-    stdio: 'inherit',
-  })
 
   log('published docker target in package: "%s"', packageInfo.packageJson.name)
 
