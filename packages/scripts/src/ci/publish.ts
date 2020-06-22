@@ -3,17 +3,17 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
-import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType } from './types'
+import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType, Auth } from './types'
 import path from 'path'
 import os from 'os'
 import fs from 'fs'
 
 const log = k8testLog('scripts:ci:publish')
 
-async function setNpmToken() {
+async function setNpmToken(npmRegistryAddress: string, auth: Auth) {
   const globalNpmRcFile = path.join(os.homedir(), `.npmrc`)
 
-  const registryUrlWithoutHttp = `registry.npmjs.org`
+  const registryUrlWithoutHttp = npmRegistryAddress
 
   const isAlreadyLoggedIn =
     fs.existsSync(globalNpmRcFile) &&
@@ -24,7 +24,7 @@ async function setNpmToken() {
 
   if (!isAlreadyLoggedIn) {
     // eslint-disable-next-line no-process-env
-    const authData = `//${registryUrlWithoutHttp}/:_authToken=${process.env['NPM_TOKEN']}`
+    const authData = `//${registryUrlWithoutHttp}/:_authToken=${auth.npmRegistryToken}`
     fs.appendFileSync(globalNpmRcFile, `${authData}`)
   }
 }
@@ -35,12 +35,16 @@ async function publishNpm({
   npmTarget,
   packageInfo,
   rootPath,
+  npmRegistryAddress,
+  auth,
 }: {
   packageInfo: PackageInfo
   npmTarget: TargetInfo<TargetType.npm>
   newVersion: string
   isDryRun: boolean
   rootPath: string
+  npmRegistryAddress: string
+  auth: Auth
 }): Promise<PublishResult> {
   log('publishing npm target in package: "%s"', packageInfo.packageJson.name)
 
@@ -61,7 +65,6 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  await setNpmToken()
   await execa.command(`npm publish`, { stdio: 'pipe', cwd: packageInfo.packagePath })
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
@@ -81,12 +84,16 @@ async function publishDocker({
   newVersion,
   dockerTarget,
   packageInfo,
+  dockerRegistryAddress,
+  dockerRepositoryName,
 }: {
   packageInfo: PackageInfo
   dockerTarget: TargetInfo<TargetType.docker>
   newVersion: string
   isDryRun: boolean
   rootPath: string
+  dockerRegistryAddress: string
+  dockerRepositoryName: string
 }): Promise<PublishResult> {
   log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
 
@@ -103,7 +110,7 @@ async function publishDocker({
     }
   }
 
-  const dockerImageWithRepo = `stavalfi/${packageInfo.packageJson.name}`
+  const dockerImageWithRepo = `${dockerRegistryAddress}/${dockerRepositoryName}/${packageInfo.packageJson.name}`
 
   log('building docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
 
@@ -139,7 +146,17 @@ async function publishDocker({
   return { published: true, newVersion: newVersion, packagePath: packageInfo.packagePath }
 }
 
-export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootPath: string; isDryRun: boolean }) {
+export async function publish(
+  orderedGraph: Graph<PackageInfo>,
+  options: {
+    rootPath: string
+    isDryRun: boolean
+    npmRegistryAddress: string
+    dockerRegistryAddress: string
+    dockerRepositoryName: string
+    auth: Auth
+  },
+) {
   const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   // todo: optimize it even more - we can run all in parallel but we must make sure that every docker has all it's npm dep already published
@@ -150,14 +167,10 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
     log(`there is no need to publish anything. all packages that should publish, didn't change.`)
   } else {
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
-    if (!options.isDryRun && docker.length > 0) {
-      log('logging in to docker-hub registry')
-      await execa.command(
-        // eslint-disable-next-line no-process-env
-        `docker login --username=${process.env.DOCKER_HUB_USERNAME} --password=${process.env.DOCKER_HUB_TOKEN}`,
-        { stdio: 'inherit' },
-      )
-      log('logged in to docker-hub registry')
+    if (!options.isDryRun) {
+      if (npm.length > 0) {
+        await setNpmToken(options.npmRegistryAddress, options.auth)
+      }
     }
 
     const npmResult = await Promise.all(
@@ -168,6 +181,8 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           isDryRun: options.isDryRun,
           rootPath: options.rootPath,
+          npmRegistryAddress: options.npmRegistryAddress,
+          auth: options.auth,
         }),
       ),
     )
@@ -188,6 +203,8 @@ export async function publish(orderedGraph: Graph<PackageInfo>, options: { rootP
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           rootPath: options.rootPath,
           isDryRun: options.isDryRun,
+          dockerRegistryAddress: options.dockerRegistryAddress,
+          dockerRepositoryName: options.dockerRepositoryName,
         }),
       ),
     )

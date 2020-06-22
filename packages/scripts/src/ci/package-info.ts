@@ -6,6 +6,7 @@ import { PackageInfo, TargetInfo, TargetType } from './types'
 
 async function getNpmLatestVersionInfo(
   packageName: string,
+  npmRegistryAddress: string,
 ): Promise<
   | {
       latestVersion: string
@@ -16,7 +17,7 @@ async function getNpmLatestVersionInfo(
   | undefined
 > {
   try {
-    const result = await execa.command(`npm view ${packageName} --json`)
+    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
     const resultJson = JSON.parse(result.stdout) || {}
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const latestVersion = distTags['latest']
@@ -37,9 +38,13 @@ async function getNpmLatestVersionInfo(
 
 async function getDockerLatestTagInfo(
   imageNameWithRepository: string,
+  dockerRegistryAddress: string,
+  dockerRepositoryName: string,
 ): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
   try {
-    const result = await execa.command(`skopeo inspect docker://docker.io/stavalfi/${imageNameWithRepository}:latest`)
+    const result = await execa.command(
+      `skopeo inspect docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageNameWithRepository}:latest`,
+    )
     const resultJson = JSON.parse(result.stdout) || {}
     return {
       latestTagHash: resultJson.Labels?.['latest-hash'],
@@ -66,17 +71,31 @@ function calculateNewVersion(packageJsonVersion: string, latestPublishedVersion?
   return newVersion
 }
 
-export async function getPackageInfo(
-  relativePackagePath: string,
-  packagePath: string,
-  packageHash: string,
-): Promise<PackageInfo> {
+export async function getPackageInfo({
+  dockerRegistryAddress,
+  dockerRepositoryName,
+  npmRegistryAddress,
+  packageHash,
+  packagePath,
+  relativePackagePath,
+}: {
+  relativePackagePath: string
+  packagePath: string
+  packageHash: string
+  npmRegistryAddress: string
+  dockerRegistryAddress: string
+  dockerRepositoryName: string
+}): Promise<PackageInfo> {
   const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
-  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name)
-  const dockerLatestTagInfo = await getDockerLatestTagInfo(packageJson.name)
+  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress)
+  const dockerLatestTagInfo = await getDockerLatestTagInfo(
+    packageJson.name,
+    dockerRegistryAddress,
+    dockerRepositoryName,
+  )
 
   const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {
     targetType: TargetType.npm,

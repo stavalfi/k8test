@@ -5,6 +5,14 @@ export type PackageJson = {
   devDependencies?: { [key: string]: string }
 }
 
+export type Auth = {
+  npmRegistryToken: string
+  dockerRegistryUsername: string
+  dockerRegistryToken: string
+  gitServerUsername: string
+  gitServerToken: string
+}
+
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',

@@ -1,16 +1,15 @@
 /* eslint-disable no-console */
 
-import { calculatePackagesHash } from './packages-hash'
+import ciInfo from 'ci-info'
 import execa from 'execa'
-import path from 'path'
-import { getPackageInfo } from './package-info'
-import { PackageInfo, Graph } from './types'
-import { publish } from './publish'
-import { promote } from './promote'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
-import ciInfo from 'ci-info'
-import process from 'process'
+import path from 'path'
+import { getPackageInfo } from './package-info'
+import { calculatePackagesHash } from './packages-hash'
+import { promote } from './promote'
+import { publish } from './publish'
+import { Auth, Graph, PackageInfo } from './types'
 
 const log = k8testLog('scripts:ci')
 
@@ -24,12 +23,31 @@ async function getPackages(rootPath: string): Promise<string[]> {
     .map(relativePackagePath => path.join(rootPath, relativePackagePath))
 }
 
-async function getOrderedGraph(rootPath: string, packagesPath: string[]): Promise<Graph<PackageInfo>> {
+async function getOrderedGraph({
+  packagesPath,
+  rootPath,
+  dockerRegistryAddress,
+  dockerRepositoryName,
+  npmRegistryAddress,
+}: {
+  rootPath: string
+  packagesPath: string[]
+  npmRegistryAddress: string
+  dockerRegistryAddress: string
+  dockerRepositoryName: string
+}): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
   return Promise.all(
     orderedGraph.map(async node => ({
       ...node,
-      data: await getPackageInfo(node.data.relativePackagePath, node.data.packagePath, node.data.packageHash),
+      data: await getPackageInfo({
+        dockerRegistryAddress,
+        dockerRepositoryName,
+        npmRegistryAddress,
+        packageHash: node.data.packageHash,
+        packagePath: node.data.packagePath,
+        relativePackagePath: node.data.relativePackagePath,
+      }),
     })),
   )
 }
@@ -40,12 +58,24 @@ const isRepoModified = (rootPath: string) =>
     () => true,
   )
 
-async function gitAmendChanges(rootPath: string) {
+async function gitAmendChanges({
+  auth,
+  gitOrganizationName,
+  gitRepositoryName,
+  gitServerDomain,
+  rootPath,
+}: {
+  rootPath: string
+  gitServerDomain: string
+  gitRepositoryName: string
+  gitOrganizationName: string
+  auth: Auth
+}) {
   if (await isRepoModified(rootPath)) {
     if (ciInfo.isCI) {
       await execa.command(
         // eslint-disable-next-line no-process-env
-        `git remote set-url origin https://stavalfi:${process.env['GITHUB_TOKEN']}@github.com/stavalfi/k8test.git
+        `git remote set-url origin https://${auth.gitServerUsername}:${auth.gitServerToken}@${gitServerDomain}/${gitOrganizationName}/${gitRepositoryName}.git
       `,
         { cwd: rootPath },
       )
@@ -59,7 +89,19 @@ async function gitAmendChanges(rootPath: string) {
   }
 }
 
-export async function ci(options: { rootPath: string; isMasterBuild: boolean; isDryRun: boolean; runTests: boolean }) {
+export async function ci(options: {
+  rootPath: string
+  isMasterBuild: boolean
+  isDryRun: boolean
+  runTests: boolean
+  npmRegistryAddress: string
+  dockerRegistryAddress: string
+  dockerRepositoryName: string
+  gitRepositoryName: string
+  gitOrganizationName: string
+  gitServerDomain: string
+  auth: Auth
+}) {
   log('starting ci execution. options: %O', options)
 
   if (await isRepoModified(options.rootPath)) {
@@ -69,8 +111,22 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
+  log('logging in to docker-hub registry')
+  // I need to login to read and push from `options.auth.dockerRegistryUsername` repository
+  await execa.command(
+    `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
+    { stdio: 'inherit' },
+  )
+  log('logged in to docker-hub registry')
+
   const packagesPath = await getPackages(options.rootPath)
-  const orderedGraph = await getOrderedGraph(options.rootPath, packagesPath)
+  const orderedGraph = await getOrderedGraph({
+    rootPath: options.rootPath,
+    packagesPath,
+    dockerRegistryAddress: options.dockerRegistryAddress,
+    dockerRepositoryName: options.dockerRepositoryName,
+    npmRegistryAddress: options.npmRegistryAddress,
+  })
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
   orderedGraph.forEach(node => {
@@ -102,9 +158,19 @@ export async function ci(options: { rootPath: string; isMasterBuild: boolean; is
       await publish(updatedOrderedGraph, {
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
+        dockerRegistryAddress: options.dockerRegistryAddress,
+        dockerRepositoryName: options.dockerRepositoryName,
+        npmRegistryAddress: options.npmRegistryAddress,
+        auth: options.auth,
       })
       if (!options.isDryRun) {
-        await gitAmendChanges(options.rootPath)
+        await gitAmendChanges({
+          auth: options.auth,
+          gitOrganizationName: options.gitOrganizationName,
+          gitRepositoryName: options.gitRepositoryName,
+          gitServerDomain: options.gitServerDomain,
+          rootPath: options.rootPath,
+        })
       }
     }
   }
