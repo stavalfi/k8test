@@ -10,6 +10,9 @@
     },
     {
       "path": "../cli-logic/tsconfig-build.json"
+    },
+    {
+      "path": "../ci/tsconfig-build.json"
     }
   ]
 }

@@ -1,0 +1,27 @@
+{
+  "name": "ci",
+  "version": "1.2.12",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "src",
+    "__tests__",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig-build.json",
+    "test": "jest"
+  },
+  "dependencies": {
+    "ci-info": "^2.0.0",
+    "cmd-ts": "^0.6.3",
+    "execa": "^4.0.1",
+    "find-project-root": "^1.1.1",
+    "semver": "^7.3.2"
+  }
+}

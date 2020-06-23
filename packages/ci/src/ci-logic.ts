@@ -11,6 +11,8 @@ import { promote } from './promote'
 import { publish } from './publish'
 import { Auth, Graph, PackageInfo } from './types'
 
+export { TargetType, PackageJson } from './types'
+
 const log = k8testLog('scripts:ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {

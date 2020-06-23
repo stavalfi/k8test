@@ -17,6 +17,7 @@
     "find-project-root": "^1.1.1",
     "k8s-api": "^1.0.0",
     "k8test-cli-logic": "^1.0.0",
-    "semver": "^7.3.2"
+    "semver": "^7.3.2",
+    "ci": "^1.0.0"
   }
 }
