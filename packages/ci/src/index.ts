@@ -79,6 +79,11 @@ const app = subcommands({
           type: string,
           long: 'git-repository',
         }),
+        'git-server-connection-type': option({
+          type: string,
+          long: 'git-server-connection-type',
+          description: 'http or htts',
+        }),
         'docker-repository': option({
           type: string,
           long: 'docker-repository',
@@ -102,6 +107,7 @@ const app = subcommands({
           npmRegistryAddress: args['npm-registry'],
           dockerRegistryAddress: args['docker-registry'],
           dockerRepositoryName: args['docker-repository'],
+          gitServerConnectionType: args['git-server-connection-type'],
           auth: {
             dockerRegistryToken: args['docker-registry-token'],
             dockerRegistryUsername: args['docker-registry-username'],

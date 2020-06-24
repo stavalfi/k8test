@@ -7,6 +7,9 @@
   "references": [
     {
       "path": "../log/tsconfig-build.json"
+    },
+    {
+      "path": "../k8test/tsconfig-build.json"
     }
   ]
 }

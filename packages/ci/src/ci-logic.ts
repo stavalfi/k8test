@@ -68,6 +68,7 @@ async function gitAmendChanges({
   rootPath,
 }: {
   rootPath: string
+  gitServerConnectionType: string
   gitServerDomain: string
   gitRepositoryName: string
   gitOrganizationName: string
@@ -91,7 +92,7 @@ async function gitAmendChanges({
   }
 }
 
-export async function ci(options: {
+export type ciOptions = {
   rootPath: string
   isMasterBuild: boolean
   isDryRun: boolean
@@ -102,8 +103,11 @@ export async function ci(options: {
   gitRepositoryName: string
   gitOrganizationName: string
   gitServerDomain: string
+  gitServerConnectionType: string
   auth: Auth
-}) {
+}
+
+export async function ci(options: ciOptions) {
   log('starting ci execution. options: %O', options)
 
   if (await isRepoModified(options.rootPath)) {
@@ -168,6 +172,7 @@ export async function ci(options: {
       if (!options.isDryRun) {
         await gitAmendChanges({
           auth: options.auth,
+          gitServerConnectionType: options.gitServerConnectionType,
           gitOrganizationName: options.gitOrganizationName,
           gitRepositoryName: options.gitRepositoryName,
           gitServerDomain: options.gitServerDomain,

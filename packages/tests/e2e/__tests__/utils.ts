@@ -18,7 +18,7 @@ export const isServiceReadyPredicate = (url: string, _host: string, _port: numbe
   })
 }
 
-export function cleanupAfterEach() {
+function cleanupAfterEach() {
   const cleanups: (() => Promise<unknown> | unknown)[] = []
 
   afterEach(async () => {

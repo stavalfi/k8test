@@ -4462,6 +4462,13 @@ node-forge@^0.8.5:
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.8.5.tgz#57906f07614dc72762c84cef442f427c0e1b86ee"
   integrity sha512-vFMQIWt+J/7FLNyKouZ9TazT74PRV3wgv9UT4cRjC8BffxFbKXkgIWR42URCPSnHm/QDz6BOlb2Q0U4+VQT67Q==
 
+node-git-server@^0.6.1:
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/node-git-server/-/node-git-server-0.6.1.tgz#c69c82fe92335002442b92fb11d314911c3523b9"
+  integrity sha512-dCWUlzD4j1p2SEp/Lm08a0YJgm9W3KFQbyZXPKmI4tY/TAPii5KT0dQmuLDbNAJFW4OJ4KrvRDdunt/D8zi9ew==
+  dependencies:
+    through "^2.3.8"
+
 node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
@@ -4840,6 +4847,11 @@ p-try@^2.0.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/p-try/-/p-try-2.2.0.tgz#cb2868540e313d61de58fafbe35ce9004d5540e6"
   integrity sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==
+
+package-json-type@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/package-json-type/-/package-json-type-1.0.3.tgz#f869b8abb094ae0e5bdd7a01355eeddcdf3fb597"
+  integrity sha512-Bey4gdRuOwDbS8Fj1qA3/pTq5r8pqiI5E3tjSqCdhaLSsyGG364VFzXLTIexN5AaNGe/vgdBzLfoKdr7EVg2KQ==
 
 pako@~1.0.5:
   version "1.0.11"
@@ -6049,7 +6061,7 @@ throttleit@^1.0.0:
   resolved "https://registry.yarnpkg.com/throttleit/-/throttleit-1.0.0.tgz#9e785836daf46743145a5984b6268d828528ac6c"
   integrity sha1-nnhYNtr0Z0MUWlmEtiaNgoUorGw=
 
-through@^2.3.6:
+through@^2.3.6, through@^2.3.8:
   version "2.3.8"
   resolved "https://registry.yarnpkg.com/through/-/through-2.3.8.tgz#0dd4c9ffaabc357960b1b724115d7e0e86a2e1f5"
   integrity sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=
