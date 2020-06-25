@@ -39,11 +39,10 @@ async function getNpmLatestVersionInfo(
 async function getDockerLatestTagInfo(
   imageNameWithRepository: string,
   dockerRegistryAddress: string,
-  dockerRepositoryName: string,
 ): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
   try {
     const result = await execa.command(
-      `skopeo inspect docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageNameWithRepository}:latest`,
+      `skopeo inspect docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`,
     )
     const resultJson = JSON.parse(result.stdout) || {}
     return {
@@ -92,9 +91,8 @@ export async function getPackageInfo({
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
   const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress)
   const dockerLatestTagInfo = await getDockerLatestTagInfo(
-    packageJson.name,
+    `${dockerRepositoryName}/${packageJson.name}`,
     dockerRegistryAddress,
-    dockerRepositoryName,
   )
 
   const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {

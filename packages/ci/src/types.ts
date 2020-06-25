@@ -7,10 +7,11 @@ export type PackageJson = {
 
 export type Auth = {
   npmRegistryToken: string
-  dockerRegistryUsername: string
-  dockerRegistryToken: string
   gitServerUsername: string
   gitServerToken: string
+  skipDockerRegistryLogin: boolean
+  dockerRegistryUsername: string
+  dockerRegistryToken: string
 }
 
 export enum TargetType {

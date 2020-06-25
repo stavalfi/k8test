@@ -117,13 +117,15 @@ export async function ci(options: ciOptions) {
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
-  log('logging in to docker-hub registry')
-  // I need to login to read and push from `options.auth.dockerRegistryUsername` repository
-  await execa.command(
-    `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
-    { stdio: 'inherit' },
-  )
-  log('logged in to docker-hub registry')
+  if (!options.auth.skipDockerRegistryLogin) {
+    log('logging in to docker-hub registry')
+    // I need to login to read and push from `options.auth.dockerRegistryUsername` repository
+    await execa.command(
+      `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
+      { stdio: 'pipe' },
+    )
+    log('logged in to docker-hub registry')
+  }
 
   const packagesPath = await getPackages(options.rootPath)
   const orderedGraph = await getOrderedGraph({

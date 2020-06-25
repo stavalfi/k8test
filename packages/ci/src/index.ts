@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/// <reference path="../../../declarations.d.ts" />
+
 import ciInfo from 'ci-info'
 import { boolean, command, flag, option, run, string, subcommands } from 'cmd-ts'
 import findProjectRoot from 'find-project-root'
@@ -28,6 +30,11 @@ const app = subcommands({
           type: boolean,
           long: 'run-tests',
           defaultValue: () => true,
+        }),
+        'skip-docker-registry-login': flag({
+          type: boolean,
+          long: 'skip-docker-registry-login',
+          defaultValue: () => false,
         }),
         cwd: option({
           type: string,
@@ -114,6 +121,7 @@ const app = subcommands({
             gitServerUsername: args['git-server-username'],
             gitServerToken: args['git-server-token'],
             npmRegistryToken: args['npm-registry-token'],
+            skipDockerRegistryLogin: args['skip-docker-registry-login'],
           },
         }),
     }),

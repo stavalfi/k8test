@@ -1,5 +1,4 @@
 import { FolderStructure } from 'create-folder-structure'
-import { Subscription } from 'k8test'
 import { IDependencyMap } from 'package-json-type'
 
 export enum TargetType {
@@ -30,26 +29,29 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
-export type NewEnvOptions = {
-  testResources: Resource[]
-}
-
 export type CiOptions = {
   isMasterBuild: boolean
   isDryRun?: boolean
   runTests?: boolean
-  dockerRegistryDeployment: Subscription
-  npmRegistryDeployment: Subscription
-  gitServerDomain: string
-  repo: Repo
 }
 
-type PublishedVersion = string
+export type PublishedPackageInfo = {
+  npm: {
+    versions: string[]
+    latestVersion: string
+  }
+  docker: {
+    tags: string[]
+    latestTag: string
+  }
+}
 
 export type CiResults = {
-  published: { [packageName: string]: PublishedVersion }
+  published: Map<string, PublishedPackageInfo>
 }
 
 export type RunCi = (options: CiOptions) => Promise<CiResults>
 
-export type NewEnvFunc = (options: NewEnvOptions) => Promise<RunCi>
+export type CreateRepo = (repo?: Repo) => Promise<RunCi>
+
+export type NewEnvFunc = () => CreateRepo

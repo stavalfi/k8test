@@ -24,13 +24,13 @@
       "path": "packages/cli-logic/tsconfig-build.json"
     },
     {
+      "path": "packages/ci/tsconfig-build.json"
+    },
+    {
       "path": "packages/tests/simple-service/tsconfig-build.json"
     },
     {
       "path": "packages/tests/e2e/tsconfig-build.json"
-    },
-    {
-      "path": "packages/ci/tsconfig-build.json"
     }
   ]
 }

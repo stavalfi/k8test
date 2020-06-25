@@ -1,13 +1,11 @@
+import chance from 'chance'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
-import fs from 'fs-extra'
-import path from 'path'
+import { GitServer } from './git-server-testkit'
 import { Repo, TargetType } from './types'
-import chance from 'chance'
-import { GitServerTestkit } from './git-server-testkit'
 
 async function initializeGitRepo({
-  gitServerTestkit,
+  gitServer,
   name,
   org,
   repoPath,
@@ -15,22 +13,26 @@ async function initializeGitRepo({
   repoPath: string
   org: string
   name: string
-  gitServerTestkit: GitServerTestkit
+  gitServer: GitServer
 }) {
   await execa.command('git init', { cwd: repoPath })
   await execa.command('git add --all', { cwd: repoPath })
   await execa.command('git commit -m init', { cwd: repoPath })
-  await execa.command(`git remote add origin ${gitServerTestkit.generateGitRepositoryAddress(org, name)}`, {
+
+  await gitServer.createRepository(org, name)
+
+  // todo: remove this line and combine it with the git push command
+  await execa.command(`git remote add origin ${gitServer.generateGitRepositoryAddress(org, name)}`, {
     cwd: repoPath,
   })
   await execa.command(`git push -u origin master`, { cwd: repoPath })
 }
 
-export async function createGitRepo(repo: Repo, gitServerTestkit: GitServerTestkit) {
-  const repoName = `repo-${chance()
+export async function createRepo(repo: Repo, gitServer: GitServer) {
+  const repoOrg = `org-${chance()
     .hash()
     .slice(0, 8)}`
-  const repoOrg = `org-${chance()
+  const repoName = `repo-${chance()
     .hash()
     .slice(0, 8)}`
   const repoPath = await createFolder({
@@ -72,9 +74,17 @@ export async function createGitRepo(repo: Repo, gitServerTestkit: GitServerTestk
   })
 
   await initializeGitRepo({
-    gitServerTestkit,
+    gitServer,
     repoPath,
     org: repoOrg,
     name: repoName,
   })
+
+  await execa.command(`yarn install`, { cwd: repoPath })
+
+  return {
+    repoPath,
+    repoName,
+    repoOrg,
+  }
 }
