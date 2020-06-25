@@ -21,11 +21,10 @@ async function initializeGitRepo({
 
   await gitServer.createRepository(org, name)
 
-  // todo: remove this line and combine it with the git push command
-  await execa.command(`git remote add origin ${gitServer.generateGitRepositoryAddress(org, name)}`, {
+  await execa.command(`git push ${gitServer.generateGitRepositoryAddress(org, name)} -u master`, {
     cwd: repoPath,
+    stdio: 'inherit',
   })
-  await execa.command(`git push -u origin master`, { cwd: repoPath })
 }
 
 export async function createRepo(repo: Repo, gitServer: GitServer) {
@@ -35,6 +34,7 @@ export async function createRepo(repo: Repo, gitServer: GitServer) {
   const repoName = `repo-${chance()
     .hash()
     .slice(0, 8)}`
+
   const repoPath = await createFolder({
     'package.json': {
       name: repoName,
@@ -73,14 +73,14 @@ export async function createRepo(repo: Repo, gitServer: GitServer) {
     ...repo.rootFiles,
   })
 
+  await execa.command(`yarn install`, { cwd: repoPath })
+
   await initializeGitRepo({
     gitServer,
     repoPath,
     org: repoOrg,
     name: repoName,
   })
-
-  await execa.command(`yarn install`, { cwd: repoPath })
 
   return {
     repoPath,

@@ -22,9 +22,9 @@
     "cmd-ts": "^0.6.3",
     "execa": "^4.0.1",
     "find-project-root": "^1.1.1",
-    "package-json-type": "^1.0.3",
     "semver": "^7.3.2",
-    "got":"^11.3.0"
+    "got": "^11.3.0",
+    "k8test-log": "^1.0.0"
   },
   "devDependencies": {
     "k8test": "^1.0.0"

@@ -55,9 +55,9 @@ async function getOrderedGraph({
 }
 
 const isRepoModified = (rootPath: string) =>
-  execa.command('git diff-index --quiet HEAD --', { cwd: rootPath }).then(
+  execa.command('git diff-index HEAD --', { cwd: rootPath }).then(
     () => false,
-    () => true,
+    e => (console.error(e), true),
   )
 
 async function gitAmendChanges({
@@ -110,6 +110,7 @@ export type ciOptions = {
 export async function ci(options: ciOptions) {
   log('starting ci execution. options: %O', options)
 
+  await new Promise(res => setTimeout(res, 1))
   if (await isRepoModified(options.rootPath)) {
     // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)

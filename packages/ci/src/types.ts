@@ -10,8 +10,8 @@ export type Auth = {
   gitServerUsername: string
   gitServerToken: string
   skipDockerRegistryLogin: boolean
-  dockerRegistryUsername: string
-  dockerRegistryToken: string
+  dockerRegistryUsername?: string
+  dockerRegistryToken?: string
 }
 
 export enum TargetType {

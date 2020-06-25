@@ -13,7 +13,8 @@
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",
     "run-ci": "yarn workspace scripts run-ci",
-    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js"
+    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && chmod u+x packages/ci/dist/src/index.js",
+    "build:dockers": "eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker && yarn workspace k8test-monitoring build:docker"
   },
   "repository": {
     "url": "https://github.com/stavalfi/k8test"
@@ -43,10 +44,13 @@
     "@types/semver": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
+    "bufferutil": "^4.0.1",
     "chance": "^1.1.5",
     "ci-info": "^2.0.0",
     "create-folder-structure": "^3.0.5",
     "deepmerge": "^4.2.2",
+    "electron": "^9.0.5",
+    "esbuild": "^0.5.12",
     "eslint": "6.5.1",
     "eslint-config-prettier": "4.3.0",
     "eslint-plugin-jest": "22.6.4",
@@ -66,14 +70,16 @@
     "jest": "24.8.0",
     "lint-staged": "^9.5.0",
     "node-git-server": "^0.6.1",
+    "package-json-type": "^1.0.3",
     "pkg": "^4.4.2",
     "prettier": "^1.18.0",
     "pretty-quick": "^1.11.0",
+    "semver": "^7.3.2",
     "syncpack": "^5.0.1",
     "ts-jest": "24.3.0",
     "ts-node": "^8.10.1",
     "typescript": "^3.7.5",
-    "semver": "^7.3.2"
+    "utf-8-validate": "^5.0.2"
   },
   "engines": {
     "node": ">=12.0.0"

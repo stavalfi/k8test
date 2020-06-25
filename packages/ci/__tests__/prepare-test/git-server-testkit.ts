@@ -56,13 +56,13 @@ export const starGittServer = async (): Promise<GitServer> => {
   const port = getPort(server.server)
   const connectionType = 'http'
   const ip = 'localhost'
-  const address = `${connectionType}://${ip}:${port}`
 
   return {
     getUsername: () => username,
     getToken: () => token,
-    getAddress: () => address,
-    generateGitRepositoryAddress: (scope, name) => `${address}/${scope}/${name}.git`,
+    getAddress: () => `${connectionType}://${ip}:${port}`,
+    generateGitRepositoryAddress: (scope, name) =>
+      `${connectionType}://${username}:${token}@${ip}:${port}/${scope}/${name}.git`,
     close: () => server.close(),
     createRepository: async (scope, name) => {
       await new Promise(res => server.create(`${scope}/${name}`, res))
