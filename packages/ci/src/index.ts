@@ -2,7 +2,7 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
-import { boolean, command, flag, option, run, string, optional } from 'cmd-ts'
+import { boolean, command, flag, option, optional, run, string } from 'cmd-ts'
 import findProjectRoot from 'find-project-root'
 import { ci } from './ci-logic'
 
@@ -26,11 +26,6 @@ const app = command({
       long: 'run-tests',
       defaultValue: () => true,
     }),
-    'skip-docker-registry-login': flag({
-      type: boolean,
-      long: 'skip-docker-registry-login',
-      defaultValue: () => false,
-    }),
     cwd: option({
       type: string,
       long: 'cwd',
@@ -40,12 +35,21 @@ const app = command({
     'npm-registry': option({
       type: string,
       long: 'npm-registry',
-      defaultValue: () => 'registry.npmjs.org',
+      defaultValue: () => 'https://registry.npmjs.org',
       description: 'npm registry address to publish npm-targets to',
     }),
     'npm-registry-token': option({
       type: string,
       long: 'npm-registry-token',
+    }),
+    'redis-endpoint': option({
+      type: string,
+      long: 'redis-endpoint',
+      description: 'ip:port',
+    }),
+    'redis-password': option({
+      type: optional(string),
+      long: 'redis-password',
     }),
     'docker-registry-username': option({
       type: optional(string),
@@ -91,28 +95,37 @@ const app = command({
       description: 'docker registry address to publish docker-targets to',
     }),
   },
-  handler: args =>
-    ci({
-      isDryRun: args['dry-run'],
-      rootPath: args.cwd,
-      isMasterBuild: args['master-build'],
-      runTests: args['run-tests'],
-      gitRepositoryName: args['git-repository'],
-      gitOrganizationName: args['git-organization'],
-      gitServerDomain: args['git-server-domain'],
-      npmRegistryAddress: args['npm-registry'],
-      dockerRegistryAddress: args['docker-registry'],
-      dockerRepositoryName: args['docker-repository'],
-      gitServerConnectionType: args['git-server-connection-type'],
-      auth: {
-        dockerRegistryToken: args['docker-registry-token'],
-        dockerRegistryUsername: args['docker-registry-username'],
-        gitServerUsername: args['git-server-username'],
-        gitServerToken: args['git-server-token'],
-        npmRegistryToken: args['npm-registry-token'],
-        skipDockerRegistryLogin: args['skip-docker-registry-login'],
-      },
-    }),
+  handler: async args => {
+    const [redisIp, redisPort] = args['redis-endpoint'].split(':')
+    try {
+      await ci({
+        isDryRun: args['dry-run'],
+        rootPath: args.cwd,
+        isMasterBuild: args['master-build'],
+        runTests: args['run-tests'],
+        gitRepositoryName: args['git-repository'],
+        gitOrganizationName: args['git-organization'],
+        gitServerDomain: args['git-server-domain'],
+        npmRegistryAddress: args['npm-registry'],
+        dockerRegistryAddress: args['docker-registry'],
+        dockerRepositoryName: args['docker-repository'],
+        gitServerConnectionType: args['git-server-connection-type'],
+        redisIp,
+        redisPort: Number(redisPort),
+        auth: {
+          dockerRegistryToken: args['docker-registry-token'],
+          dockerRegistryUsername: args['docker-registry-username'],
+          gitServerUsername: args['git-server-username'],
+          gitServerToken: args['git-server-token'],
+          npmRegistryToken: args['npm-registry-token'],
+          redisPassword: args['redis-password'],
+        },
+      })
+    } catch (e) {
+      process.exitCode = 1
+      throw e
+    }
+  },
 })
 
 run(app, process.argv.slice(2))

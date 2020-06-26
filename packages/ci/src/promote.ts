@@ -2,7 +2,7 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import { Graph, PackageInfo } from './types'
 
-const log = k8testLog('scripts:ci:promote')
+const log = k8testLog('ci:promote')
 
 export async function promote(orderedGraph: Graph<PackageInfo>): Promise<PackageInfo[]> {
   const toPromote = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)

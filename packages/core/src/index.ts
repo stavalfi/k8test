@@ -99,11 +99,7 @@ export const subscribe: Subscribe = async options => {
   const { isReadyPredicate } = options
   if (isReadyPredicate) {
     await waitUntilReady(() =>
-      isReadyPredicate(
-        deployedImage.deployedImageUrl,
-        deployedImage.deployedImageAddress,
-        deployedImage.deployedImagePort,
-      ),
+      isReadyPredicate(deployedImage.deployedImageUrl, deployedImage.deployedImageIp, deployedImage.deployedImagePort),
     )
   }
 
@@ -115,7 +111,7 @@ export const subscribe: Subscribe = async options => {
 
   return {
     deployedImageUrl: deployedImage.deployedImageUrl,
-    deployedImageAddress: deployedImage.deployedImageAddress,
+    deployedImageIp: deployedImage.deployedImageIp,
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () => {
       await got.post(`${monitoringDeployedImageUrl}/unsubscribe`, {

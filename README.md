@@ -93,7 +93,7 @@ describe('simple use-case', () => {
 
   test('ensure redis is alive', async () => {
     const redis = new Redis({
-      host: exposedRedisInfo.deployedImageAddress,
+      host: exposedRedisInfo.deployedImageIp,
       port: exposedRedisInfo.deployedImagePort,
       connectTimeout: 1000,
     })
@@ -127,7 +127,7 @@ await subscribe({
   namespaceName?: string
   isReadyPredicate?: (
     deployedImageUrl: string,
-    deployedImageAddress: string,
+    deployedImageIp: string,
     deployedImagePort: number,
   ) => Promise<unknown>
 })
@@ -173,7 +173,9 @@ PRs about Api/ speed improvement are welcome.
 
 ### Internal Tools
 
-- secrethub
 - skopeo
 - yarn
-- node 14
+- node 12+
+- docker (deamon + cli)
+- minikube
+- secrethub (only for publishing artifacts - npm/docker to registries)

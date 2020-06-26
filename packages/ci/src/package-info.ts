@@ -3,10 +3,15 @@ import fs from 'fs-extra'
 import path from 'path'
 import semver from 'semver'
 import { PackageInfo, TargetInfo, TargetType } from './types'
+import { Redis } from 'ioredis'
+import k8testLog from 'k8test-log'
+
+const log = k8testLog('ci:package-info')
 
 async function getNpmLatestVersionInfo(
   packageName: string,
   npmRegistryAddress: string,
+  redisClient: Redis,
 ): Promise<
   | {
       latestVersion: string
@@ -39,18 +44,19 @@ async function getNpmLatestVersionInfo(
 async function getDockerLatestTagInfo(
   imageNameWithRepository: string,
   dockerRegistryAddress: string,
+  redisClient: Redis,
 ): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
   try {
-    const result = await execa.command(
-      `skopeo inspect docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`,
-    )
+    const comamnd = `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`
+    log('searching the latest tag and hash: "%s"', comamnd)
+    const result = await execa.command(comamnd)
     const resultJson = JSON.parse(result.stdout) || {}
     return {
       latestTagHash: resultJson.Labels?.['latest-hash'],
       latestTag: resultJson.Labels?.['latest-tag'],
     }
   } catch (e) {
-    if (!e.stderr.includes('authentication required')) {
+    if (!e.stderr.includes('authentication required') && !e.stderr.includes('manifest unknown')) {
       throw e
     }
   }
@@ -77,6 +83,7 @@ export async function getPackageInfo({
   packageHash,
   packagePath,
   relativePackagePath,
+  redisClient,
 }: {
   relativePackagePath: string
   packagePath: string
@@ -84,15 +91,17 @@ export async function getPackageInfo({
   npmRegistryAddress: string
   dockerRegistryAddress: string
   dockerRepositoryName: string
+  redisClient: Redis
 }): Promise<PackageInfo> {
   const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
-  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress)
+  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress, redisClient)
   const dockerLatestTagInfo = await getDockerLatestTagInfo(
     `${dockerRepositoryName}/${packageJson.name}`,
     dockerRegistryAddress,
+    redisClient,
   )
 
   const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {

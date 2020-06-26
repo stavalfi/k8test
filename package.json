@@ -14,7 +14,7 @@
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",
     "run-ci": "yarn workspace scripts run-ci",
     "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && chmod u+x packages/ci/dist/src/index.js",
-    "build:dockers": "eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker && yarn workspace k8test-monitoring build:docker"
+    "build:dockers": "yarn build && eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker && yarn workspace k8test-monitoring build:docker"
   },
   "repository": {
     "url": "https://github.com/stavalfi/k8test"
@@ -40,7 +40,6 @@
     "@types/jest": "^24.0.0",
     "@types/lodash": "^4.14.149",
     "@types/node": "^14.0.13",
-    "@types/redlock": "^4.0.1",
     "@types/semver": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",

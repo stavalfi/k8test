@@ -6,7 +6,7 @@ const deepmerge = require('deepmerge')
 const path = require('path')
 
 module.exports = deepmerge(baseConfig, {
-  testMatch: ['/Users/stavalfi/projects/k8test/packages/ci/__tests__/npm.spec.ts'],
+  testMatch: [path.join(__dirname, '__tests__/**/*.spec.ts')],
   globalSetup: path.join(__dirname, 'jest-global-setup.js'),
   globals: {
     APP_ID: k8test.randomAppId(),

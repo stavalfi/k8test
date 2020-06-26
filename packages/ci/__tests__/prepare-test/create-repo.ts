@@ -1,4 +1,3 @@
-import chance from 'chance'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import { GitServer } from './git-server-testkit'
@@ -27,13 +26,9 @@ async function initializeGitRepo({
   })
 }
 
-export async function createRepo(repo: Repo, gitServer: GitServer) {
-  const repoOrg = `org-${chance()
-    .hash()
-    .slice(0, 8)}`
-  const repoName = `repo-${chance()
-    .hash()
-    .slice(0, 8)}`
+export async function createRepo(repo: Repo, gitServer: GitServer, toActualName: (name: string) => string) {
+  const repoOrg = toActualName('org')
+  const repoName = toActualName('repo')
 
   const repoPath = await createFolder({
     'package.json': {
@@ -44,32 +39,38 @@ export async function createRepo(repo: Repo, gitServer: GitServer) {
     },
     '.dockerignore': `node_modules`,
     '.gitignore': 'node_modules',
-    ...repo.packages?.map(packageInfo => [
-      packageInfo.name,
-      {
-        'package.json': {
-          name: packageInfo.name,
-          version: packageInfo.version,
-          private: packageInfo.targetType === TargetType.npm,
-          ...(packageInfo.dependencies && {
-            dependencies: packageInfo.dependencies,
+    packages: Object.fromEntries(
+      repo.packages?.map(packageInfo => [
+        packageInfo.name,
+        {
+          'package.json': {
+            name: toActualName(packageInfo.name),
+            version: packageInfo.version,
+            private: packageInfo.targetType === TargetType.npm,
+            ...(packageInfo.dependencies && {
+              dependencies: Object.fromEntries(
+                Object.entries(packageInfo.dependencies).map(([key, value]) => [toActualName(key), value]),
+              ),
+            }),
+            ...(packageInfo.devDependencies && {
+              devDependencies: Object.fromEntries(
+                Object.entries(packageInfo.devDependencies).map(([key, value]) => [toActualName(key), value]),
+              ),
+            }),
+          },
+          ...(packageInfo.src && {
+            src: packageInfo.src,
           }),
-          ...(packageInfo.devDependencies && {
-            devDependencies: packageInfo.devDependencies,
+          ...(packageInfo.tests && {
+            tests: packageInfo.tests,
           }),
+          ...(packageInfo.targetType === TargetType.docker && {
+            Dockerfile: `FROM node`,
+          }),
+          ...packageInfo.additionalFiles,
         },
-        ...(packageInfo.src && {
-          src: packageInfo.src,
-        }),
-        ...(packageInfo.tests && {
-          tests: packageInfo.tests,
-        }),
-        ...(packageInfo.targetType === TargetType.docker && {
-          Dockerfile: `FROM node`,
-        }),
-        ...packageInfo.additionalFiles,
-      },
-    ]),
+      ]) || [],
+    ),
     ...repo.rootFiles,
   })
 

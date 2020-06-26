@@ -9,7 +9,7 @@ export type Auth = {
   npmRegistryToken: string
   gitServerUsername: string
   gitServerToken: string
-  skipDockerRegistryLogin: boolean
+  redisPassword?: string
   dockerRegistryUsername?: string
   dockerRegistryToken?: string
 }

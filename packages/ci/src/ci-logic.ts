@@ -10,10 +10,11 @@ import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
 import { Auth, Graph, PackageInfo } from './types'
+import Redis from 'ioredis'
 
 export { TargetType, PackageJson } from './types'
 
-const log = k8testLog('scripts:ci')
+const log = k8testLog('ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {
   const result = await execa.command('yarn workspaces --json info', {
@@ -31,12 +32,14 @@ async function getOrderedGraph({
   dockerRegistryAddress,
   dockerRepositoryName,
   npmRegistryAddress,
+  redisClient,
 }: {
   rootPath: string
   packagesPath: string[]
   npmRegistryAddress: string
   dockerRegistryAddress: string
   dockerRepositoryName: string
+  redisClient: Redis.Redis
 }): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
   return Promise.all(
@@ -49,16 +52,18 @@ async function getOrderedGraph({
         packageHash: node.data.packageHash,
         packagePath: node.data.packagePath,
         relativePackagePath: node.data.relativePackagePath,
+        redisClient,
       }),
     })),
   )
 }
 
-const isRepoModified = (rootPath: string) =>
-  execa.command('git diff-index HEAD --', { cwd: rootPath }).then(
+const isRepoModified = async (rootPath: string) => {
+  return execa.command('git status --porcelain', { cwd: rootPath }).then(
     () => false,
-    e => (console.error(e), true),
+    () => true,
   )
+}
 
 async function gitAmendChanges({
   auth,
@@ -104,13 +109,14 @@ export type ciOptions = {
   gitOrganizationName: string
   gitServerDomain: string
   gitServerConnectionType: string
+  redisIp: string
+  redisPort: number
   auth: Auth
 }
 
 export async function ci(options: ciOptions) {
   log('starting ci execution. options: %O', options)
 
-  await new Promise(res => setTimeout(res, 1))
   if (await isRepoModified(options.rootPath)) {
     // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
@@ -118,7 +124,7 @@ export async function ci(options: ciOptions) {
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
-  if (!options.auth.skipDockerRegistryLogin) {
+  if (options.auth.dockerRegistryUsername && options.auth.dockerRegistryToken) {
     log('logging in to docker-hub registry')
     // I need to login to read and push from `options.auth.dockerRegistryUsername` repository
     await execa.command(
@@ -128,6 +134,12 @@ export async function ci(options: ciOptions) {
     log('logged in to docker-hub registry')
   }
 
+  const redisClient = new Redis({
+    host: options.redisIp,
+    port: options.redisPort,
+    ...(options.auth.redisPassword && { password: options.auth.redisPassword }),
+  })
+
   const packagesPath = await getPackages(options.rootPath)
   const orderedGraph = await getOrderedGraph({
     rootPath: options.rootPath,
@@ -135,6 +147,7 @@ export async function ci(options: ciOptions) {
     dockerRegistryAddress: options.dockerRegistryAddress,
     dockerRepositoryName: options.dockerRepositoryName,
     npmRegistryAddress: options.npmRegistryAddress,
+    redisClient,
   })
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))

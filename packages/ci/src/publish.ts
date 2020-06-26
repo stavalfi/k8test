@@ -6,12 +6,12 @@ import path from 'path'
 import os from 'os'
 import fs from 'fs'
 
-const log = k8testLog('scripts:ci:publish')
+const log = k8testLog('ci:publish')
 
 async function setNpmToken(npmRegistryAddress: string, auth: Auth) {
   const globalNpmRcFile = path.join(os.homedir(), `.npmrc`)
 
-  const registryUrlWithoutHttp = npmRegistryAddress
+  const registryUrlWithoutHttp = npmRegistryAddress.replace('http://', '').replace('https://', '')
 
   const isAlreadyLoggedIn =
     fs.existsSync(globalNpmRcFile) &&

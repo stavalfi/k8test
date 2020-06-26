@@ -59,7 +59,7 @@ export async function setupInternalRedis(
     singletonStrategy: SingletonStrategy.oneInNamespace,
   })
 
-  const host = redisDeployment.deployedImageAddress
+  const host = redisDeployment.deployedImageIp
   const port = redisDeployment.deployedImagePort
 
   log(

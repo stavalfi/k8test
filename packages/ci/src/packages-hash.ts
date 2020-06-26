@@ -6,7 +6,7 @@ import _ from 'lodash'
 import { PackageJson, Graph } from './types'
 import k8testLog from 'k8test-log'
 
-const log = k8testLog('scripts:ci')
+const log = k8testLog('ci')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -183,6 +183,7 @@ export async function calculatePackagesHash(
 
   log('calculated hashes to every package in the monorepo:')
   log('root-files -> %s', rootFilesHash)
+  log('%d packages: ', result.length)
   result.forEach(node =>
     log(`%s (%s) -> %s`, node.data.relativePackagePath, node.data.packageJson.name, node.data.packageHash),
   )
