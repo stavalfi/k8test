@@ -2,30 +2,9 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType, Auth } from './types'
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
+import npmLogin from 'npm-login-noninteractive'
 
 const log = k8testLog('ci:publish')
-
-async function setNpmToken(npmRegistryAddress: string, auth: Auth) {
-  const globalNpmRcFile = path.join(os.homedir(), `.npmrc`)
-
-  const registryUrlWithoutHttp = npmRegistryAddress.replace('http://', '').replace('https://', '')
-
-  const isAlreadyLoggedIn =
-    fs.existsSync(globalNpmRcFile) &&
-    fs
-      .readFileSync(globalNpmRcFile)
-      .toString()
-      .includes(registryUrlWithoutHttp)
-
-  if (!isAlreadyLoggedIn) {
-    // eslint-disable-next-line no-process-env
-    const authData = `//${registryUrlWithoutHttp}/:_authToken=${auth.npmRegistryToken}`
-    fs.appendFileSync(globalNpmRcFile, `${authData}`)
-  }
-}
 
 async function publishNpm({
   isDryRun,
@@ -63,12 +42,9 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  await execa.command(`npm publish`, { stdio: 'pipe', cwd: packageInfo.packagePath })
+  await execa.command(`npm publish --registry ${npmRegistryAddress}`, { stdio: 'pipe', cwd: packageInfo.packagePath })
   await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash}`,
-    {
-      stdio: 'pipe',
-    },
+    `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
@@ -168,7 +144,12 @@ export async function publish(
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
     if (!options.isDryRun) {
       if (npm.length > 0) {
-        await setNpmToken(options.npmRegistryAddress, options.auth)
+        npmLogin(
+          options.auth.npmRegistryUsername,
+          options.auth.npmRegistryToken,
+          options.auth.npmRegistryEmail,
+          options.npmRegistryAddress,
+        )
       }
     }
 

@@ -6,6 +6,18 @@ declare module '@hutson/set-npm-auth-token-for-ci' {
   export default function(): void
 }
 
+declare module 'npm-login-noninteractive' {
+  // docs: https://github.com/icdevin/npm-login-noninteractive
+  export default function(
+    npmUsername: string,
+    npmPassword: string,
+    npmEmail: string,
+    npmRegistryAddress?: string, // example: https://npm.example.com or http://localhost:4873
+    scope?: string,
+    configPath?: string,
+  ): void
+}
+
 declare module 'object-delete-key' {
   export default function(
     originalInput: unknown,

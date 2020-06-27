@@ -29,6 +29,8 @@ const runCiCli = async (options: CiOptions) => {
     ${options.auth.dockerRegistryUsername ? `--docker-registry-username ${options.auth.dockerRegistryUsername}` : ''} \
     --git-server-token ${options.auth.gitServerToken} \
     --git-server-username ${options.auth.gitServerUsername} \
+    --npm-registry-username ${options.auth.npmRegistryUsername} \
+    --npm-registry-email ${options.auth.npmRegistryEmail} \
     --npm-registry-token ${options.auth.npmRegistryToken} \
     --git-server-connection-type ${options.gitServerConnectionType} \
     ${options.auth.redisPassword ? `--redis-password ${options.auth.redisPassword}` : ''} \
@@ -200,6 +202,12 @@ export const newEnv: NewEnvFunc = () => {
       const dockerIpWithPort = `${dockerRegistry.ip}:${dockerRegistry.port}`
       const npmIpWithPort = `http://${npmRegistryDeployment.deployedImageIp}:${npmRegistryDeployment.deployedImagePort}`
 
+      // verdaccio allow us to login as any user & password & email
+      const verdaccioCardentials = {
+        npmRegistryUsername: 'root',
+        npmRegistryToken: 'root',
+        npmRegistryEmail: 'root@root.root',
+      }
       await runCiCli({
         isMasterBuild,
         skipTests: Boolean(skipTests),
@@ -215,7 +223,7 @@ export const newEnv: NewEnvFunc = () => {
         redisIp: redisDeployment.deployedImageIp,
         redisPort: redisDeployment.deployedImagePort,
         auth: {
-          npmRegistryToken: 'cm95IHNvbW1lciB3YXMgaGVyZQ==',
+          ...verdaccioCardentials,
           gitServerToken: gitServer.getToken(),
           gitServerUsername: gitServer.getUsername(),
         },

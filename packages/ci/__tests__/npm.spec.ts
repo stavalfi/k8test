@@ -18,10 +18,9 @@ describe('npm', () => {
       isMasterBuild: false,
     })
     expect(pr.published).toHaveProperty('size', 0)
-
-    // const master = await ci({
-    //   isMasterBuild: true,
-    // })
-    // expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+    const master = await ci({
+      isMasterBuild: true,
+    })
+    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
   })
 })

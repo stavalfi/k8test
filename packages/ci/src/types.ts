@@ -6,6 +6,8 @@ export type PackageJson = {
 }
 
 export type Auth = {
+  npmRegistryUsername: string
+  npmRegistryEmail: string
   npmRegistryToken: string
   gitServerUsername: string
   gitServerToken: string

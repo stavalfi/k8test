@@ -38,9 +38,17 @@ const app = command({
       defaultValue: () => 'https://registry.npmjs.org',
       description: 'npm registry address to publish npm-targets to',
     }),
+    'npm-registry-username': option({
+      type: string,
+      long: 'npm-registry-username',
+    }),
     'npm-registry-token': option({
       type: string,
       long: 'npm-registry-token',
+    }),
+    'npm-registry-email': option({
+      type: string,
+      long: 'npm-registry-email',
     }),
     'redis-endpoint': option({
       type: string,
@@ -117,6 +125,8 @@ const app = command({
           dockerRegistryUsername: args['docker-registry-username'],
           gitServerUsername: args['git-server-username'],
           gitServerToken: args['git-server-token'],
+          npmRegistryUsername: args['npm-registry-username'],
+          npmRegistryEmail: args['npm-registry-email'],
           npmRegistryToken: args['npm-registry-token'],
           redisPassword: args['redis-password'],
         },
