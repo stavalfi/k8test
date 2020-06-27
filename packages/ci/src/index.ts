@@ -21,10 +21,10 @@ const app = command({
       type: boolean,
       long: 'master-build',
     }),
-    'run-tests': flag({
+    'skip-tests': flag({
       type: boolean,
-      long: 'run-tests',
-      defaultValue: () => true,
+      long: 'skip-tests',
+      defaultValue: () => false,
     }),
     cwd: option({
       type: string,
@@ -102,7 +102,7 @@ const app = command({
         isDryRun: args['dry-run'],
         rootPath: args.cwd,
         isMasterBuild: args['master-build'],
-        runTests: args['run-tests'],
+        skipTests: args['skip-tests'],
         gitRepositoryName: args['git-repository'],
         gitOrganizationName: args['git-organization'],
         gitServerDomain: args['git-server-domain'],

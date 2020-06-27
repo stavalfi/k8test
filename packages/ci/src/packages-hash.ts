@@ -6,7 +6,7 @@ import _ from 'lodash'
 import { PackageJson, Graph } from './types'
 import k8testLog from 'k8test-log'
 
-const log = k8testLog('ci')
+const log = k8testLog('ci:packages-hash')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)

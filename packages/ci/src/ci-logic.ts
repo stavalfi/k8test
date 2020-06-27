@@ -97,11 +97,11 @@ async function gitAmendChanges({
   }
 }
 
-export type ciOptions = {
+export type CiOptions = {
   rootPath: string
   isMasterBuild: boolean
   isDryRun: boolean
-  runTests: boolean
+  skipTests: boolean
   npmRegistryAddress: string
   dockerRegistryAddress: string
   dockerRepositoryName: string
@@ -114,7 +114,7 @@ export type ciOptions = {
   auth: Auth
 }
 
-export async function ci(options: ciOptions) {
+export async function ci(options: CiOptions) {
   log('starting ci execution. options: %O', options)
 
   if (await isRepoModified(options.rootPath)) {
@@ -158,11 +158,11 @@ export async function ci(options: ciOptions) {
     })
   })
 
-  if (options.runTests) {
-    // await execa.command('yarn test', {
-    //   cwd: options.rootPath,
-    //   stdio: 'inherit',
-    // })
+  if (!options.skipTests) {
+    await execa.command('yarn test', {
+      cwd: options.rootPath,
+      stdio: 'inherit',
+    })
   }
 
   if (options.isMasterBuild) {
@@ -197,4 +197,5 @@ export async function ci(options: ciOptions) {
       }
     }
   }
+  await redisClient.quit()
 }

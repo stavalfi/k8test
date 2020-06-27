@@ -5,6 +5,7 @@ import { Graph, PackageInfo } from './types'
 const log = k8testLog('ci:promote')
 
 export async function promote(orderedGraph: Graph<PackageInfo>): Promise<PackageInfo[]> {
+  log('start promoting packages...')
   const toPromote = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   if (toPromote.length === 0) {

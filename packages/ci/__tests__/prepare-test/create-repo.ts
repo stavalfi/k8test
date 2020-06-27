@@ -36,6 +36,9 @@ export async function createRepo(repo: Repo, gitServer: GitServer, toActualName:
       version: '1.0.0',
       private: true,
       workspaces: ['packages/*'],
+      scripts: {
+        test: 'echo running tests..... no tests to run',
+      },
     },
     '.dockerignore': `node_modules`,
     '.gitignore': 'node_modules',
@@ -46,7 +49,7 @@ export async function createRepo(repo: Repo, gitServer: GitServer, toActualName:
           'package.json': {
             name: toActualName(packageInfo.name),
             version: packageInfo.version,
-            private: packageInfo.targetType === TargetType.npm,
+            private: packageInfo.targetType !== TargetType.npm,
             ...(packageInfo.dependencies && {
               dependencies: Object.fromEntries(
                 Object.entries(packageInfo.dependencies).map(([key, value]) => [toActualName(key), value]),

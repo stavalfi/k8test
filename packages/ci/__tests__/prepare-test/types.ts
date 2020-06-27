@@ -32,7 +32,7 @@ export type Repo = {
 export type CiOptions = {
   isMasterBuild: boolean
   isDryRun?: boolean
-  runTests?: boolean
+  skipTests?: boolean
 }
 
 export type PublishedPackageInfo = {

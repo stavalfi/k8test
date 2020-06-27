@@ -1,24 +1,24 @@
 import chance from 'chance'
 import execa from 'execa'
 import got from 'got'
+import Redis from 'ioredis'
 import { SingletonStrategy, subscribe, Subscription } from 'k8test'
 import path from 'path'
 import semver from 'semver'
-import { ciOptions } from '../../src/ci-logic'
+import { CiOptions } from '../../src/ci-logic'
 import { createRepo } from './create-repo'
 import { GitServer, starGittServer } from './git-server-testkit'
 import { NewEnvFunc, PublishedPackageInfo, TargetType } from './types'
-import Redis from 'ioredis'
 
 const ciCliPath = path.join(__dirname, '../../dist/src/index.js')
 
-const runCiCli = async (options: ciOptions) => {
+const runCiCli = async (options: CiOptions) => {
   const command = `\
   ${ciCliPath}\
     --cwd ${options.rootPath} \
     --master-build=${options.isMasterBuild} \
     --dry-run=${options.isDryRun} \
-    --run-tests=${options.runTests} \
+    --skip-tests=${options.skipTests} \
     --docker-registry ${options.dockerRegistryAddress} \
     --npm-registry ${options.npmRegistryAddress} \
     --git-server-domain ${options.gitServerDomain} \
@@ -40,10 +40,18 @@ const runCiCli = async (options: ciOptions) => {
 }
 
 async function latestNpmPackageVersion(packageName: string, npmRegistryAddress: string): Promise<string> {
-  const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
-  const resultJson = JSON.parse(result.stdout) || {}
-  const distTags = resultJson['dist-tags'] as { [key: string]: string }
-  return distTags['latest']
+  try {
+    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
+    const resultJson = JSON.parse(result.stdout) || {}
+    const distTags = resultJson['dist-tags'] as { [key: string]: string }
+    return distTags['latest']
+  } catch (e) {
+    if (e.message.includes('code E404')) {
+      return ''
+    } else {
+      throw e
+    }
+  }
 }
 
 async function publishedNpmPackageVersions(packageName: string, npmRegistryAddress: string): Promise<string[]> {
@@ -65,11 +73,19 @@ async function latestDockerImageTag(
   dockerRepositoryName: string,
   dockerRegistryAddress: string,
 ): Promise<string> {
-  const result = await execa.command(
-    `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
-  )
-  const resultJson = JSON.parse(result.stdout) || {}
-  return resultJson.Labels?.['latest-tag']
+  try {
+    const result = await execa.command(
+      `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
+    )
+    const resultJson = JSON.parse(result.stdout) || {}
+    return resultJson.Labels?.['latest-tag']
+  } catch (e) {
+    if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
+      return ''
+    } else {
+      throw e
+    }
+  }
 }
 
 async function publishedDockerImageTags(
@@ -79,7 +95,7 @@ async function publishedDockerImageTags(
 ): Promise<string[]> {
   try {
     const result = await execa.command(
-      `skopeo inspect  --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
+      `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
     )
     const resultJson = JSON.parse(result.stdout) || {}
     return resultJson.RepoTags?.filter((tag: string) => semver.valid(tag)).filter(Boolean) || []
@@ -179,14 +195,14 @@ export const newEnv: NewEnvFunc = () => {
 
     const { repoPath, repoName, repoOrg } = await createRepo(repo, gitServer, toActualName)
 
-    return async ({ isMasterBuild, isDryRun, runTests }) => {
+    return async ({ isMasterBuild, isDryRun, skipTests }) => {
       const dockerRepositoryName = toActualName('repo')
       const dockerIpWithPort = `${dockerRegistry.ip}:${dockerRegistry.port}`
       const npmIpWithPort = `http://${npmRegistryDeployment.deployedImageIp}:${npmRegistryDeployment.deployedImagePort}`
 
       await runCiCli({
         isMasterBuild,
-        runTests: Boolean(runTests),
+        skipTests: Boolean(skipTests),
         isDryRun: Boolean(isDryRun),
         dockerRegistryAddress: dockerIpWithPort,
         npmRegistryAddress: npmIpWithPort,
@@ -205,7 +221,7 @@ export const newEnv: NewEnvFunc = () => {
         },
       })
 
-      const published = await Promise.all(
+      const packages = await Promise.all(
         repo.packages
           ?.filter(packageInfo => packageInfo.targetType === TargetType.npm)
           ?.map(packageInfo => packageInfo.name)
@@ -231,6 +247,10 @@ export const newEnv: NewEnvFunc = () => {
               },
             ]
           }) || [],
+      )
+
+      const published = packages.filter(
+        ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.latestVersion,
       )
 
       return {

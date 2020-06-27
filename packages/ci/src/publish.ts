@@ -155,6 +155,7 @@ export async function publish(
     auth: Auth
   },
 ) {
+  log('start publishing packages...')
   const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   // todo: optimize it even more - we can run all in parallel but we must make sure that every docker has all it's npm dep already published

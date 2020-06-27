@@ -22,7 +22,9 @@ async function getNpmLatestVersionInfo(
   | undefined
 > {
   try {
-    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
+    const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
+    log('searching the latest tag and hash: "%s"', command)
+    const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const latestVersion = distTags['latest']
@@ -30,12 +32,16 @@ async function getNpmLatestVersionInfo(
       Object.entries(distTags).find(
         ([key, value]) => value === latestVersion && key.startsWith('latest-hash--'),
       )?.[0] || `latest-hash--could-not-find-remote-hash-that-points-to-version-${latestVersion}`
-    return {
+    const latest = {
       latestVersionHash: latestVersionHashResult.replace('latest-hash--', ''),
       latestVersion,
     }
+    log('latest tag and hash for "%s" are: "%O"', packageName, latest)
+    return latest
   } catch (e) {
-    if (!e.message.includes('code E404')) {
+    if (e.message.includes('code E404')) {
+      log(`"%s" weren't published`, packageName)
+    } else {
       throw e
     }
   }
@@ -47,16 +53,20 @@ async function getDockerLatestTagInfo(
   redisClient: Redis,
 ): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
   try {
-    const comamnd = `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`
-    log('searching the latest tag and hash: "%s"', comamnd)
-    const result = await execa.command(comamnd)
+    const command = `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`
+    log('searching the latest tag and hash: "%s"', command)
+    const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
-    return {
+    const latest = {
       latestTagHash: resultJson.Labels?.['latest-hash'],
       latestTag: resultJson.Labels?.['latest-tag'],
     }
+    log('latest tag and hash for "%s" are: "%O"', imageNameWithRepository, latest)
+    return latest
   } catch (e) {
-    if (!e.stderr.includes('authentication required') && !e.stderr.includes('manifest unknown')) {
+    if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
+      log(`"%s" weren't published`, imageNameWithRepository)
+    } else {
       throw e
     }
   }
