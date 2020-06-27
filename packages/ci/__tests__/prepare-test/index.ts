@@ -1,5 +1,6 @@
 import chance from 'chance'
 import execa from 'execa'
+import fse from 'fs-extra'
 import got from 'got'
 import Redis from 'ioredis'
 import { SingletonStrategy, subscribe, Subscription } from 'k8test'
@@ -8,7 +9,15 @@ import semver from 'semver'
 import { CiOptions } from '../../src/ci-logic'
 import { createRepo } from './create-repo'
 import { GitServer, starGittServer } from './git-server-testkit'
-import { NewEnvFunc, PublishedPackageInfo, TargetType } from './types'
+import {
+  NewEnvFunc,
+  PublishedPackageInfo,
+  RunCi,
+  TargetType,
+  ToActualName,
+  CreateAndManageRepo,
+  NpmRegistry,
+} from './types'
 
 const ciCliPath = path.join(__dirname, '../../dist/src/index.js')
 
@@ -60,7 +69,7 @@ async function publishedNpmPackageVersions(packageName: string, npmRegistryAddre
   try {
     const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
     const resultJson = JSON.parse(result.stdout) || {}
-    return resultJson.version
+    return resultJson.versions
   } catch (e) {
     if (e.message.includes('code E404')) {
       return []
@@ -110,7 +119,7 @@ async function publishedDockerImageTags(
   }
 }
 
-const isRedisReadyPredicate = (url: string, host: string, port: number) => {
+const isRedisReadyPredicate = (_url: string, host: string, port: number) => {
   const redis = new Redis({
     host,
     port,
@@ -127,7 +136,87 @@ const isRedisReadyPredicate = (url: string, host: string, port: number) => {
   })
 }
 
-export const newEnv: NewEnvFunc = () => {
+async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: string) {
+  await execa.command('git add --all', { cwd: repoPath })
+  await execa.command('git commit -m init', { cwd: repoPath })
+  await execa.command(`git push ${gitRepoAddress}`, { cwd: repoPath })
+}
+
+async function getPackages(rootPath: string): Promise<string[]> {
+  const result = await execa.command('yarn workspaces --json info', {
+    cwd: rootPath,
+  })
+  const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
+  return Object.values(workspacesInfo)
+    .map(workspaceInfo => workspaceInfo.location)
+    .map(relativePackagePath => path.join(rootPath, relativePackagePath))
+}
+
+const addRandomFileToPackage = ({
+  repoPath,
+  toActualName,
+  gitRepoAddress,
+}: {
+  toActualName: ToActualName
+  repoPath: string
+  gitRepoAddress: string
+}) => async (packageName: string): Promise<string> => {
+  const packagesPath = await getPackages(repoPath)
+  const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
+  if (!packagePath) {
+    throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
+  }
+  const filePath = path.join(repoPath, `random-file-${chance().hash()}`)
+  await fse.writeFile(path.join(repoPath, `random-file-${chance().hash()}`), '')
+
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+  return filePath
+}
+
+const installAndRunNpmDependency = async ({
+  toActualName,
+  createRepo,
+  npmRegistry,
+  dependencyName,
+}: {
+  toActualName: ToActualName
+  npmRegistry: NpmRegistry
+  createRepo: CreateAndManageRepo
+  dependencyName: string
+}): Promise<execa.ExecaChildProcess<string>> => {
+  const { getPackagePath } = await createRepo({
+    packages: [
+      {
+        name: 'b',
+        version: '2.0.0',
+        targetType: TargetType.none,
+        dependencies: {
+          [toActualName(dependencyName)]: `http://${npmRegistry.ip}:${npmRegistry.port}/${toActualName(
+            dependencyName,
+          )}/-/${toActualName(dependencyName)}-1.0.0.tgz`,
+        },
+        'index.js': `require("${toActualName(dependencyName)}")`,
+      },
+    ],
+  })
+  return execa.node(path.join(await getPackagePath('b'), 'index.js'))
+}
+
+const addRandomFileToRoot = ({
+  repoPath,
+  gitRepoAddress,
+}: {
+  repoPath: string
+  gitRepoAddress: string
+}) => async (): Promise<string> => {
+  const filePath = path.join(repoPath, `random-file-${chance().hash()}`)
+  await fse.writeFile(path.join(repoPath, `random-file-${chance().hash()}`), '')
+
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+  return filePath
+}
+
+function prepareTestResources() {
   let dockerRegistry: {
     containerId: string
     port: string
@@ -137,13 +226,8 @@ export const newEnv: NewEnvFunc = () => {
   let redisDeployment: Subscription
   let gitServer: GitServer
 
-  beforeEach(async () => {
-    gitServer = await starGittServer()
-  })
-  afterEach(async () => {
-    gitServer.close()
-  })
   beforeAll(async () => {
+    gitServer = await starGittServer()
     const deployments = await Promise.all([
       subscribe({
         imageName: 'verdaccio/verdaccio',
@@ -181,6 +265,7 @@ export const newEnv: NewEnvFunc = () => {
   })
   afterAll(async () => {
     await Promise.all([
+      gitServer.close(),
       npmRegistryDeployment.unsubscribe(),
       execa
         .command(`docker kill ${dockerRegistry.containerId}`)
@@ -188,19 +273,69 @@ export const newEnv: NewEnvFunc = () => {
     ])
   })
 
-  return async (repo = {}) => {
+  return {
+    get: () => ({
+      npmRegistry: {
+        ip: npmRegistryDeployment.deployedImageIp,
+        port: npmRegistryDeployment.deployedImagePort,
+      },
+      dockerRegistry: {
+        ip: dockerRegistry.ip,
+        port: dockerRegistry.port,
+      },
+      redis: {
+        ip: redisDeployment.deployedImageIp,
+        port: redisDeployment.deployedImagePort,
+      },
+      gitServer,
+    }),
+  }
+}
+
+export const newEnv: NewEnvFunc = () => {
+  const testResources = prepareTestResources()
+
+  const createAndManageReo: CreateAndManageRepo = async (repo = {}) => {
     const resourcesNamesPostfix = chance()
       .hash()
       .slice(0, 8)
 
-    const toActualName = (name: string) => `${name}-${resourcesNamesPostfix}`
+    const toActualName = (name: string) =>
+      name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
 
-    const { repoPath, repoName, repoOrg } = await createRepo(repo, gitServer, toActualName)
+    const { dockerRegistry, npmRegistry, gitServer, redis } = testResources.get()
+    const dockerIpWithPort = `${dockerRegistry.ip}:${dockerRegistry.port}`
 
-    return async ({ isMasterBuild, isDryRun, skipTests }) => {
+    const { repoPath, repoName, repoOrg } = await createRepo({
+      repo,
+      gitServer,
+      toActualName,
+    })
+
+    const getPackagePath = async (packageName: string) => {
+      const packagesPath = await getPackages(repoPath)
+      const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
+      if (!packagePath) {
+        throw new Error(
+          `bug: could not create repo correctly. missing folder: packages/${toActualName(packageName)} in: ${repoPath}`,
+        )
+      }
+      return packagePath
+    }
+
+    const addRandomFileToPackage_ = addRandomFileToPackage({
+      repoPath,
+      gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+      toActualName,
+    })
+
+    const addRandomFileToRoot_ = addRandomFileToRoot({
+      repoPath,
+      gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+    })
+
+    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests }) => {
       const dockerRepositoryName = toActualName('repo')
-      const dockerIpWithPort = `${dockerRegistry.ip}:${dockerRegistry.port}`
-      const npmIpWithPort = `http://${npmRegistryDeployment.deployedImageIp}:${npmRegistryDeployment.deployedImagePort}`
 
       // verdaccio allow us to login as any user & password & email
       const verdaccioCardentials = {
@@ -213,15 +348,15 @@ export const newEnv: NewEnvFunc = () => {
         skipTests: Boolean(skipTests),
         isDryRun: Boolean(isDryRun),
         dockerRegistryAddress: dockerIpWithPort,
-        npmRegistryAddress: npmIpWithPort,
+        npmRegistryAddress: `http://${npmRegistry.ip}:${npmRegistry.port}`,
         gitServerConnectionType: gitServer.getConnectionType(),
         gitServerDomain: gitServer.getDomain(),
         dockerRepositoryName,
         gitOrganizationName: repoOrg,
         gitRepositoryName: repoName,
         rootPath: repoPath,
-        redisIp: redisDeployment.deployedImageIp,
-        redisPort: redisDeployment.deployedImagePort,
+        redisIp: redis.ip,
+        redisPort: redis.port,
         auth: {
           ...verdaccioCardentials,
           gitServerToken: gitServer.getToken(),
@@ -236,8 +371,8 @@ export const newEnv: NewEnvFunc = () => {
           ?.map<Promise<[string, PublishedPackageInfo]>>(async packageName => {
             const actualName = toActualName(packageName)
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
-              publishedNpmPackageVersions(actualName, npmIpWithPort),
-              latestNpmPackageVersion(actualName, npmIpWithPort),
+              publishedNpmPackageVersions(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
+              latestNpmPackageVersion(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
               publishedDockerImageTags(actualName, dockerRepositoryName, dockerIpWithPort),
               latestDockerImageTag(actualName, dockerRepositoryName, dockerIpWithPort),
             ])
@@ -265,5 +400,25 @@ export const newEnv: NewEnvFunc = () => {
         published: new Map(published),
       }
     }
+
+    return {
+      repoPath,
+      getPackagePath,
+      addRandomFileToPackage: addRandomFileToPackage_,
+      addRandomFileToRoot: addRandomFileToRoot_,
+      npmRegistryAddress: `http://${npmRegistry.ip}:${npmRegistry.port}`,
+      runCi,
+      installAndRunNpmDependency: (dependencyName: string) =>
+        installAndRunNpmDependency({
+          createRepo: createAndManageReo,
+          npmRegistry: testResources.get().npmRegistry,
+          toActualName,
+          dependencyName,
+        }),
+    }
+  }
+
+  return {
+    createRepo: createAndManageReo,
   }
 }

@@ -1,22 +1,22 @@
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
-const createRepo = newEnv()
+const { createRepo } = newEnv()
 
 test('empty repo', async () => {
-  const ci = await createRepo()
-  const pr = await ci({
+  const { runCi } = await createRepo()
+  const pr = await runCi({
     isMasterBuild: false,
   })
   expect(pr.published).toHaveProperty('size', 0)
-  const master = await ci({
+  const master = await runCi({
     isMasterBuild: true,
   })
   expect(master.published).toHaveProperty('size', 0)
 })
 
 test('artifacts without targets', async () => {
-  const ci = await createRepo({
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -25,11 +25,11 @@ test('artifacts without targets', async () => {
       },
     ],
   })
-  const pr = await ci({
+  const pr = await runCi({
     isMasterBuild: false,
   })
   expect(pr.published).toHaveProperty('size', 0)
-  const master = await ci({
+  const master = await runCi({
     isMasterBuild: true,
   })
   expect(master.published).toHaveProperty('size', 0)

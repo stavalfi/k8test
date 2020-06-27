@@ -1,7 +1,8 @@
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import { GitServer } from './git-server-testkit'
-import { Repo, TargetType } from './types'
+import { Repo, TargetType, ToActualName } from './types'
+import chance from 'chance'
 
 async function initializeGitRepo({
   gitServer,
@@ -22,13 +23,24 @@ async function initializeGitRepo({
 
   await execa.command(`git push ${gitServer.generateGitRepositoryAddress(org, name)} -u master`, {
     cwd: repoPath,
-    stdio: 'inherit',
   })
 }
 
-export async function createRepo(repo: Repo, gitServer: GitServer, toActualName: (name: string) => string) {
+export async function createRepo({
+  toActualName,
+  repo,
+  gitServer,
+}: {
+  repo: Repo
+  gitServer: GitServer
+  toActualName: ToActualName
+}) {
   const repoOrg = toActualName('org')
-  const repoName = toActualName('repo')
+  const repoName = `repo-${chance()
+    .hash()
+    .slice(0, 8)}`
+
+  const isFromThisMonorepo = (depName: string) => repo.packages?.some(packageInfo => packageInfo.name === depName)
 
   const repoPath = await createFolder({
     'package.json': {
@@ -44,23 +56,31 @@ export async function createRepo(repo: Repo, gitServer: GitServer, toActualName:
     '.gitignore': 'node_modules',
     packages: Object.fromEntries(
       repo.packages?.map(packageInfo => [
-        packageInfo.name,
+        toActualName(packageInfo.name),
         {
           'package.json': {
             name: toActualName(packageInfo.name),
             version: packageInfo.version,
             private: packageInfo.targetType !== TargetType.npm,
+            ...(packageInfo['index.js'] && { main: 'index.js' }),
             ...(packageInfo.dependencies && {
               dependencies: Object.fromEntries(
-                Object.entries(packageInfo.dependencies).map(([key, value]) => [toActualName(key), value]),
+                Object.entries(packageInfo.dependencies).map(([key, value]) => [
+                  isFromThisMonorepo(key) ? toActualName(key) : key,
+                  value,
+                ]),
               ),
             }),
             ...(packageInfo.devDependencies && {
               devDependencies: Object.fromEntries(
-                Object.entries(packageInfo.devDependencies).map(([key, value]) => [toActualName(key), value]),
+                Object.entries(packageInfo.devDependencies).map(([key, value]) => [
+                  isFromThisMonorepo(key) ? toActualName(key) : key,
+                  value,
+                ]),
               ),
             }),
           },
+          ...(packageInfo['index.js'] && { 'index.js': packageInfo['index.js'] }),
           ...(packageInfo.src && {
             src: packageInfo.src,
           }),

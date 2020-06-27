@@ -11,6 +11,7 @@ import { promote } from './promote'
 import { publish } from './publish'
 import { Auth, Graph, PackageInfo } from './types'
 import Redis from 'ioredis'
+import fse from 'fs-extra'
 
 export { TargetType, PackageJson } from './types'
 
@@ -120,6 +121,11 @@ export async function ci(options: CiOptions) {
   if (await isRepoModified(options.rootPath)) {
     // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
     throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
+  }
+
+  // @ts-ignore
+  if (!(await fse.exists(path.join(options.rootPath, 'yarn.lock')))) {
+    throw new Error(`project must have yarn.lock file in the root folder of the repository`)
   }
 
   log('calculate hash of every package and check which packages changed since their last publish')
