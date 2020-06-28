@@ -9,12 +9,13 @@ import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
-import { Auth, Graph, PackageInfo } from './types'
+import { Auth, Graph, PackageInfo, CiOptions, ExtendedAuth } from './types'
 import Redis from 'ioredis'
 import fse from 'fs-extra'
+import { getDockerRegistryApiToken } from './docker-utils'
 
 export { TargetType, PackageJson } from './types'
-
+export { getDockerImageLabels } from './docker-utils'
 const log = k8testLog('ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {
@@ -31,16 +32,18 @@ async function getOrderedGraph({
   packagesPath,
   rootPath,
   dockerRegistryAddress,
-  dockerRepositoryName,
+  dockerOrganizationName,
   npmRegistryAddress,
   redisClient,
+  auth,
 }: {
   rootPath: string
   packagesPath: string[]
   npmRegistryAddress: string
   dockerRegistryAddress: string
-  dockerRepositoryName: string
+  dockerOrganizationName: string
   redisClient: Redis.Redis
+  auth: Pick<ExtendedAuth, 'dockerRegistryApiToken'>
 }): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
   return Promise.all(
@@ -48,12 +51,13 @@ async function getOrderedGraph({
       ...node,
       data: await getPackageInfo({
         dockerRegistryAddress,
-        dockerRepositoryName,
+        dockerOrganizationName,
         npmRegistryAddress,
         packageHash: node.data.packageHash,
         packagePath: node.data.packagePath,
         relativePackagePath: node.data.relativePackagePath,
         redisClient,
+        auth,
       }),
     })),
   )
@@ -98,23 +102,6 @@ async function gitAmendChanges({
   }
 }
 
-export type CiOptions = {
-  rootPath: string
-  isMasterBuild: boolean
-  isDryRun: boolean
-  skipTests: boolean
-  npmRegistryAddress: string
-  dockerRegistryAddress: string
-  dockerRepositoryName: string
-  gitRepositoryName: string
-  gitOrganizationName: string
-  gitServerDomain: string
-  gitServerConnectionType: string
-  redisIp: string
-  redisPort: number
-  auth: Auth
-}
-
 export async function ci(options: CiOptions) {
   log('starting ci execution. options: %O', options)
 
@@ -130,15 +117,9 @@ export async function ci(options: CiOptions) {
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
-  if (options.auth.dockerRegistryUsername && options.auth.dockerRegistryToken) {
-    log('logging in to docker-hub registry')
-    // I need to login to read and push from `options.auth.dockerRegistryUsername` repository
-    await execa.command(
-      `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
-      { stdio: 'pipe' },
-    )
-    log('logged in to docker-hub registry')
-  }
+  log('logging in to docker-hub registry')
+  const dockerRegistryApiToken = await getDockerRegistryApiToken(options.auth)
+  log('logged in to docker-hub registry')
 
   const redisClient = new Redis({
     host: options.redisIp,
@@ -151,9 +132,12 @@ export async function ci(options: CiOptions) {
     rootPath: options.rootPath,
     packagesPath,
     dockerRegistryAddress: options.dockerRegistryAddress,
-    dockerRepositoryName: options.dockerRepositoryName,
+    dockerOrganizationName: options.dockerOrganizationName,
     npmRegistryAddress: options.npmRegistryAddress,
     redisClient,
+    auth: {
+      dockerRegistryApiToken,
+    },
   })
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
@@ -187,7 +171,7 @@ export async function ci(options: CiOptions) {
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
         dockerRegistryAddress: options.dockerRegistryAddress,
-        dockerRepositoryName: options.dockerRepositoryName,
+        dockerOrganizationName: options.dockerOrganizationName,
         npmRegistryAddress: options.npmRegistryAddress,
         auth: options.auth,
       })

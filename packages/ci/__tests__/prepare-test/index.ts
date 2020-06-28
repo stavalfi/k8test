@@ -6,7 +6,8 @@ import Redis from 'ioredis'
 import { SingletonStrategy, subscribe, Subscription } from 'k8test'
 import path from 'path'
 import semver from 'semver'
-import { CiOptions } from '../../src/ci-logic'
+import { CiOptions } from '../../src/types'
+import { getDockerImageLabels } from '../../src/docker-utils'
 import { createRepo } from './create-repo'
 import { GitServer, starGittServer } from './git-server-testkit'
 import {
@@ -31,7 +32,7 @@ const runCiCli = async (options: CiOptions) => {
     --docker-registry ${options.dockerRegistryAddress} \
     --npm-registry ${options.npmRegistryAddress} \
     --git-server-domain ${options.gitServerDomain} \
-    --docker-repository ${options.dockerRepositoryName} \
+    --docker-repository ${options.dockerOrganizationName} \
     --git-organization ${options.gitOrganizationName} \
     --git-repository ${options.gitRepositoryName} \
     ${options.auth.dockerRegistryToken ? `--docker-registry-token ${options.auth.dockerRegistryToken}` : ''} \
@@ -81,15 +82,17 @@ async function publishedNpmPackageVersions(packageName: string, npmRegistryAddre
 
 async function latestDockerImageTag(
   imageName: string,
-  dockerRepositoryName: string,
+  dockerOrganizationName: string,
   dockerRegistryAddress: string,
 ): Promise<string> {
   try {
-    const result = await execa.command(
-      `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
-    )
-    const resultJson = JSON.parse(result.stdout) || {}
-    return resultJson.Labels?.['latest-tag']
+    const result = await getDockerImageLabels({
+      dockerOrganizationName,
+      dockerRegistryAddress,
+      imageName,
+      imageTag: 'latest',
+    })
+    return result.latestTag
   } catch (e) {
     if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
       return ''
@@ -101,15 +104,17 @@ async function latestDockerImageTag(
 
 async function publishedDockerImageTags(
   imageName: string,
-  dockerRepositoryName: string,
+  dockerOrganizationName: string,
   dockerRegistryAddress: string,
 ): Promise<string[]> {
   try {
-    const result = await execa.command(
-      `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${dockerRepositoryName}/${imageName}:latest`,
+    const result = await got.get<string[]>(
+      `${dockerRegistryAddress}/v2/repositories/${dockerOrganizationName}/${imageName}/tags`,
+      {
+        resolveBodyOnly: true,
+      },
     )
-    const resultJson = JSON.parse(result.stdout) || {}
-    return resultJson.RepoTags?.filter((tag: string) => semver.valid(tag)).filter(Boolean) || []
+    return result.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean)
   } catch (e) {
     if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
       return []
@@ -335,7 +340,7 @@ export const newEnv: NewEnvFunc = () => {
     })
 
     const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests }) => {
-      const dockerRepositoryName = toActualName('repo')
+      const dockerOrganizationName = toActualName('repo')
 
       // verdaccio allow us to login as any user & password & email
       const verdaccioCardentials = {
@@ -351,7 +356,7 @@ export const newEnv: NewEnvFunc = () => {
         npmRegistryAddress: `http://${npmRegistry.ip}:${npmRegistry.port}`,
         gitServerConnectionType: gitServer.getConnectionType(),
         gitServerDomain: gitServer.getDomain(),
-        dockerRepositoryName,
+        dockerOrganizationName,
         gitOrganizationName: repoOrg,
         gitRepositoryName: repoName,
         rootPath: repoPath,
@@ -373,8 +378,8 @@ export const newEnv: NewEnvFunc = () => {
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
               publishedNpmPackageVersions(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
               latestNpmPackageVersion(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
-              publishedDockerImageTags(actualName, dockerRepositoryName, dockerIpWithPort),
-              latestDockerImageTag(actualName, dockerRepositoryName, dockerIpWithPort),
+              publishedDockerImageTags(actualName, dockerOrganizationName, dockerIpWithPort),
+              latestDockerImageTag(actualName, dockerOrganizationName, dockerIpWithPort),
             ])
             return [
               packageName,

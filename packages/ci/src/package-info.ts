@@ -2,9 +2,10 @@ import execa from 'execa'
 import fs from 'fs-extra'
 import path from 'path'
 import semver from 'semver'
-import { PackageInfo, TargetInfo, TargetType } from './types'
+import { PackageInfo, TargetInfo, TargetType, ExtendedAuth } from './types'
 import { Redis } from 'ioredis'
 import k8testLog from 'k8test-log'
+import { getDockerImageLabels } from './ci-logic'
 
 const log = k8testLog('ci:package-info')
 
@@ -47,25 +48,36 @@ async function getNpmLatestVersionInfo(
   }
 }
 
-async function getDockerLatestTagInfo(
-  imageNameWithRepository: string,
-  dockerRegistryAddress: string,
-  redisClient: Redis,
-): Promise<{ latestTagHash: string; latestTag: string } | undefined> {
+async function getDockerLatestTagInfo({
+  dockerRegistryAddress,
+  imageName,
+  dockerOrganizationName,
+  redisClient,
+  dockerRegistryApiToken,
+}: {
+  imageName: string
+  dockerRegistryAddress: string
+  dockerOrganizationName: string
+  redisClient: Redis
+  dockerRegistryApiToken?: string
+}): Promise<{ latestHash: string; latestTag: string } | undefined> {
+  const imageTag = 'latest'
+  const fullImageName = `${dockerRegistryAddress}/${dockerOrganizationName}/${imageName}:${imageTag}`
   try {
-    const command = `skopeo inspect --tls-verify=false docker://${dockerRegistryAddress}/${imageNameWithRepository}:latest`
+    const command = `skopeo inspect --tls-verify=false docker://${fullImageName}`
     log('searching the latest tag and hash: "%s"', command)
-    const result = await execa.command(command)
-    const resultJson = JSON.parse(result.stdout) || {}
-    const latest = {
-      latestTagHash: resultJson.Labels?.['latest-hash'],
-      latestTag: resultJson.Labels?.['latest-tag'],
-    }
-    log('latest tag and hash for "%s" are: "%O"', imageNameWithRepository, latest)
-    return latest
+    const result = await getDockerImageLabels({
+      dockerOrganizationName,
+      imageName,
+      dockerRegistryAddress,
+      imageTag,
+      dockerRegistryApiToken,
+    })
+    log('latest tag and hash for "%s" are: "%O"', fullImageName, result)
+    return result
   } catch (e) {
     if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
-      log(`"%s" weren't published`, imageNameWithRepository)
+      log(`"%s" weren't published`, fullImageName)
     } else {
       throw e
     }
@@ -88,31 +100,35 @@ function calculateNewVersion(packageJsonVersion: string, latestPublishedVersion?
 
 export async function getPackageInfo({
   dockerRegistryAddress,
-  dockerRepositoryName,
+  dockerOrganizationName,
   npmRegistryAddress,
   packageHash,
   packagePath,
   relativePackagePath,
   redisClient,
+  auth,
 }: {
   relativePackagePath: string
   packagePath: string
   packageHash: string
   npmRegistryAddress: string
   dockerRegistryAddress: string
-  dockerRepositoryName: string
+  dockerOrganizationName: string
   redisClient: Redis
+  auth: Pick<ExtendedAuth, 'dockerRegistryApiToken'>
 }): Promise<PackageInfo> {
   const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
   const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress, redisClient)
-  const dockerLatestTagInfo = await getDockerLatestTagInfo(
-    `${dockerRepositoryName}/${packageJson.name}`,
+  const dockerLatestTagInfo = await getDockerLatestTagInfo({
     dockerRegistryAddress,
     redisClient,
-  )
+    dockerOrganizationName,
+    imageName: packageJson.name,
+    dockerRegistryApiToken: auth.dockerRegistryApiToken,
+  })
 
   const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {
     targetType: TargetType.npm,
@@ -137,12 +153,12 @@ export async function getPackageInfo({
   }
   const dockerTarget: false | TargetInfo<TargetType.docker> = isDocker && {
     targetType: TargetType.docker,
-    ...(dockerLatestTagInfo?.latestTagHash === packageHash
+    ...(dockerLatestTagInfo?.latestHash === packageHash
       ? {
           needPublish: false,
           latestPublishedVersion: {
             version: dockerLatestTagInfo.latestTag,
-            hash: dockerLatestTagInfo.latestTagHash,
+            hash: dockerLatestTagInfo.latestHash,
           },
         }
       : {
@@ -151,7 +167,7 @@ export async function getPackageInfo({
           ...(dockerLatestTagInfo && {
             latestPublishedVersion: {
               version: dockerLatestTagInfo.latestTag,
-              hash: dockerLatestTagInfo.latestTagHash,
+              hash: dockerLatestTagInfo.latestHash,
             },
           }),
         }),

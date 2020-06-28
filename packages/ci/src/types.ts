@@ -16,6 +16,25 @@ export type Auth = {
   dockerRegistryToken?: string
 }
 
+export type ExtendedAuth = Auth & { dockerRegistryApiToken?: string }
+
+export type CiOptions = {
+  rootPath: string
+  isMasterBuild: boolean
+  isDryRun: boolean
+  skipTests: boolean
+  npmRegistryAddress: string
+  dockerRegistryAddress: string
+  dockerOrganizationName: string
+  gitRepositoryName: string
+  gitOrganizationName: string
+  gitServerDomain: string
+  gitServerConnectionType: string
+  redisIp: string
+  redisPort: number
+  auth: Auth
+}
+
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',

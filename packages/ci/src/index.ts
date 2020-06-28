@@ -116,7 +116,7 @@ const app = command({
         gitServerDomain: args['git-server-domain'],
         npmRegistryAddress: args['npm-registry'],
         dockerRegistryAddress: args['docker-registry'],
-        dockerRepositoryName: args['docker-repository'],
+        dockerOrganizationName: args['docker-repository'],
         gitServerConnectionType: args['git-server-connection-type'],
         redisIp,
         redisPort: Number(redisPort),

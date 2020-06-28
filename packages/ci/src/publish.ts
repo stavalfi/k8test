@@ -59,7 +59,7 @@ async function publishDocker({
   dockerTarget,
   packageInfo,
   dockerRegistryAddress,
-  dockerRepositoryName,
+  dockerOrganizationName,
 }: {
   packageInfo: PackageInfo
   dockerTarget: TargetInfo<TargetType.docker>
@@ -67,7 +67,7 @@ async function publishDocker({
   isDryRun: boolean
   rootPath: string
   dockerRegistryAddress: string
-  dockerRepositoryName: string
+  dockerOrganizationName: string
 }): Promise<PublishResult> {
   log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
 
@@ -84,7 +84,7 @@ async function publishDocker({
     }
   }
 
-  const dockerImageWithRepo = `${dockerRegistryAddress}/${dockerRepositoryName}/${packageInfo.packageJson.name}`
+  const dockerImageWithRepo = `${dockerRegistryAddress}/${dockerOrganizationName}/${packageInfo.packageJson.name}`
 
   log('building docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
 
@@ -127,7 +127,7 @@ export async function publish(
     isDryRun: boolean
     npmRegistryAddress: string
     dockerRegistryAddress: string
-    dockerRepositoryName: string
+    dockerOrganizationName: string
     auth: Auth
   },
 ) {
@@ -184,7 +184,7 @@ export async function publish(
           rootPath: options.rootPath,
           isDryRun: options.isDryRun,
           dockerRegistryAddress: options.dockerRegistryAddress,
-          dockerRepositoryName: options.dockerRepositoryName,
+          dockerOrganizationName: options.dockerOrganizationName,
         }),
       ),
     )

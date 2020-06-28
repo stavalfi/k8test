@@ -165,6 +165,12 @@ work in progress. hold on. for now, you can manually search the container you ne
 
 ## Development & contributing
 
+Run the following command in the root folder of the repository
+
+```bash
+yarn install && yarn build && yarn build:dockers
+```
+
 this library is in a early stage but it is functional. I don't have a draft for a better api to the end-users. Feel free to drastically change the api.
 
 Keep in mind that tests are the first priority. production code can use this library but it has a lower level of priority.
@@ -173,7 +179,6 @@ PRs about Api/ speed improvement are welcome.
 
 ### Internal Tools
 
-- skopeo
 - yarn
 - node 12+
 - docker (deamon + cli)
