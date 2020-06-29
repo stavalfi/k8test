@@ -28,13 +28,12 @@ jobs:
       - run: yarn --cwd packages/gcloud-example build:docker
       - run: echo ${{ stavalfi/personal-projects/docker-hub/token }} | docker login -u ${{ stavalfi/personal-projects/docker-hub/username }} --password-stdin
       - run: docker push stavalfi/gcloud-example
-
-      - name: deploy to gCloud k8s
-        uses: ameydev/gke-kubectl-action@master
-        env:
-          PROJECT_ID: ${{ stavalfi/personal-projects/octopol-gcloud/project-id }}
-          APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-          CLUSTER_NAME: gcloud-example
-          ZONE_NAME: europe-west3-a
-        with:
-          args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
+      # - name: deploy to gCloud k8s
+      #   uses: ameydev/gke-kubectl-action@master
+      #   env:
+      #     PROJECT_ID: ${{ stavalfi/personal-projects/octopol-gcloud/project-id }}
+      #     APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      #     CLUSTER_NAME: gcloud-example
+      #     ZONE_NAME: europe-west3-a
+      #   with:
+      #     args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
