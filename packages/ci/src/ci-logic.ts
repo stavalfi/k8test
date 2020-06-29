@@ -36,12 +36,14 @@ async function getOrderedGraph({
   npmRegistryAddress,
   redisClient,
   auth,
+  dockerRegistryProtocol,
 }: {
   rootPath: string
   packagesPath: string[]
   npmRegistryAddress: string
   dockerRegistryAddress: string
   dockerOrganizationName: string
+  dockerRegistryProtocol: string
   redisClient: Redis.Redis
   auth: Pick<ExtendedAuth, 'dockerRegistryApiToken'>
 }): Promise<Graph<PackageInfo>> {
@@ -58,6 +60,7 @@ async function getOrderedGraph({
         relativePackagePath: node.data.relativePackagePath,
         redisClient,
         auth,
+        dockerRegistryProtocol,
       }),
     })),
   )
@@ -78,7 +81,7 @@ async function gitAmendChanges({
   rootPath,
 }: {
   rootPath: string
-  gitServerConnectionType: string
+  gitServerProtocol: string
   gitServerDomain: string
   gitRepositoryName: string
   gitOrganizationName: string
@@ -118,7 +121,11 @@ export async function ci(options: CiOptions) {
   log('calculate hash of every package and check which packages changed since their last publish')
 
   log('logging in to docker-hub registry')
-  const dockerRegistryApiToken = await getDockerRegistryApiToken(options.auth)
+  const dockerRegistryApiToken = await getDockerRegistryApiToken({
+    dockerRegistryProtocol: options.dockerRegistryProtocol,
+    dockerRegistryAddress: options.dockerRegistryAddress,
+    auth: options.auth,
+  })
   log('logged in to docker-hub registry')
 
   const redisClient = new Redis({
@@ -135,6 +142,7 @@ export async function ci(options: CiOptions) {
     dockerOrganizationName: options.dockerOrganizationName,
     npmRegistryAddress: options.npmRegistryAddress,
     redisClient,
+    dockerRegistryProtocol: options.dockerRegistryProtocol,
     auth: {
       dockerRegistryApiToken,
     },
@@ -178,7 +186,7 @@ export async function ci(options: CiOptions) {
       if (!options.isDryRun) {
         await gitAmendChanges({
           auth: options.auth,
-          gitServerConnectionType: options.gitServerConnectionType,
+          gitServerProtocol: options.gitServerProtocol,
           gitOrganizationName: options.gitOrganizationName,
           gitRepositoryName: options.gitRepositoryName,
           gitServerDomain: options.gitServerDomain,

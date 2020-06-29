@@ -42,7 +42,8 @@ const runCiCli = async (options: CiOptions) => {
     --npm-registry-username ${options.auth.npmRegistryUsername} \
     --npm-registry-email ${options.auth.npmRegistryEmail} \
     --npm-registry-token ${options.auth.npmRegistryToken} \
-    --git-server-connection-type ${options.gitServerConnectionType} \
+    --git-server-protocol ${options.gitServerProtocol} \
+    --docker-registry-protocol ${options.dockerRegistryProtocol} \
     ${options.auth.redisPassword ? `--redis-password ${options.auth.redisPassword}` : ''} \
     --redis-endpoint ${options.redisIp}:${options.redisPort}
   `
@@ -51,16 +52,14 @@ const runCiCli = async (options: CiOptions) => {
   })
 }
 
-async function latestNpmPackageVersion(packageName: string, npmRegistryAddress: string): Promise<string> {
+async function latestNpmPackageVersion(packageName: string, npmRegistryAddress: string): Promise<string | undefined> {
   try {
     const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
     const resultJson = JSON.parse(result.stdout) || {}
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     return distTags['latest']
   } catch (e) {
-    if (e.message.includes('code E404')) {
-      return ''
-    } else {
+    if (!e.message.includes('code E404')) {
       throw e
     }
   }
@@ -84,15 +83,17 @@ async function latestDockerImageTag(
   imageName: string,
   dockerOrganizationName: string,
   dockerRegistryAddress: string,
-): Promise<string> {
+  dockerRegistryProtocol: string,
+): Promise<string | undefined> {
   try {
     const result = await getDockerImageLabels({
       dockerOrganizationName,
       dockerRegistryAddress,
       imageName,
       imageTag: 'latest',
+      dockerRegistryProtocol,
     })
-    return result.latestTag
+    return result?.latestTag
   } catch (e) {
     if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
       return ''
@@ -270,11 +271,15 @@ function prepareTestResources() {
   })
   afterAll(async () => {
     await Promise.all([
-      gitServer.close(),
-      npmRegistryDeployment.unsubscribe(),
+      gitServer ? gitServer.close() : Promise.resolve(),
+      npmRegistryDeployment ? npmRegistryDeployment.unsubscribe() : Promise.resolve(),
       execa
         .command(`docker kill ${dockerRegistry.containerId}`)
-        .then(() => execa.command(`docker rm ${dockerRegistry.containerId}`)),
+        .then(
+          () => execa.command(`docker rm ${dockerRegistry.containerId}`),
+          () => Promise.resolve(),
+        )
+        .catch(() => Promise.resolve()),
     ])
   })
 
@@ -353,8 +358,9 @@ export const newEnv: NewEnvFunc = () => {
         skipTests: Boolean(skipTests),
         isDryRun: Boolean(isDryRun),
         dockerRegistryAddress: dockerIpWithPort,
+        dockerRegistryProtocol: 'http',
         npmRegistryAddress: `http://${npmRegistry.ip}:${npmRegistry.port}`,
-        gitServerConnectionType: gitServer.getConnectionType(),
+        gitServerProtocol: gitServer.getConnectionType(),
         gitServerDomain: gitServer.getDomain(),
         dockerOrganizationName,
         gitOrganizationName: repoOrg,
@@ -379,7 +385,7 @@ export const newEnv: NewEnvFunc = () => {
               publishedNpmPackageVersions(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
               latestNpmPackageVersion(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
               publishedDockerImageTags(actualName, dockerOrganizationName, dockerIpWithPort),
-              latestDockerImageTag(actualName, dockerOrganizationName, dockerIpWithPort),
+              latestDockerImageTag(actualName, dockerOrganizationName, dockerIpWithPort, 'http'),
             ])
             return [
               packageName,

@@ -25,11 +25,12 @@ export type CiOptions = {
   skipTests: boolean
   npmRegistryAddress: string
   dockerRegistryAddress: string
+  dockerRegistryProtocol: string
   dockerOrganizationName: string
   gitRepositoryName: string
   gitOrganizationName: string
   gitServerDomain: string
-  gitServerConnectionType: string
+  gitServerProtocol: string
   redisIp: string
   redisPort: number
   auth: Auth

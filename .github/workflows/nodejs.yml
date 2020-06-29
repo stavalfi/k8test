@@ -25,7 +25,6 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: sudo apt-get update && sudo apt-get install skopeo
       - run: yarn install
       - run: yarn build
       - run: yarn run-ci

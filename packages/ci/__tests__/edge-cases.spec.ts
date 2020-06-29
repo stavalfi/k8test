@@ -15,7 +15,7 @@ test('empty repo', async () => {
   expect(master.published).toHaveProperty('size', 0)
 })
 
-test('artifacts without targets', async () => {
+test.only('artifacts without targets', async () => {
   const { runCi } = await createRepo({
     packages: [
       {

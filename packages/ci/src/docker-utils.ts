@@ -1,12 +1,26 @@
 import { Auth } from './types'
 import got from 'got'
+import k8testLog from 'k8test-log'
 
-// TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${UNAME}'", "password": "'${UPASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+const log = k8testLog('ci:docker-utils')
 
-// curl -u "$DOCKER_HUB_USERNAME:$DOCKER_HUB_TOKEN" "https://auth.docker.io/token?scope=repository:stavalfi/k8test-monitoring:pull&service=registry.docker.io"
-export async function getDockerRegistryApiToken(auth: Auth): Promise<string | undefined> {
+/*
+#!/usr/bin/env bash
+repo=stavalfi/k8test-monitoring                                                                                                                                                                                 
+token=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r '.token')
+echo $token
+*/
+export async function getDockerRegistryApiToken({
+  auth,
+  dockerRegistryAddress,
+  dockerRegistryProtocol,
+}: {
+  dockerRegistryAddress: string
+  dockerRegistryProtocol: string
+  auth: Auth
+}): Promise<string | undefined> {
   if (auth.dockerRegistryUsername && auth.dockerRegistryToken) {
-    return await got.post('https://hub.docker.com/v2/users/login/', {
+    return await got.post(`${dockerRegistryProtocol}://${dockerRegistryAddress}/v2/users/login/`, {
       json: {
         username: auth.dockerRegistryUsername,
         password: auth.dockerRegistryToken,
@@ -17,13 +31,11 @@ export async function getDockerRegistryApiToken(auth: Auth): Promise<string | un
 }
 
 /*
-export TOKEN="$(curl --silent --header 'GET' "https://auth.docker.io/token?service=registry.docker.io&scope=repository:stavalfi/k8test-monitoring:pull,push" | jq -r '.token')"  
-curl \
---request 'GET' \
---header "Authorization: Bearer ${TOKEN}" \
-"https://registry-1.docker.io/v2/stavalfi/k8test-monitoring/manifests/latest" \
-| jq
-
+#!/usr/bin/env bash
+repo=stavalfi/k8test-monitoring                                                                                                                                                                                 
+token=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${repo}:pull" | jq -r '.token')
+digest=$(curl -s -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://registry-1.docker.io/v2/${repo}/manifests/latest" | jq .config.digest -r)
+curl -s -L -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://registry-1.docker.io/v2/${repo}/blobs/$digest" | jq .config.Labels
 */
 export async function getDockerImageLabels({
   imageName,
@@ -31,29 +43,57 @@ export async function getDockerImageLabels({
   dockerOrganizationName,
   dockerRegistryApiToken,
   dockerRegistryAddress,
+  dockerRegistryProtocol,
 }: {
   imageName: string
   imageTag: string
   dockerOrganizationName: string
   dockerRegistryApiToken?: string
   dockerRegistryAddress: string
-}): Promise<{ latestHash: string; latestTag: string }> {
-  const {
-    history: { v1Compatibility },
-  } = await got.get<{ history: { v1Compatibility: string } }>(
-    `${dockerRegistryAddress}/v2/${dockerOrganizationName}/${imageName}/manifests/${imageTag}"`,
-    {
-      resolveBodyOnly: true,
-      headers: {
-        ...(dockerRegistryApiToken && { Authorization: `Bearer ${dockerRegistryApiToken}` }),
+  dockerRegistryProtocol: string
+}): Promise<{ latestHash: string; latestTag: string } | undefined> {
+  const fullImageName = `${dockerRegistryAddress}/${dockerOrganizationName}/${imageName}:${imageTag}`
+  try {
+    log('searching the latest tag and hash for image "%s"', fullImageName)
+    console.log(`http://localhost:5000/v2/stavalfi/k8test-monitoring/manifests/latest`)
+    const x = await got.get<{ config: { digest: string } }>(
+      'http://localhost:5000/v2/stavalfi/k8test-monitoring/manifests/latest',
+      {
+        resolveBodyOnly: true,
+        headers: {
+          Accept: 'application/vnd.docker.distribution.manifest.v2+json',
+          ...(dockerRegistryApiToken && { Authorization: `Bearer ${dockerRegistryApiToken}` }),
+        },
       },
-    },
-  )
+    )
 
-  const parsed: { config: { Labels: { 'latest-hash': string; 'latest-tag': string } } } = JSON.parse(v1Compatibility)
+    console.log(x, `${dockerRegistryAddress}/v2/${dockerOrganizationName}/${imageName}/blobs/$${1}`)
+    console.log('stav1')
+    const {
+      config: { Labels },
+    } = await got.get<{ config: { Labels: { 'latest-hash': string; 'latest-tag': string } } }>(
+      `${dockerRegistryAddress}/v2/${dockerOrganizationName}/${imageName}/blobs/$${1}`,
+      {
+        resolveBodyOnly: true,
+        headers: {
+          Accept: 'application/vnd.docker.distribution.manifest.v2+json',
+          ...(dockerRegistryApiToken && { Authorization: `Bearer ${dockerRegistryApiToken}` }),
+        },
+      },
+    )
 
-  return {
-    latestHash: parsed.config.Labels['latest-hash'],
-    latestTag: parsed.config.Labels['latest-tag'],
+    const result = {
+      latestHash: Labels['latest-hash'],
+      latestTag: Labels['latest-tag'],
+    }
+    log('latest tag and hash for "%s" are: "%O"', fullImageName, result)
+    return result
+  } catch (e) {
+    console.log(e)
+    if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
+      log(`"%s" weren't published`, fullImageName)
+    } else {
+      throw e
+    }
   }
 }

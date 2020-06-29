@@ -8,7 +8,7 @@
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "pretest": "eval $(minikube docker-env --shell sh) && yarn && yarn build && yarn workspace simple-service build:docker && yarn delete-k8test-resources && yarn workspace k8test-monitoring build:docker",
-    "test": "jest --verbose",
+    "test": "jest --no-cache # ts-jest cache sometimes isn't invalidated",
     "clean": "yarn workspace scripts clean",
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",

@@ -45,11 +45,11 @@ export type CiOptions = {
 export type PublishedPackageInfo = {
   npm: {
     versions: string[]
-    latestVersion: string
+    latestVersion?: string
   }
   docker: {
     tags: string[]
-    latestTag: string
+    latestTag?: string
   }
 }
 

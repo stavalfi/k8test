@@ -87,9 +87,9 @@ const app = command({
       type: string,
       long: 'git-repository',
     }),
-    'git-server-connection-type': option({
+    'git-server-protocol': option({
       type: string,
-      long: 'git-server-connection-type',
+      long: 'git-server-protocol',
       description: 'http or htts',
     }),
     'docker-repository': option({
@@ -101,6 +101,11 @@ const app = command({
       long: 'docker-registry',
       defaultValue: () => 'registry.hub.docker.com',
       description: 'docker registry address to publish docker-targets to',
+    }),
+    'docker-registry-protocol': option({
+      type: string,
+      long: 'docker-registry-protocol',
+      description: 'http or htts',
     }),
   },
   handler: async args => {
@@ -117,7 +122,8 @@ const app = command({
         npmRegistryAddress: args['npm-registry'],
         dockerRegistryAddress: args['docker-registry'],
         dockerOrganizationName: args['docker-repository'],
-        gitServerConnectionType: args['git-server-connection-type'],
+        gitServerProtocol: args['git-server-protocol'],
+        dockerRegistryProtocol: args['docker-registry-protocol'],
         redisIp,
         redisPort: Number(redisPort),
         auth: {
