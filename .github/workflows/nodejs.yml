@@ -1,3 +1,43 @@
+# # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+# name: Node.js CI
+
+# on: [pull_request]
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     strategy:
+#       matrix:
+#         node-version: [14.x]
+
+#     steps:
+#       - uses: actions/checkout@v2
+#       - uses: secrethub/actions/env-export@v0.1.0
+#         env:
+#           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+#       - name: Use Node.js ${{ matrix.node-version }}
+#         uses: actions/setup-node@v1
+#         with:
+#           node-version: ${{ matrix.node-version }}
+
+#       - run: yarn install
+#       - run: yarn build
+#       - run: yarn --cwd packages/gcloud-example build:docker
+#       - run: echo ${{ stavalfi/personal-projects/docker-hub/token }} | docker login -u ${{ stavalfi/personal-projects/docker-hub/username }} --password-stdin
+#       - run: docker push stavalfi/gcloud-example
+#       # - name: deploy to gCloud k8s
+#       #   uses: ameydev/gke-kubectl-action@master
+#       #   env:
+#       #     PROJECT_ID: ${{ stavalfi/personal-projects/octopol-gcloud/project-id }}
+#       #     APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+#       #     CLUSTER_NAME: gcloud-example
+#       #     ZONE_NAME: europe-west3-a
+#       #   with:
+#       #     args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
+
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
@@ -18,22 +58,17 @@ jobs:
       - uses: secrethub/actions/env-export@v0.1.0
         env:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+          DOCKER_USERNAME: secrethub://stavalfi/dockerhub/username
+          DOCKER_PASSWORD: secrethub://stavalfi/dockerhub/access-token
+      - name: install k8s
+        uses: engineerd/setup-kind@v0.4.0
+      - run: minikube start
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-
       - run: yarn install
       - run: yarn build
-      - run: yarn --cwd packages/gcloud-example build:docker
-      - run: echo ${{ stavalfi/personal-projects/docker-hub/token }} | docker login -u ${{ stavalfi/personal-projects/docker-hub/username }} --password-stdin
-      - run: docker push stavalfi/gcloud-example
-      # - name: deploy to gCloud k8s
-      #   uses: ameydev/gke-kubectl-action@master
-      #   env:
-      #     PROJECT_ID: ${{ stavalfi/personal-projects/octopol-gcloud/project-id }}
-      #     APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      #     CLUSTER_NAME: gcloud-example
-      #     ZONE_NAME: europe-west3-a
-      #   with:
-      #     args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker
+      - run: eval $(minikube docker-env --shell sh) && yarn workspace k8test-monitoring build:docker
+      - run: DEBUG=k8test:* yarn test
