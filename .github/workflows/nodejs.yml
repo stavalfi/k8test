@@ -24,6 +24,7 @@ jobs:
       - run: yarn build
       - run: yarn --cwd packages/gcloud-example build:docker
       - run: echo ${{ stavalfi/personal-projects/docker-hub/token }} | docker login -u ${{ stavalfi/personal-projects/docker-hub/username }} --password-stdin
+      #
       # - run: docker push stavalfi/gcloud-example
       # - name: deploy to gCloud k8s
       #   uses: ameydev/gke-kubectl-action@master
