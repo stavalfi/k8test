@@ -15,23 +15,27 @@ jobs:
       - uses: secrethub/actions/env-export@v0.1.0
         env:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+          DOCKER_HUB_USERNAME: secrethub://stavalfi/personal-projects/docker-hub/username
+          DOCKER_HUB_PASSWORD: secrethub://stavalfi/personal-projects/docker-hub/token
+          PROJECT_ID: secrethub://stavalfi/personal-projects/octopol-gcloud/project-id
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
 
-      - run: yarn install
-      - run: yarn build
-      - run: yarn --cwd packages/gcloud-example build:docker
-      - run: echo ${{ stavalfi/personal-projects/docker-hub/token }} | docker login -u ${{ stavalfi/personal-projects/docker-hub/username }} --password-stdin
-      #
+      # - run: yarn install
+      # - run: yarn build
+      # - run: yarn --cwd packages/gcloud-example build:docker
+      - run: echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin
+
       # - run: docker push stavalfi/gcloud-example
-      # - name: deploy to gCloud k8s
-      #   uses: ameydev/gke-kubectl-action@master
-      #   env:
-      #     PROJECT_ID: ${{ stavalfi/personal-projects/octopol-gcloud/project-id }}
-      #     APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-      #     CLUSTER_NAME: gcloud-example
-      #     ZONE_NAME: europe-west3-a
-      #   with:
-      #     args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
+      - name: deploy to gCloud k8s
+        uses: ameydev/gke-kubectl-action@master
+        env:
+          PROJECT_ID: stavalfi-test
+          APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          CLUSTER_NAME: gcloud-example
+          ZONE_NAME: europe-west3-a
+        with:
+          args: get pods
+          # args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
