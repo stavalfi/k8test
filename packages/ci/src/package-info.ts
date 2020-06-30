@@ -2,10 +2,10 @@ import execa from 'execa'
 import fs from 'fs-extra'
 import path from 'path'
 import semver from 'semver'
-import { PackageInfo, TargetInfo, TargetType, ExtendedAuth } from './types'
+import { PackageInfo, TargetInfo, TargetType } from './types'
 import { Redis } from 'ioredis'
 import k8testLog from 'k8test-log'
-import { getDockerImageLabels } from './ci-logic'
+import { getDockerImageLabelsAndTags } from './docker-utils'
 
 const log = k8testLog('ci:package-info')
 
@@ -15,10 +15,11 @@ async function getNpmLatestVersionInfo(
   redisClient: Redis,
 ): Promise<
   | {
-      latestVersion: string
+      latestVersion?: string
       // it can be undefine if the ci failed after publishing the package but before setting this tag remotely.
       // in this case, the local-hash will be different and we will push again. its ok.
-      latestVersionHash: string
+      latestVersionHash?: string
+      allVersions: string[]
     }
   | undefined
 > {
@@ -36,6 +37,7 @@ async function getNpmLatestVersionInfo(
     const latest = {
       latestVersionHash: latestVersionHashResult.replace('latest-hash--', ''),
       latestVersion,
+      allVersions: [],
     }
     log('latest tag and hash for "%s" are: "%O"', packageName, latest)
     return latest
@@ -48,18 +50,52 @@ async function getNpmLatestVersionInfo(
   }
 }
 
-function calculateNewVersion(packageJsonVersion: string, latestPublishedVersion?: string): string {
-  if (!latestPublishedVersion) {
+function calculateNewVersion(
+  packageJsonVersion: string,
+  latestPublishedVersion?: string,
+  allVersions?: string[],
+): string {
+  const allValidVersions = allVersions?.filter(version => semver.valid(version))
+
+  if (!allValidVersions?.length) {
+    // this is immutable in each registry so if this is not defined or empty, it means that we never published before or there was unpublish of all the versions.
     return packageJsonVersion
   }
 
-  const maxVersion = semver.gt(packageJsonVersion, latestPublishedVersion) ? packageJsonVersion : latestPublishedVersion
-
-  const newVersion = semver.inc(maxVersion, 'patch')
-  if (!newVersion) {
-    throw new Error(`could not path-increment version: ${maxVersion}`)
+  const incVersion = (version: string) => {
+    if (!semver.valid(version)) {
+      throw new Error(`version is invalid: ${version}`)
+    }
+    const newVersion = semver.inc(version, 'patch')
+    if (!newVersion) {
+      throw new Error(`could not path-increment version: ${version}`)
+    }
+    return newVersion
   }
-  return newVersion
+
+  if (!latestPublishedVersion) {
+    // this is mutable in each registry so if we have versions but this is false, it means that:
+    // a. this is the first run of the ci on a target that was already pbulished.
+    // b. or, less likely, someone mutated one of the labels that this ci is modifying in every run :(
+
+    if (allValidVersions.includes(packageJsonVersion)) {
+      return incVersion(packageJsonVersion)
+    } else {
+      return packageJsonVersion
+    }
+  } else {
+    if (allValidVersions.includes(latestPublishedVersion)) {
+      const maxVersion = semver.gt(packageJsonVersion, latestPublishedVersion)
+        ? packageJsonVersion
+        : latestPublishedVersion
+
+      return incVersion(maxVersion)
+    } else {
+      const sorted = semver.sort(allValidVersions)
+
+      return incVersion(sorted[sorted.length - 1])
+    }
+  }
 }
 
 export async function getPackageInfo({
@@ -70,7 +106,6 @@ export async function getPackageInfo({
   packagePath,
   relativePackagePath,
   redisClient,
-  auth,
   dockerRegistryProtocol,
 }: {
   relativePackagePath: string
@@ -81,18 +116,16 @@ export async function getPackageInfo({
   dockerRegistryProtocol: string
   dockerOrganizationName: string
   redisClient: Redis
-  auth: Pick<ExtendedAuth, 'dockerRegistryApiToken'>
 }): Promise<PackageInfo> {
   const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
   const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress, redisClient)
-  const dockerLatestTagInfo = await getDockerImageLabels({
+  const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistryAddress,
     dockerOrganizationName,
     imageName: packageJson.name,
-    dockerRegistryApiToken: auth.dockerRegistryApiToken,
     imageTag: 'latest',
     dockerRegistryProtocol,
   })
@@ -109,7 +142,11 @@ export async function getPackageInfo({
         }
       : {
           needPublish: true,
-          newVersion: calculateNewVersion(packageJson.version, npmLatestVersionInfo?.latestVersion),
+          newVersion: calculateNewVersion(
+            packageJson.version,
+            npmLatestVersionInfo?.latestVersion,
+            npmLatestVersionInfo?.allVersions,
+          ),
           ...(npmLatestVersionInfo && {
             latestPublishedVersion: {
               version: npmLatestVersionInfo.latestVersion,
@@ -130,7 +167,11 @@ export async function getPackageInfo({
         }
       : {
           needPublish: true,
-          newVersion: calculateNewVersion(packageJson.version, dockerLatestTagInfo?.latestTag),
+          newVersion: calculateNewVersion(
+            packageJson.version,
+            dockerLatestTagInfo?.latestTag,
+            dockerLatestTagInfo?.allTags,
+          ),
           ...(dockerLatestTagInfo && {
             latestPublishedVersion: {
               version: dockerLatestTagInfo.latestTag,

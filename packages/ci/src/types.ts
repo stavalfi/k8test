@@ -16,8 +16,6 @@ export type Auth = {
   dockerRegistryToken?: string
 }
 
-export type ExtendedAuth = Auth & { dockerRegistryApiToken?: string }
-
 export type CiOptions = {
   rootPath: string
   isMasterBuild: boolean
@@ -46,11 +44,11 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
       needPublish: true
       newVersion: string
       // if we didn't publish this hash yet, it maybe because we modified something or we never published before
-      latestPublishedVersion?: { version: string; hash: string }
+      latestPublishedVersion?: { version?: string; hash?: string }
     }
   | {
       needPublish: false
-      latestPublishedVersion: { version: string; hash: string }
+      latestPublishedVersion: { version?: string; hash?: string }
     }
 )
 

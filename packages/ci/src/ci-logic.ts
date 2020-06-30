@@ -2,6 +2,8 @@
 
 import ciInfo from 'ci-info'
 import execa from 'execa'
+import fse from 'fs-extra'
+import Redis from 'ioredis'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import path from 'path'
@@ -9,13 +11,10 @@ import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
-import { Auth, Graph, PackageInfo, CiOptions, ExtendedAuth } from './types'
-import Redis from 'ioredis'
-import fse from 'fs-extra'
-import { getDockerRegistryApiToken } from './docker-utils'
+import { Auth, CiOptions, Graph, PackageInfo } from './types'
 
-export { TargetType, PackageJson } from './types'
-export { getDockerImageLabels } from './docker-utils'
+export { getDockerImageLabelsAndTags } from './docker-utils'
+export { PackageJson, TargetType } from './types'
 const log = k8testLog('ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {
@@ -35,7 +34,6 @@ async function getOrderedGraph({
   dockerOrganizationName,
   npmRegistryAddress,
   redisClient,
-  auth,
   dockerRegistryProtocol,
 }: {
   rootPath: string
@@ -45,7 +43,6 @@ async function getOrderedGraph({
   dockerOrganizationName: string
   dockerRegistryProtocol: string
   redisClient: Redis.Redis
-  auth: Pick<ExtendedAuth, 'dockerRegistryApiToken'>
 }): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
   return Promise.all(
@@ -59,7 +56,6 @@ async function getOrderedGraph({
         packagePath: node.data.packagePath,
         relativePackagePath: node.data.relativePackagePath,
         redisClient,
-        auth,
         dockerRegistryProtocol,
       }),
     })),
@@ -120,13 +116,15 @@ export async function ci(options: CiOptions) {
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
-  log('logging in to docker-hub registry')
-  const dockerRegistryApiToken = await getDockerRegistryApiToken({
-    dockerRegistryProtocol: options.dockerRegistryProtocol,
-    dockerRegistryAddress: options.dockerRegistryAddress,
-    auth: options.auth,
-  })
-  log('logged in to docker-hub registry')
+  if (options.auth.dockerRegistryUsername && options.auth.dockerRegistryToken) {
+    log('logging in to docker-registry: %s', `${options.dockerRegistryProtocol}://${options.dockerRegistryAddress}`)
+    // I need to login to read and push from `options.auth.dockerRegistryUsername` repository	  log('logged in to docker-hub registry')
+    await execa.command(
+      `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
+      { stdio: 'pipe' },
+    )
+    log('logged in to docker-registry')
+  }
 
   const redisClient = new Redis({
     host: options.redisIp,
@@ -143,9 +141,6 @@ export async function ci(options: CiOptions) {
     npmRegistryAddress: options.npmRegistryAddress,
     redisClient,
     dockerRegistryProtocol: options.dockerRegistryProtocol,
-    auth: {
-      dockerRegistryApiToken,
-    },
   })
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))

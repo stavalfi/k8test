@@ -7,7 +7,7 @@ import { SingletonStrategy, subscribe, Subscription } from 'k8test'
 import path from 'path'
 import semver from 'semver'
 import { CiOptions } from '../../src/types'
-import { getDockerImageLabels } from '../../src/docker-utils'
+import { getDockerImageLabelsAndTags } from '../../src/docker-utils'
 import { createRepo } from './create-repo'
 import { GitServer, starGittServer } from './git-server-testkit'
 import {
@@ -86,7 +86,7 @@ async function latestDockerImageTag(
   dockerRegistryProtocol: string,
 ): Promise<string | undefined> {
   try {
-    const result = await getDockerImageLabels({
+    const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,
       dockerRegistryAddress,
       imageName,
@@ -107,15 +107,17 @@ async function publishedDockerImageTags(
   imageName: string,
   dockerOrganizationName: string,
   dockerRegistryAddress: string,
+  dockerRegistryProtocol: string,
 ): Promise<string[]> {
   try {
-    const result = await got.get<string[]>(
-      `${dockerRegistryAddress}/v2/repositories/${dockerOrganizationName}/${imageName}/tags`,
-      {
-        resolveBodyOnly: true,
-      },
-    )
-    return result.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean)
+    const result = await getDockerImageLabelsAndTags({
+      dockerOrganizationName,
+      dockerRegistryAddress,
+      imageName,
+      imageTag: 'latest',
+      dockerRegistryProtocol,
+    })
+    return result?.allTags?.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
   } catch (e) {
     if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
       return []
@@ -270,17 +272,20 @@ function prepareTestResources() {
     }
   })
   afterAll(async () => {
-    await Promise.all([
-      gitServer ? gitServer.close() : Promise.resolve(),
-      npmRegistryDeployment ? npmRegistryDeployment.unsubscribe() : Promise.resolve(),
-      execa
-        .command(`docker kill ${dockerRegistry.containerId}`)
-        .then(
-          () => execa.command(`docker rm ${dockerRegistry.containerId}`),
-          () => Promise.resolve(),
-        )
-        .catch(() => Promise.resolve()),
-    ])
+    await Promise.all(
+      [
+        gitServer && gitServer.close(),
+        npmRegistryDeployment && npmRegistryDeployment.unsubscribe(),
+        dockerRegistry &&
+          execa
+            .command(`docker kill ${dockerRegistry.containerId}`)
+            .then(
+              () => execa.command(`docker rm ${dockerRegistry.containerId}`),
+              () => Promise.resolve(),
+            )
+            .catch(() => Promise.resolve()),
+      ].filter(Boolean),
+    )
   })
 
   return {
@@ -384,7 +389,7 @@ export const newEnv: NewEnvFunc = () => {
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
               publishedNpmPackageVersions(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
               latestNpmPackageVersion(actualName, `http://${npmRegistry.ip}:${npmRegistry.port}`),
-              publishedDockerImageTags(actualName, dockerOrganizationName, dockerIpWithPort),
+              publishedDockerImageTags(actualName, dockerOrganizationName, dockerIpWithPort, 'http'),
               latestDockerImageTag(actualName, dockerOrganizationName, dockerIpWithPort, 'http'),
             ])
             return [
