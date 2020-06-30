@@ -21,7 +21,7 @@ async function main() {
       res.end(map.get(key))
     })
     .get('/is-alive', (_req, res) => res.end('true'))
-    .get('/', (_req, res) => res.end('alive\nversion=5.0.0'))
+    .get('/', (_req, res) => res.end('alive\nversion=6.0.0'))
     .listen(80, () => console.log('gcloud-example is listening on port 80'))
 }
 
