@@ -23,12 +23,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # - run: yarn install
-      # - run: yarn build
-      # - run: yarn --cwd packages/gcloud-example build:docker
+      - run: yarn install
+      - run: yarn build
+      - run: yarn --cwd packages/gcloud-example build:docker
       - run: echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin
-
-      # - run: docker push stavalfi/gcloud-example
+      - run: docker push stavalfi/gcloud-example
       - name: deploy to gCloud k8s
         uses: ameydev/gke-kubectl-action@master
         env:
@@ -37,5 +36,4 @@ jobs:
           CLUSTER_NAME: gcloud-example
           ZONE_NAME: europe-west3-a
         with:
-          args: get pods
-          # args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example --record
+          args: set image deployment/gcloud-example gcloud-example=stavalfi/gcloud-example:latest
