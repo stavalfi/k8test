@@ -28,6 +28,7 @@ async function getNpmLatestVersionInfo(
     log('searching the latest tag and hash: "%s"', command)
     const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
+    const allVersions: string[] = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const latestVersion = distTags['latest']
     const latestVersionHashResult =
@@ -37,7 +38,7 @@ async function getNpmLatestVersionInfo(
     const latest = {
       latestVersionHash: latestVersionHashResult.replace('latest-hash--', ''),
       latestVersion,
-      allVersions: [],
+      allVersions,
     }
     log('latest tag and hash for "%s" are: "%O"', packageName, latest)
     return latest

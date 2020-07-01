@@ -88,6 +88,7 @@ async function calculateHashOfPackage(
     )
   ).reduce((hasher, { filePath, fileContent }) => {
     const relativePathInPackage = path.relative(packagePath, filePath)
+    console.log('stav1', relativePathInPackage)
     hasher.update(relativePathInPackage)
     hasher.update(fileContent)
     return hasher
