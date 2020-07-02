@@ -88,7 +88,10 @@ export async function createRepo({
             tests: packageInfo.tests,
           }),
           ...(packageInfo.targetType === TargetType.docker && {
-            Dockerfile: `FROM node`,
+            Dockerfile: `\
+            FROM alpine
+            CMD ["echo","hello"]
+            `,
           }),
           ...packageInfo.additionalFiles,
         },

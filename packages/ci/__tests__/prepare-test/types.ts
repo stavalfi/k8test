@@ -1,6 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import execa from 'execa'
+import { ServerInfo } from 'ci/src/types'
 
 export enum TargetType {
   docker = 'docker',
@@ -12,11 +13,6 @@ export enum Resource {
   dockerRegistry = 'docker-registry',
   npmRegistry = 'npm-registry',
   gitServer = 'git-server',
-}
-
-export type NpmRegistry = {
-  port: number
-  ip: string
 }
 
 export type Package = {
@@ -67,11 +63,14 @@ export type CreateAndManageRepo = (
   repo?: Repo,
 ) => Promise<{
   repoPath: string
+  toActualName: ToActualName
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
   getPackagePath: (packageName: string) => Promise<string>
-  runCi: RunCi
   addRandomFileToPackage: AddRandomFileToPackage
   addRandomFileToRoot: AddRandomFileToRoot
   installAndRunNpmDependency: (dependencyName: string) => Promise<execa.ExecaChildProcess<string>>
+  runCi: RunCi
 }>
 
 export type NewEnvFunc = () => {

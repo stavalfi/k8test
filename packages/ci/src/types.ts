@@ -5,6 +5,14 @@ export type PackageJson = {
   devDependencies?: { [key: string]: string }
 }
 
+export type Protocol = 'http' | 'https'
+
+export type ServerInfo = {
+  host: string
+  port: number
+  protocol?: Protocol
+}
+
 export type Auth = {
   npmRegistryUsername: string
   npmRegistryEmail: string
@@ -21,16 +29,13 @@ export type CiOptions = {
   isMasterBuild: boolean
   isDryRun: boolean
   skipTests: boolean
-  npmRegistryAddress: string
-  dockerRegistryAddress: string
-  dockerRegistryProtocol: string
+  npmRegistry: ServerInfo
+  dockerRegistry: ServerInfo
+  gitServer: ServerInfo
+  redisServer: ServerInfo
   dockerOrganizationName: string
   gitRepositoryName: string
   gitOrganizationName: string
-  gitServerDomain: string
-  gitServerProtocol: string
-  redisIp: string
-  redisPort: number
   auth: Auth
 }
 

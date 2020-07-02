@@ -1,7 +1,28 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
+import { ServerInfo } from './types'
 
 const log = k8testLog('ci:docker-utils')
+
+export const buildDockerImageName = (packageJsonName: string) => {
+  return packageJsonName.replace('/', '-').replace('@', '')
+}
+
+export const buildFullDockerImageName = ({
+  dockerOrganizationName,
+  dockerRegistry,
+  packageJsonName,
+  imageTag,
+}: {
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+  packageJsonName: string
+  imageTag: string
+}) => {
+  return `${dockerRegistry.host}:${dockerRegistry.port}/${dockerOrganizationName}/${buildDockerImageName(
+    packageJsonName,
+  )}:${imageTag}`
+}
 
 /*
 todo: remove skopeo and use docker v2 api. it's not working when trying to use the following commands with unsecure-local-registry
@@ -13,24 +34,27 @@ digest=$(curl -s -H "Accept: application/vnd.docker.distribution.manifest.v2+jso
 curl -s -L -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://registry-1.docker.io/v2/${repo}/blobs/$digest" | jq .config.Labels
 */
 export async function getDockerImageLabelsAndTags({
-  imageName,
+  packageJsonName,
   imageTag,
   dockerOrganizationName,
-  dockerRegistryAddress,
-  dockerRegistryProtocol,
+  dockerRegistry,
 }: {
-  imageName: string
+  packageJsonName: string
   imageTag: string
   dockerOrganizationName: string
-  dockerRegistryAddress: string
-  dockerRegistryProtocol: string
+  dockerRegistry: ServerInfo
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
-  const fullImageName = `${dockerRegistryAddress}/${dockerOrganizationName}/${imageName}:${imageTag}`
+  const fullImageName = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName,
+    imageTag,
+  })
   try {
     log('searching the latest tag and hash for image "%s"', fullImageName)
 
     const { stdout } = await execa.command(
-      `skopeo inspect ${dockerRegistryProtocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
     const { Labels, RepoTags } = JSON.parse(stdout)
 

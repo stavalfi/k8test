@@ -5,6 +5,7 @@
 import { boolean, command, flag, option, optional, run, string } from 'cmd-ts'
 import findProjectRoot from 'find-project-root'
 import { ci } from './ci-logic'
+import { toServerInfo } from './utils'
 
 // eslint-disable-next-line no-console
 process.on('unhandledRejection', e => console.error(e))
@@ -78,6 +79,7 @@ const app = command({
     'git-server-domain': option({
       type: string,
       long: 'git-server-domain',
+      description: '',
     }),
     'git-organization': option({
       type: string,
@@ -109,7 +111,20 @@ const app = command({
     }),
   },
   handler: async args => {
-    const [redisIp, redisPort] = args['redis-endpoint'].split(':')
+    const dockerRegistry = toServerInfo({
+      protocol: args['docker-registry-protocol'],
+      host: args['docker-registry'],
+    })
+    const gitServer = toServerInfo({
+      protocol: args['git-server-protocol'],
+      host: args['git-server-domain'],
+    })
+    const npmRegistry = toServerInfo({
+      host: args['npm-registry'],
+    })
+    const redisServer = toServerInfo({
+      host: args['redis-endpoint'],
+    })
     try {
       await ci({
         isDryRun: args['dry-run'],
@@ -118,14 +133,11 @@ const app = command({
         skipTests: args['skip-tests'],
         gitRepositoryName: args['git-repository'],
         gitOrganizationName: args['git-organization'],
-        gitServerDomain: args['git-server-domain'],
-        npmRegistryAddress: args['npm-registry'],
-        dockerRegistryAddress: args['docker-registry'],
         dockerOrganizationName: args['docker-repository'],
-        gitServerProtocol: args['git-server-protocol'],
-        dockerRegistryProtocol: args['docker-registry-protocol'],
-        redisIp,
-        redisPort: Number(redisPort),
+        dockerRegistry,
+        gitServer,
+        npmRegistry,
+        redisServer,
         auth: {
           dockerRegistryToken: args['docker-registry-token'],
           dockerRegistryUsername: args['docker-registry-username'],

@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 
-import ciInfo from 'ci-info'
 import execa from 'execa'
 import fse from 'fs-extra'
 import Redis from 'ioredis'
@@ -11,7 +10,7 @@ import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
-import { Auth, CiOptions, Graph, PackageInfo } from './types'
+import { Auth, CiOptions, Graph, PackageInfo, ServerInfo } from './types'
 
 export { getDockerImageLabelsAndTags } from './docker-utils'
 export { PackageJson, TargetType } from './types'
@@ -30,18 +29,16 @@ async function getPackages(rootPath: string): Promise<string[]> {
 async function getOrderedGraph({
   packagesPath,
   rootPath,
-  dockerRegistryAddress,
   dockerOrganizationName,
-  npmRegistryAddress,
   redisClient,
-  dockerRegistryProtocol,
+  dockerRegistry,
+  npmRegistry,
 }: {
   rootPath: string
   packagesPath: string[]
-  npmRegistryAddress: string
-  dockerRegistryAddress: string
+  npmRegistry: ServerInfo
+  dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  dockerRegistryProtocol: string
   redisClient: Redis.Redis
 }): Promise<Graph<PackageInfo>> {
   const orderedGraph = await calculatePackagesHash(rootPath, packagesPath)
@@ -49,14 +46,13 @@ async function getOrderedGraph({
     orderedGraph.map(async node => ({
       ...node,
       data: await getPackageInfo({
-        dockerRegistryAddress,
+        dockerRegistry,
+        npmRegistry,
         dockerOrganizationName,
-        npmRegistryAddress,
         packageHash: node.data.packageHash,
         packagePath: node.data.packagePath,
         relativePackagePath: node.data.relativePackagePath,
         redisClient,
-        dockerRegistryProtocol,
       }),
     })),
   )
@@ -73,30 +69,26 @@ async function gitAmendChanges({
   auth,
   gitOrganizationName,
   gitRepositoryName,
-  gitServerDomain,
+  gitServer,
   rootPath,
 }: {
   rootPath: string
-  gitServerProtocol: string
-  gitServerDomain: string
+  gitServer: ServerInfo
   gitRepositoryName: string
   gitOrganizationName: string
   auth: Auth
 }) {
   if (await isRepoModified(rootPath)) {
-    if (ciInfo.isCI) {
-      await execa.command(
-        // eslint-disable-next-line no-process-env
-        `git remote set-url origin https://${auth.gitServerUsername}:${auth.gitServerToken}@${gitServerDomain}/${gitOrganizationName}/${gitRepositoryName}.git
-      `,
-        { cwd: rootPath },
-      )
-    }
     log('committing changes to git')
     await execa.command('git add --all', { cwd: rootPath })
     await execa.command(`git commit -m ci--promoted-packages-versions`, { cwd: rootPath })
     log('pushing commit to working-branch')
-    await execa.command('git push', { cwd: rootPath })
+    await execa.command(
+      `git push ${gitServer.protocol}://${auth.gitServerUsername}:${auth.gitServerToken}@${gitServer.host}:${gitServer.port}/${gitOrganizationName}/${gitRepositoryName}.git`,
+      {
+        cwd: rootPath,
+      },
+    )
     log('pushed commit to working-branch')
   }
 }
@@ -117,7 +109,10 @@ export async function ci(options: CiOptions) {
   log('calculate hash of every package and check which packages changed since their last publish')
 
   if (options.auth.dockerRegistryUsername && options.auth.dockerRegistryToken) {
-    log('logging in to docker-registry: %s', `${options.dockerRegistryProtocol}://${options.dockerRegistryAddress}`)
+    log(
+      'logging in to docker-registry: %s',
+      `${options.dockerRegistry.protocol}://${options.dockerRegistry.host}:${options.dockerRegistry.port}`,
+    )
     // I need to login to read and push from `options.auth.dockerRegistryUsername` repository	  log('logged in to docker-hub registry')
     await execa.command(
       `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
@@ -127,8 +122,8 @@ export async function ci(options: CiOptions) {
   }
 
   const redisClient = new Redis({
-    host: options.redisIp,
-    port: options.redisPort,
+    host: options.redisServer.host,
+    port: options.redisServer.port,
     ...(options.auth.redisPassword && { password: options.auth.redisPassword }),
   })
 
@@ -136,11 +131,10 @@ export async function ci(options: CiOptions) {
   const orderedGraph = await getOrderedGraph({
     rootPath: options.rootPath,
     packagesPath,
-    dockerRegistryAddress: options.dockerRegistryAddress,
+    dockerRegistry: options.dockerRegistry,
     dockerOrganizationName: options.dockerOrganizationName,
-    npmRegistryAddress: options.npmRegistryAddress,
+    npmRegistry: options.npmRegistry,
     redisClient,
-    dockerRegistryProtocol: options.dockerRegistryProtocol,
   })
 
   log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
@@ -173,18 +167,17 @@ export async function ci(options: CiOptions) {
       await publish(updatedOrderedGraph, {
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
-        dockerRegistryAddress: options.dockerRegistryAddress,
+        dockerRegistry: options.dockerRegistry,
+        npmRegistry: options.npmRegistry,
         dockerOrganizationName: options.dockerOrganizationName,
-        npmRegistryAddress: options.npmRegistryAddress,
         auth: options.auth,
       })
       if (!options.isDryRun) {
         await gitAmendChanges({
           auth: options.auth,
-          gitServerProtocol: options.gitServerProtocol,
+          gitServer: options.gitServer,
           gitOrganizationName: options.gitOrganizationName,
           gitRepositoryName: options.gitRepositoryName,
-          gitServerDomain: options.gitServerDomain,
           rootPath: options.rootPath,
         })
       }

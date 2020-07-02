@@ -1,8 +1,9 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
-import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType, Auth } from './types'
+import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType, Auth, ServerInfo } from './types'
 import npmLogin from 'npm-login-noninteractive'
+import { buildFullDockerImageName } from './docker-utils'
 
 const log = k8testLog('ci:publish')
 
@@ -12,7 +13,7 @@ async function publishNpm({
   npmTarget,
   packageInfo,
   rootPath,
-  npmRegistryAddress,
+  npmRegistry,
   auth,
 }: {
   packageInfo: PackageInfo
@@ -20,7 +21,7 @@ async function publishNpm({
   newVersion: string
   isDryRun: boolean
   rootPath: string
-  npmRegistryAddress: string
+  npmRegistry: ServerInfo
   auth: Auth
 }): Promise<PublishResult> {
   log('publishing npm target in package: "%s"', packageInfo.packageJson.name)
@@ -42,7 +43,11 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  await execa.command(`npm publish --registry ${npmRegistryAddress}`, { stdio: 'pipe', cwd: packageInfo.packagePath })
+  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
+    stdio: 'pipe',
+    cwd: packageInfo.packagePath,
+  })
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
   )
@@ -58,16 +63,16 @@ async function publishDocker({
   newVersion,
   dockerTarget,
   packageInfo,
-  dockerRegistryAddress,
   dockerOrganizationName,
+  dockerRegistry,
 }: {
   packageInfo: PackageInfo
   dockerTarget: TargetInfo<TargetType.docker>
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
   newVersion: string
   isDryRun: boolean
   rootPath: string
-  dockerRegistryAddress: string
-  dockerOrganizationName: string
 }): Promise<PublishResult> {
   log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
 
@@ -84,27 +89,39 @@ async function publishDocker({
     }
   }
 
-  const dockerImageWithRepo = `${dockerRegistryAddress}/${dockerOrganizationName}/${packageInfo.packageJson.name}`
+  const fullImageNameLatest = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: packageInfo.packageJson.name,
+    imageTag: 'latest',
+  })
 
-  log('building docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
+  const fullImageNameNewVersion = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: packageInfo.packageJson.name,
+    imageTag: dockerTarget.newVersion,
+  })
+
+  log('building docker image "%s" in package: "%s"', fullImageNameNewVersion, packageInfo.packageJson.name)
 
   await execa.command(
-    `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${dockerImageWithRepo}:latest ${rootPath}`,
+    `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameLatest} ${rootPath}`,
     {
       cwd: packageInfo.packagePath,
       stdio: 'inherit',
     },
   )
-  log('built docker image "%s" in package: "%s"', dockerImageWithRepo, packageInfo.packageJson.name)
+  log('built docker image "%s" in package: "%s"', fullImageNameNewVersion, packageInfo.packageJson.name)
 
   log(
-    'creating tags: "%s" and "%s" to docker image "%s" in package: "%s"',
+    'creating tags: ["%s", "%s"] to docker image "%s" in package: "%s"',
     newVersion,
-    dockerImageWithRepo,
     packageInfo.packageHash,
+    fullImageNameNewVersion,
     packageInfo.packageJson.name,
   )
-  await execa.command(`docker tag ${dockerImageWithRepo}:latest ${dockerImageWithRepo}:${newVersion}`, {
+  await execa.command(`docker tag ${fullImageNameLatest} ${fullImageNameNewVersion}`, {
     stdio: 'inherit',
   })
 
@@ -112,8 +129,8 @@ async function publishDocker({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  await execa.command(`docker push ${dockerImageWithRepo}:latest`, { stdio: 'inherit' })
-  await execa.command(`docker push ${dockerImageWithRepo}:${newVersion}`, { stdio: 'inherit' })
+  await execa.command(`docker push ${fullImageNameNewVersion}`, { stdio: 'inherit' })
+  await execa.command(`docker push ${fullImageNameLatest}`, { stdio: 'inherit' })
 
   log('published docker target in package: "%s"', packageInfo.packageJson.name)
 
@@ -125,8 +142,8 @@ export async function publish(
   options: {
     rootPath: string
     isDryRun: boolean
-    npmRegistryAddress: string
-    dockerRegistryAddress: string
+    npmRegistry: ServerInfo
+    dockerRegistry: ServerInfo
     dockerOrganizationName: string
     auth: Auth
   },
@@ -144,11 +161,12 @@ export async function publish(
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
     if (!options.isDryRun) {
       if (npm.length > 0) {
+        const npmRegistryAddress = `${options.npmRegistry.protocol}://${options.npmRegistry.host}:${options.npmRegistry.port}`
         npmLogin(
           options.auth.npmRegistryUsername,
           options.auth.npmRegistryToken,
           options.auth.npmRegistryEmail,
-          options.npmRegistryAddress,
+          npmRegistryAddress,
         )
       }
     }
@@ -161,7 +179,7 @@ export async function publish(
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           isDryRun: options.isDryRun,
           rootPath: options.rootPath,
-          npmRegistryAddress: options.npmRegistryAddress,
+          npmRegistry: options.npmRegistry,
           auth: options.auth,
         }),
       ),
@@ -183,11 +201,12 @@ export async function publish(
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           rootPath: options.rootPath,
           isDryRun: options.isDryRun,
-          dockerRegistryAddress: options.dockerRegistryAddress,
           dockerOrganizationName: options.dockerOrganizationName,
+          dockerRegistry: options.dockerRegistry,
         }),
       ),
     )
+
     log(
       `docker publish results: %O`,
       JSON.stringify(
@@ -197,6 +216,6 @@ export async function publish(
       ),
     )
 
-    return { npmResult, dockerResult }
+    return { dockerResult }
   }
 }

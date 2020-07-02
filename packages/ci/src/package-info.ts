@@ -1,17 +1,17 @@
 import execa from 'execa'
 import fs from 'fs-extra'
-import path from 'path'
-import semver from 'semver'
-import { PackageInfo, TargetInfo, TargetType } from './types'
 import { Redis } from 'ioredis'
 import k8testLog from 'k8test-log'
+import path from 'path'
+import semver from 'semver'
 import { getDockerImageLabelsAndTags } from './docker-utils'
+import { PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
 
 const log = k8testLog('ci:package-info')
 
 async function getNpmLatestVersionInfo(
   packageName: string,
-  npmRegistryAddress: string,
+  npmRegistry: ServerInfo,
   redisClient: Redis,
 ): Promise<
   | {
@@ -24,7 +24,7 @@ async function getNpmLatestVersionInfo(
   | undefined
 > {
   try {
-    const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
+    const command = `npm view ${packageName} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
     log('searching the latest tag and hash: "%s"', command)
     const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
@@ -100,21 +100,19 @@ function calculateNewVersion(
 }
 
 export async function getPackageInfo({
-  dockerRegistryAddress,
   dockerOrganizationName,
-  npmRegistryAddress,
   packageHash,
   packagePath,
   relativePackagePath,
   redisClient,
-  dockerRegistryProtocol,
+  dockerRegistry,
+  npmRegistry,
 }: {
   relativePackagePath: string
   packagePath: string
   packageHash: string
-  npmRegistryAddress: string
-  dockerRegistryAddress: string
-  dockerRegistryProtocol: string
+  npmRegistry: ServerInfo
+  dockerRegistry: ServerInfo
   dockerOrganizationName: string
   redisClient: Redis
 }): Promise<PackageInfo> {
@@ -122,13 +120,12 @@ export async function getPackageInfo({
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
-  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistryAddress, redisClient)
+  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
-    dockerRegistryAddress,
+    dockerRegistry,
     dockerOrganizationName,
-    imageName: packageJson.name,
+    packageJsonName: packageJson.name,
     imageTag: 'latest',
-    dockerRegistryProtocol,
   })
 
   const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {
