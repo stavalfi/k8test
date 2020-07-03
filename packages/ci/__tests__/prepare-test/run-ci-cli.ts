@@ -14,12 +14,12 @@ export const runCiCli = async (
     --master-build=${options.isMasterBuild} \
     --dry-run=${options.isDryRun} \
     --skip-tests=${options.skipTests} \
-    --docker-registry ${options.dockerRegistry.host}:${options.dockerRegistry.port} \
+    --docker-registry ${options.dockerRegistry.protocol}${options.dockerRegistry.host}:${options.dockerRegistry.port} \
     --npm-registry ${options.npmRegistry.protocol}://${options.npmRegistry.host}:${options.npmRegistry.port} \
-    --git-server-domain ${options.gitServer.host}:${options.gitServer.port} \
+    --git-repo ${options.gitServer.protocol}://${options.gitServer.host}:${options.gitServer.port}/${
+    options.gitOrganizationName
+  }/${options.gitRepositoryName}.git \
     --docker-repository ${options.dockerOrganizationName} \
-    --git-organization ${options.gitOrganizationName} \
-    --git-repository ${options.gitRepositoryName} \
     ${options.auth.dockerRegistryToken ? `--docker-registry-token ${options.auth.dockerRegistryToken}` : ''} \
     ${options.auth.dockerRegistryUsername ? `--docker-registry-username ${options.auth.dockerRegistryUsername}` : ''} \
     --git-server-token ${options.auth.gitServerToken} \
@@ -27,10 +27,8 @@ export const runCiCli = async (
     --npm-registry-username ${options.auth.npmRegistryUsername} \
     --npm-registry-email ${options.auth.npmRegistryEmail} \
     --npm-registry-token ${options.auth.npmRegistryToken} \
-    --git-server-protocol ${options.gitServer.protocol} \
-    --docker-registry-protocol ${options.dockerRegistry.protocol} \
     ${options.auth.redisPassword ? `--redis-password ${options.auth.redisPassword}` : ''} \
-    --redis-endpoint ${options.redisServer.host}:${options.redisServer.port}
+    --redis-server ${options.redisServer.host}:${options.redisServer.port}
   `
 
   return execa.command(command, {

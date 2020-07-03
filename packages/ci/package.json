@@ -22,6 +22,7 @@
     "cmd-ts": "^0.6.3",
     "execa": "^4.0.1",
     "find-project-root": "^1.1.1",
+    "git-url-parse": "^11.1.2",
     "got": "^11.3.0",
     "ioredis": "^4.17.1",
     "is-ip": "^3.1.0",

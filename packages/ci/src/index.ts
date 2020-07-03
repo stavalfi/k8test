@@ -6,6 +6,7 @@ import { boolean, command, flag, option, optional, run, string } from 'cmd-ts'
 import findProjectRoot from 'find-project-root'
 import { ci } from './ci-logic'
 import { toServerInfo } from './utils'
+import parseGitUrl from 'git-url-parse'
 
 const app = command({
   name: 'scripts',
@@ -48,9 +49,9 @@ const app = command({
       type: string,
       long: 'npm-registry-email',
     }),
-    'redis-endpoint': option({
+    'redis-server': option({
       type: string,
-      long: 'redis-endpoint',
+      long: 'redis',
       description: 'ip:port',
     }),
     'redis-password': option({
@@ -73,23 +74,10 @@ const app = command({
       type: string,
       long: 'git-server-token',
     }),
-    'git-server-domain': option({
+    'git-repo': option({
       type: string,
-      long: 'git-server-domain',
-      description: '',
-    }),
-    'git-organization': option({
-      type: string,
-      long: 'git-organization',
-    }),
-    'git-repository': option({
-      type: string,
-      long: 'git-repository',
-    }),
-    'git-server-protocol': option({
-      type: string,
-      long: 'git-server-protocol',
-      description: 'http or htts',
+      long: 'git-server',
+      description: 'example: https://github.com/stavalfi/k8test, http://localhost:8081/a/b (ssh-url is not supported)',
     }),
     'docker-repository': option({
       type: string,
@@ -98,37 +86,36 @@ const app = command({
     'docker-registry': option({
       type: string,
       long: 'docker-registry',
-      defaultValue: () => 'registry.hub.docker.com',
+      defaultValue: () => 'https://registry.hub.docker.com',
       description: 'docker registry address to publish docker-targets to',
-    }),
-    'docker-registry-protocol': option({
-      type: string,
-      long: 'docker-registry-protocol',
-      description: 'http or htts',
     }),
   },
   handler: async args => {
     const dockerRegistry = toServerInfo({
-      protocol: args['docker-registry-protocol'],
       host: args['docker-registry'],
     })
+    const { protocol, source, port, name, organization } = parseGitUrl(args['git-repo'])
+    if (port === null) {
+      throw new Error(`can't fidn the port in the git-repo parameter: ${args['git-repo']}`)
+    }
     const gitServer = toServerInfo({
-      protocol: args['git-server-protocol'],
-      host: args['git-server-domain'],
+      protocol,
+      host: source,
+      port,
     })
     const npmRegistry = toServerInfo({
       host: args['npm-registry'],
     })
     const redisServer = toServerInfo({
-      host: args['redis-endpoint'],
+      host: args['redis-server'],
     })
     await ci({
       isDryRun: args['dry-run'],
       rootPath: args.cwd,
       isMasterBuild: args['master-build'],
       skipTests: args['skip-tests'],
-      gitRepositoryName: args['git-repository'],
-      gitOrganizationName: args['git-organization'],
+      gitRepositoryName: name,
+      gitOrganizationName: organization,
       dockerOrganizationName: args['docker-repository'],
       dockerRegistry,
       gitServer,
