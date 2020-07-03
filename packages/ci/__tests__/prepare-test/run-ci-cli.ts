@@ -1,10 +1,13 @@
-import execa from 'execa'
+import execa, { StdioOption } from 'execa'
 import path from 'path'
 import { CiOptions } from '../../src/types'
 
 const ciCliPath = path.join(__dirname, '../../dist/src/index.js')
 
-export const runCiCli = async (options: CiOptions): Promise<execa.ExecaChildProcess> => {
+export const runCiCli = async (
+  options: CiOptions,
+  stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[],
+): Promise<execa.ExecaChildProcess> => {
   const command = `\
   ${ciCliPath}\
     --cwd ${options.rootPath} \
@@ -29,7 +32,8 @@ export const runCiCli = async (options: CiOptions): Promise<execa.ExecaChildProc
     ${options.auth.redisPassword ? `--redis-password ${options.auth.redisPassword}` : ''} \
     --redis-endpoint ${options.redisServer.host}:${options.redisServer.port}
   `
+
   return execa.command(command, {
-    stdio: 'inherit',
+    stdio: stdio || 'inherit',
   })
 }

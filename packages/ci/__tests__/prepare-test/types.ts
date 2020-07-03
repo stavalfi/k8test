@@ -1,6 +1,6 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
-import execa from 'execa'
+import execa, { StdioOption } from 'execa'
 import { ServerInfo } from 'ci/src/types'
 
 export enum TargetType {
@@ -36,6 +36,7 @@ export type CiOptions = {
   isMasterBuild: boolean
   isDryRun?: boolean
   skipTests?: boolean
+  stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
 }
 
 export type PublishedPackageInfo = {

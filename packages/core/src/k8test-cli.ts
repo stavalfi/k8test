@@ -1,3 +1,3 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --unhandled-rejections=strict
 
 import 'k8test-cli-logic'

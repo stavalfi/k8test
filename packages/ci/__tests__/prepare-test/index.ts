@@ -43,30 +43,31 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests }) => {
-      await runCiCli({
-        isMasterBuild,
-        skipTests: Boolean(skipTests),
-        isDryRun: Boolean(isDryRun),
-        dockerOrganizationName,
-        gitOrganizationName: repoOrg,
-        gitRepositoryName: repoName,
-        rootPath: repoPath,
-        dockerRegistry,
-        gitServer: gitServer.getServerInfo(),
-        npmRegistry,
-        redisServer: {
-          host: redisServer.host,
-          port: redisServer.port,
+    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, stdio }) => {
+      await runCiCli(
+        {
+          isMasterBuild,
+          skipTests: Boolean(skipTests),
+          isDryRun: Boolean(isDryRun),
+          dockerOrganizationName,
+          gitOrganizationName: repoOrg,
+          gitRepositoryName: repoName,
+          rootPath: repoPath,
+          dockerRegistry,
+          gitServer: gitServer.getServerInfo(),
+          npmRegistry,
+          redisServer: {
+            host: redisServer.host,
+            port: redisServer.port,
+          },
+          auth: {
+            ...npmRegistry.auth,
+            gitServerToken: gitServer.getToken(),
+            gitServerUsername: gitServer.getUsername(),
+          },
         },
-        auth: {
-          ...npmRegistry.auth,
-          gitServerToken: gitServer.getToken(),
-          gitServerUsername: gitServer.getUsername(),
-        },
-      })
-
-      await new Promise(res => setTimeout(res, 5000))
+        stdio,
+      )
 
       const packages = await Promise.all(
         repo.packages
@@ -94,8 +95,6 @@ export const newEnv: NewEnvFunc = () => {
             ]
           }) || [],
       )
-
-      await new Promise(res => setTimeout(res, 5000))
 
       const published = packages.filter(
         ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.latestVersion,

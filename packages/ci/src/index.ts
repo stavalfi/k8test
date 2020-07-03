@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --unhandled-rejections=strict
 
 /// <reference path="../../../declarations.d.ts" />
 
@@ -6,9 +6,6 @@ import { boolean, command, flag, option, optional, run, string } from 'cmd-ts'
 import findProjectRoot from 'find-project-root'
 import { ci } from './ci-logic'
 import { toServerInfo } from './utils'
-
-// eslint-disable-next-line no-console
-process.on('unhandledRejection', e => console.error(e))
 
 const app = command({
   name: 'scripts',
@@ -125,34 +122,29 @@ const app = command({
     const redisServer = toServerInfo({
       host: args['redis-endpoint'],
     })
-    try {
-      await ci({
-        isDryRun: args['dry-run'],
-        rootPath: args.cwd,
-        isMasterBuild: args['master-build'],
-        skipTests: args['skip-tests'],
-        gitRepositoryName: args['git-repository'],
-        gitOrganizationName: args['git-organization'],
-        dockerOrganizationName: args['docker-repository'],
-        dockerRegistry,
-        gitServer,
-        npmRegistry,
-        redisServer,
-        auth: {
-          dockerRegistryToken: args['docker-registry-token'],
-          dockerRegistryUsername: args['docker-registry-username'],
-          gitServerUsername: args['git-server-username'],
-          gitServerToken: args['git-server-token'],
-          npmRegistryUsername: args['npm-registry-username'],
-          npmRegistryEmail: args['npm-registry-email'],
-          npmRegistryToken: args['npm-registry-token'],
-          redisPassword: args['redis-password'],
-        },
-      })
-    } catch (e) {
-      process.exitCode = 1
-      throw e
-    }
+    await ci({
+      isDryRun: args['dry-run'],
+      rootPath: args.cwd,
+      isMasterBuild: args['master-build'],
+      skipTests: args['skip-tests'],
+      gitRepositoryName: args['git-repository'],
+      gitOrganizationName: args['git-organization'],
+      dockerOrganizationName: args['docker-repository'],
+      dockerRegistry,
+      gitServer,
+      npmRegistry,
+      redisServer,
+      auth: {
+        dockerRegistryToken: args['docker-registry-token'],
+        dockerRegistryUsername: args['docker-registry-username'],
+        gitServerUsername: args['git-server-username'],
+        gitServerToken: args['git-server-token'],
+        npmRegistryUsername: args['npm-registry-username'],
+        npmRegistryEmail: args['npm-registry-email'],
+        npmRegistryToken: args['npm-registry-token'],
+        redisPassword: args['redis-password'],
+      },
+    })
   },
 })
 

@@ -51,11 +51,20 @@ async function getNpmLatestVersionInfo(
   }
 }
 
-function calculateNewVersion(
-  packageJsonVersion: string,
-  latestPublishedVersion?: string,
-  allVersions?: string[],
-): string {
+function calculateNewVersion({
+  packagePath,
+  packageJsonVersion,
+  allVersions,
+  latestPublishedVersion,
+}: {
+  packagePath: string
+  packageJsonVersion: string
+  latestPublishedVersion?: string
+  allVersions?: string[]
+}): string {
+  if (!semver.valid(packageJsonVersion)) {
+    throw new Error(`version packgeJson in ${packagePath} is invalid: ${packageJsonVersion}`)
+  }
   const allValidVersions = allVersions?.filter(version => semver.valid(version))
 
   if (!allValidVersions?.length) {
@@ -65,11 +74,11 @@ function calculateNewVersion(
 
   const incVersion = (version: string) => {
     if (!semver.valid(version)) {
-      throw new Error(`version is invalid: ${version}`)
+      throw new Error(`version is invalid: ${version} in ${packagePath}`)
     }
     const newVersion = semver.inc(version, 'patch')
     if (!newVersion) {
-      throw new Error(`could not path-increment version: ${version}`)
+      throw new Error(`could not path-increment version: ${version} in ${packagePath}`)
     }
     return newVersion
   }
@@ -90,7 +99,11 @@ function calculateNewVersion(
         ? packageJsonVersion
         : latestPublishedVersion
 
-      return incVersion(maxVersion)
+      if (allVersions?.includes(maxVersion)) {
+        return incVersion(maxVersion)
+      } else {
+        return maxVersion
+      }
     } else {
       const sorted = semver.sort(allValidVersions)
 
@@ -140,11 +153,12 @@ export async function getPackageInfo({
         }
       : {
           needPublish: true,
-          newVersion: calculateNewVersion(
-            packageJson.version,
-            npmLatestVersionInfo?.latestVersion,
-            npmLatestVersionInfo?.allVersions,
-          ),
+          newVersion: calculateNewVersion({
+            packagePath,
+            packageJsonVersion: packageJson.version,
+            latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
+            allVersions: npmLatestVersionInfo?.allVersions,
+          }),
           ...(npmLatestVersionInfo && {
             latestPublishedVersion: {
               version: npmLatestVersionInfo.latestVersion,
@@ -165,11 +179,12 @@ export async function getPackageInfo({
         }
       : {
           needPublish: true,
-          newVersion: calculateNewVersion(
-            packageJson.version,
-            dockerLatestTagInfo?.latestTag,
-            dockerLatestTagInfo?.allTags,
-          ),
+          newVersion: calculateNewVersion({
+            packagePath,
+            packageJsonVersion: packageJson.version,
+            latestPublishedVersion: dockerLatestTagInfo?.latestTag,
+            allVersions: dockerLatestTagInfo?.allTags,
+          }),
           ...(dockerLatestTagInfo && {
             latestPublishedVersion: {
               version: dockerLatestTagInfo.latestTag,

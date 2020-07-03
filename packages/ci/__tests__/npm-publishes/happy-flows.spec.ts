@@ -1,6 +1,6 @@
 import chance from 'chance'
-import { newEnv } from './prepare-test'
-import { TargetType } from './prepare-test/types'
+import { newEnv } from '../prepare-test'
+import { TargetType } from '../prepare-test/types'
 
 const { createRepo } = newEnv()
 

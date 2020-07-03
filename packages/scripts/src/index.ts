@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --unhandled-rejections=strict
 
 /// <reference path="../../../declarations.d.ts" />
 
@@ -6,9 +6,6 @@ import { boolean, command, flag, run, subcommands } from 'cmd-ts'
 import execa from 'execa'
 import { clean } from './clean'
 import { deleteK8testResources } from './delete-k8test-resources'
-
-// eslint-disable-next-line no-console
-process.on('unhandledRejection', e => console.error(e))
 
 const app = subcommands({
   name: 'scripts',
