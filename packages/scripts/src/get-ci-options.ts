@@ -6,7 +6,7 @@ import path from 'path'
 export const getPrCiOptions = (): CiOptions => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
   return {
-    rootPath: path.join(__dirname, '../../../'),
+    rootPath: path.join(require.resolve('scripts'), '../../../../../'),
     dockerOrganizationName: 'stavalfi',
     dockerRegistry: {
       host: 'registry.hub.docker.com',
@@ -35,12 +35,12 @@ export const getPrCiOptions = (): CiOptions => {
     auth: {
       gitServerToken: process.env['GIT_SERVER_TOKEN'] as string,
       gitServerUsername: process.env['GIT_SERVER_USERNAME'] as string,
-      npmRegistryEmail: process.env['GIT_SERVER_USERNAME'] as string,
-      npmRegistryToken: process.env['GIT_SERVER_USERNAME'] as string,
-      npmRegistryUsername: process.env['GIT_SERVER_USERNAME'] as string,
-      dockerRegistryToken: process.env['GIT_SERVER_USERNAME'] as string,
-      dockerRegistryUsername: process.env['GIT_SERVER_USERNAME'] as string,
-      redisPassword: process.env['GIT_SERVER_USERNAME'] as string,
+      npmRegistryEmail: 'stavalfi@gmail.com',
+      npmRegistryToken: process.env['NPM_TOKEN'] as string,
+      npmRegistryUsername: process.env['NPM_USERNAME'] as string,
+      dockerRegistryToken: process.env['DOCKER_HUB_TOKEN'] as string,
+      dockerRegistryUsername: process.env['DOCKER_HUB_USERNAME'] as string,
+      redisPassword: process.env['REDIS_PASSWORD'] as string,
     },
   }
 }

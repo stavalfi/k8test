@@ -2,6 +2,7 @@ import execa from 'execa'
 import k8testLog from 'k8test-log'
 import { ServerInfo } from './types'
 import { getHighestDockerTag } from './versions'
+import isIp from 'is-ip'
 
 const log = k8testLog('ci:docker-utils')
 
@@ -42,9 +43,11 @@ export const buildFullDockerImageName = ({
   packageJsonName: string
   imageTag?: string
 }) => {
-  return `${dockerRegistry.host}:${dockerRegistry.port}/${dockerOrganizationName}/${buildDockerImageName(
+  const withPort = isIp.v4(dockerRegistry.host) || dockerRegistry.host === 'localhost' ? `:${dockerRegistry.port}` : ''
+  const withImageTag = imageTag ? `:${imageTag}` : ''
+  return `${dockerRegistry.host}${withPort}/${dockerOrganizationName}/${buildDockerImageName(
     packageJsonName,
-  )}${imageTag ? `:${imageTag}` : ''}`
+  )}${withImageTag}`
 }
 
 /*
@@ -116,6 +119,7 @@ export async function getDockerImageLabelsAndTags({
   } catch (e) {
     if (
       e.stderr?.includes('manifest unknown') ||
+      e.stderr?.includes('unable to retrieve auth token') ||
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
       log(`"%s" weren't published before so we can't find this image`, fullImageNameWithoutTag)

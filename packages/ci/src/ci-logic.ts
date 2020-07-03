@@ -12,6 +12,7 @@ import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
 import { CiOptions, Graph, PackageInfo, ServerInfo } from './types'
+import { IPackageJson } from 'package-json-type'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
@@ -117,12 +118,16 @@ export async function ci(options: CiOptions) {
     stdio: 'inherit',
   })
 
-  await execa.command('yarn build', {
-    cwd: options.rootPath,
-    stdio: 'inherit',
-  })
+  const rootPackageJson: IPackageJson = await fse.readJson(path.join(options.rootPath, 'package.json'))
+  // @ts-ignore
+  if (rootPackageJson.scripts?.build) {
+    await execa.command('yarn build', {
+      cwd: options.rootPath,
+      stdio: 'inherit',
+    })
+  }
 
-  if (!options.skipTests) {
+  if (!options.skipTests && rootPackageJson.scripts?.test) {
     await execa.command('yarn test', {
       cwd: options.rootPath,
       stdio: 'inherit',
