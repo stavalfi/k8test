@@ -24,7 +24,7 @@ test(`run ci as the first time after there is already a docker publish`, async (
 })
 
 test(`run ci -> override all labels in registry with empty values -> run ci`, async () => {
-  const { runCi, publishDockerPackageWithoutCi } = await createRepo({
+  const { runCi, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -38,21 +38,23 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
     isMasterBuild: true,
   })
 
-  await publishDockerPackageWithoutCi('a', '1.0.1', {
+  await publishDockerPackageWithoutCi('a', '1.0.0', {
     'latest-hash': '',
     'latest-tag': '',
   })
+
+  await addRandomFileToPackage('a')
 
   const master = await runCi({
     isMasterBuild: true,
   })
 
-  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2', 'latest'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.2')
+  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', 'latest'])
+  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test(`run ci -> override all labels in registry with invalid values -> run ci and ensure we can recover from that`, async () => {
-  const { runCi, publishDockerPackageWithoutCi } = await createRepo({
+  const { runCi, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -70,6 +72,8 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
     'latest-hash': 'invalid-hash-$%^&',
     'latest-tag': 'invalid-tag-$%^&',
   })
+
+  await addRandomFileToPackage('a')
 
   const master = await runCi({
     isMasterBuild: true,
@@ -104,8 +108,8 @@ test(`run ci -> override latest-hash label in registry with empty value -> run c
     isMasterBuild: true,
   })
 
-  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2', 'latest'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.2')
+  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', 'latest'])
+  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test(`run ci -> override latest-tag label in registry with empty value -> run ci`, async () => {
@@ -133,8 +137,8 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
     isMasterBuild: true,
   })
 
-  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2', 'latest'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.2')
+  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', 'latest'])
+  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test('run ci -> change packageJson.version to invalid version -> run ci', async () => {

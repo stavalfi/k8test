@@ -114,7 +114,10 @@ export async function getDockerImageLabelsAndTags({
     }
     return result
   } catch (e) {
-    if (e.stderr?.includes('manifest unknown')) {
+    if (
+      e.stderr?.includes('manifest unknown') ||
+      e.stderr?.includes('invalid status code from registry 404 (Not Found)')
+    ) {
       log(`"%s" weren't published before so we can't find this image`, fullImageNameWithoutTag)
     } else {
       throw e
