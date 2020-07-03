@@ -8,7 +8,15 @@ import {
   publishedDockerImageTags,
   publishedNpmPackageVersions,
 } from './seach-targets'
-import { addRandomFileToPackage, addRandomFileToRoot, installAndRunNpmDependency } from './test-helpers'
+import {
+  addRandomFileToPackage,
+  addRandomFileToRoot,
+  installAndRunNpmDependency,
+  publishNpmPackageWithoutCi,
+  unpublishNpmPackage,
+  removeAllNpmHashTags,
+  modifyPackageJson,
+} from './test-helpers'
 import { CreateAndManageRepo, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
 import { getPackagePath } from './utils'
 
@@ -27,7 +35,7 @@ export const newEnv: NewEnvFunc = () => {
 
     const dockerOrganizationName = toActualName('repo')
 
-    const { dockerRegistry, npmRegistry, gitServer, redis } = testResources.get()
+    const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
 
     const { repoPath, repoName, repoOrg } = await createRepo({
       repo,
@@ -36,13 +44,6 @@ export const newEnv: NewEnvFunc = () => {
     })
 
     const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests }) => {
-      // verdaccio allow us to login as any user & password & email
-      const verdaccioCardentials = {
-        npmRegistryUsername: 'root',
-        npmRegistryToken: 'root',
-        npmRegistryEmail: 'root@root.root',
-      }
-
       await runCiCli({
         isMasterBuild,
         skipTests: Boolean(skipTests),
@@ -55,11 +56,11 @@ export const newEnv: NewEnvFunc = () => {
         gitServer: gitServer.getServerInfo(),
         npmRegistry,
         redisServer: {
-          host: redis.host,
-          port: redis.port,
+          host: redisServer.host,
+          port: redisServer.port,
         },
         auth: {
-          ...verdaccioCardentials,
+          ...npmRegistry.auth,
           gitServerToken: gitServer.getToken(),
           gitServerUsername: gitServer.getUsername(),
         },
@@ -73,11 +74,8 @@ export const newEnv: NewEnvFunc = () => {
           ?.map<Promise<[string, PublishedPackageInfo]>>(async packageName => {
             const actualName = toActualName(packageName)
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
-              publishedNpmPackageVersions(
-                actualName,
-                `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
-              ),
-              latestNpmPackageVersion(actualName, `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`),
+              publishedNpmPackageVersions(actualName, npmRegistry),
+              latestNpmPackageVersion(actualName, npmRegistry),
               publishedDockerImageTags(actualName, dockerOrganizationName, dockerRegistry),
               latestDockerImageTag(actualName, dockerOrganizationName, dockerRegistry),
             ])
@@ -117,25 +115,72 @@ export const newEnv: NewEnvFunc = () => {
         gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
         toActualName,
       }),
-      addRandomFileToRoot: addRandomFileToRoot({
-        repoPath,
-        gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
-      }),
+      addRandomFileToRoot: () =>
+        addRandomFileToRoot({
+          repoPath,
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+        }),
       npmRegistryAddress: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
       runCi,
-      dockerRegistry,
       dockerOrganizationName,
-      installAndRunNpmDependency: (dependencyName: string) =>
+      installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
           createRepo: createAndManageReo,
           npmRegistry: testResources.get().npmRegistry,
           toActualName,
           dependencyName,
         }),
+      publishNpmPackageWithoutCi: packageName =>
+        publishNpmPackageWithoutCi({
+          npmRegistry,
+          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
+          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
+          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
+          packageName,
+          repoPath,
+          toActualName,
+        }),
+      unpublishNpmPackage: (packageName, versionToUnpublish) =>
+        unpublishNpmPackage({
+          npmRegistry,
+          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
+          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
+          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
+          packageName,
+          versionToUnpublish,
+          toActualName,
+        }),
+      removeAllNpmHashTags: packageName =>
+        removeAllNpmHashTags({
+          npmRegistry,
+          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
+          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
+          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
+          packageName,
+          repoPath,
+          toActualName,
+        }),
+      modifyPackageJson: (packageName, modification) =>
+        modifyPackageJson({
+          repoPath,
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+          toActualName,
+          packageName,
+          modification,
+        }),
     }
   }
 
   return {
     createRepo: createAndManageReo,
+    getTestResources: () => {
+      const { dockerRegistry, gitServer, npmRegistry, redisServer } = testResources.get()
+      return {
+        dockerRegistry,
+        gitServer: gitServer.getServerInfo(),
+        npmRegistry,
+        redisServer,
+      }
+    },
   }
 }

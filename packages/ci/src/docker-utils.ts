@@ -4,6 +4,28 @@ import { ServerInfo } from './types'
 
 const log = k8testLog('ci:docker-utils')
 
+export async function dockerRegistryLogin({
+  dockerRegistry,
+  dockerRegistryToken,
+  dockerRegistryUsername,
+}: {
+  dockerRegistryUsername?: string
+  dockerRegistryToken?: string
+  dockerRegistry: ServerInfo
+}) {
+  if (dockerRegistryUsername && dockerRegistryToken) {
+    log(
+      'logging in to docker-registry: %s',
+      `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
+    )
+    // I need to login to read and push from `dockerRegistryUsername` repository	  log('logged in to docker-hub registry')
+    await execa.command(`docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken}`, {
+      stdio: 'pipe',
+    })
+    log('logged in to docker-registry')
+  }
+}
+
 export const buildDockerImageName = (packageJsonName: string) => {
   return packageJsonName.replace('/', '-').replace('@', '')
 }

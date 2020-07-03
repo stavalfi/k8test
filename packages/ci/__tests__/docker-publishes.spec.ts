@@ -2,7 +2,7 @@ import chance from 'chance'
 import { newEnv, runDockerImage } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo, getTestResources } = newEnv()
 
 test('1 package', async () => {
   const { runCi } = await createRepo({
@@ -24,7 +24,7 @@ test('1 package', async () => {
 
 test('ensure the image is working', async () => {
   const hash = chance().hash()
-  const { runCi, dockerRegistry, dockerOrganizationName, toActualName } = await createRepo({
+  const { runCi, dockerOrganizationName, toActualName } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -44,7 +44,9 @@ test('ensure the image is working', async () => {
 
   await expect(
     runDockerImage(
-      `${dockerRegistry.host}:${dockerRegistry.port}/${dockerOrganizationName}/${toActualName('a')}:1.0.0`,
+      `${getTestResources().dockerRegistry.host}:${
+        getTestResources().dockerRegistry.port
+      }/${dockerOrganizationName}/${toActualName('a')}:1.0.0`,
     ),
   ).resolves.toEqual(
     expect.objectContaining({

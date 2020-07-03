@@ -1,9 +1,9 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
-import { Graph, PackageInfo, PublishResult, TargetInfo, TargetType, Auth, ServerInfo } from './types'
-import npmLogin from 'npm-login-noninteractive'
 import { buildFullDockerImageName } from './docker-utils'
+import { npmRegistryLogin } from './npm-utils'
+import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
 
 const log = k8testLog('ci:publish')
 
@@ -161,13 +161,12 @@ export async function publish(
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
     if (!options.isDryRun) {
       if (npm.length > 0) {
-        const npmRegistryAddress = `${options.npmRegistry.protocol}://${options.npmRegistry.host}:${options.npmRegistry.port}`
-        npmLogin(
-          options.auth.npmRegistryUsername,
-          options.auth.npmRegistryToken,
-          options.auth.npmRegistryEmail,
-          npmRegistryAddress,
-        )
+        await npmRegistryLogin({
+          npmRegistry: options.npmRegistry,
+          npmRegistryUsername: options.auth.npmRegistryUsername,
+          npmRegistryToken: options.auth.npmRegistryToken,
+          npmRegistryEmail: options.auth.npmRegistryEmail,
+        })
       }
     }
 

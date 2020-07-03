@@ -11,9 +11,12 @@ import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
 import { Auth, CiOptions, Graph, PackageInfo, ServerInfo } from './types'
+import { dockerRegistryLogin } from './docker-utils'
 
-export { getDockerImageLabelsAndTags } from './docker-utils'
+export { getDockerImageLabelsAndTags, dockerRegistryLogin } from './docker-utils'
+export { npmRegistryLogin } from './npm-utils'
 export { PackageJson, TargetType } from './types'
+
 const log = k8testLog('ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {
@@ -108,18 +111,11 @@ export async function ci(options: CiOptions) {
 
   log('calculate hash of every package and check which packages changed since their last publish')
 
-  if (options.auth.dockerRegistryUsername && options.auth.dockerRegistryToken) {
-    log(
-      'logging in to docker-registry: %s',
-      `${options.dockerRegistry.protocol}://${options.dockerRegistry.host}:${options.dockerRegistry.port}`,
-    )
-    // I need to login to read and push from `options.auth.dockerRegistryUsername` repository	  log('logged in to docker-hub registry')
-    await execa.command(
-      `docker login --username=${options.auth.dockerRegistryUsername} --password=${options.auth.dockerRegistryToken}`,
-      { stdio: 'pipe' },
-    )
-    log('logged in to docker-registry')
-  }
+  await dockerRegistryLogin({
+    dockerRegistry: options.dockerRegistry,
+    dockerRegistryToken: options.auth.dockerRegistryToken,
+    dockerRegistryUsername: options.auth.dockerRegistryUsername,
+  })
 
   const redisClient = new Redis({
     host: options.redisServer.host,

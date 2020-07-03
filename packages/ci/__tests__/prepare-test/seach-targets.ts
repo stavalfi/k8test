@@ -3,15 +3,17 @@ import semver from 'semver'
 import { getDockerImageLabelsAndTags } from '../../src/docker-utils'
 import { ServerInfo } from '../../src/types'
 
-export async function latestNpmPackageVersion(
+export async function latestNpmPackageDistTags(
   packageName: string,
-  npmRegistryAddress: string,
-): Promise<string | undefined> {
+  npmRegistry: ServerInfo,
+): Promise<{ [key: string]: string } | undefined> {
   try {
+    const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+
     const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
     const resultJson = JSON.parse(result.stdout) || {}
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
-    return distTags['latest']
+    return distTags
   } catch (e) {
     if (!e.message.includes('code E404')) {
       throw e
@@ -19,8 +21,17 @@ export async function latestNpmPackageVersion(
   }
 }
 
-export async function publishedNpmPackageVersions(packageName: string, npmRegistryAddress: string): Promise<string[]> {
+export async function latestNpmPackageVersion(
+  packageName: string,
+  npmRegistry: ServerInfo,
+): Promise<string | undefined> {
+  const distTags = await latestNpmPackageDistTags(packageName, npmRegistry)
+  return distTags?.['latest']
+}
+
+export async function publishedNpmPackageVersions(packageName: string, npmRegistry: ServerInfo): Promise<string[]> {
   try {
+    const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
     const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
     const resultJson = JSON.parse(result.stdout) || {}
     return resultJson.versions

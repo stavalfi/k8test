@@ -31,12 +31,12 @@ async function getNpmLatestVersionInfo(
     const allVersions: string[] = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const latestVersion = distTags['latest']
-    const latestVersionHashResult =
-      Object.entries(distTags).find(
-        ([key, value]) => value === latestVersion && key.startsWith('latest-hash--'),
-      )?.[0] || `latest-hash--could-not-find-remote-hash-that-points-to-version-${latestVersion}`
+    const latestVersionHashResult = Object.entries(distTags).find(
+      ([key, value]) => value === latestVersion && key.startsWith('latest-hash--'),
+    )?.[0]
+
     const latest = {
-      latestVersionHash: latestVersionHashResult.replace('latest-hash--', ''),
+      latestVersionHash: latestVersionHashResult?.replace('latest-hash--', ''),
       latestVersion,
       allVersions,
     }

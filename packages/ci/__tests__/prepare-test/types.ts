@@ -1,5 +1,5 @@
 import { FolderStructure } from 'create-folder-structure'
-import { IDependencyMap } from 'package-json-type'
+import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa from 'execa'
 import { ServerInfo } from 'ci/src/types'
 
@@ -49,6 +49,13 @@ export type PublishedPackageInfo = {
   }
 }
 
+export type TestResources = {
+  npmRegistry: ServerInfo
+  dockerRegistry: ServerInfo
+  gitServer: ServerInfo
+  redisServer: ServerInfo
+}
+
 export type CiResults = {
   published: Map<string, PublishedPackageInfo>
 }
@@ -64,15 +71,22 @@ export type CreateAndManageRepo = (
 ) => Promise<{
   repoPath: string
   toActualName: ToActualName
-  dockerRegistry: ServerInfo
   dockerOrganizationName: string
   getPackagePath: (packageName: string) => Promise<string>
   addRandomFileToPackage: AddRandomFileToPackage
   addRandomFileToRoot: AddRandomFileToRoot
   installAndRunNpmDependency: (dependencyName: string) => Promise<execa.ExecaChildProcess<string>>
+  publishNpmPackageWithoutCi: (packageName: string) => Promise<void>
+  unpublishNpmPackage: (packageName: string, versionToUnpublish: string) => Promise<void>
+  removeAllNpmHashTags: (packageName: string) => Promise<void>
+  modifyPackageJson: (
+    packageName: string,
+    modification: (packageJson: IPackageJson) => Promise<IPackageJson>,
+  ) => Promise<void>
   runCi: RunCi
 }>
 
 export type NewEnvFunc = () => {
   createRepo: CreateAndManageRepo
+  getTestResources: () => TestResources
 }

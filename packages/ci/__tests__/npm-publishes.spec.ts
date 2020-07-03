@@ -44,6 +44,14 @@ test('multiple publishes of the same package', async () => {
   })
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master2.published.get('a')?.npm?.latestVersion).toEqual('1.0.1')
+
+  await addRandomFileToPackage('a')
+
+  const master3 = await runCi({
+    isMasterBuild: true,
+  })
+  expect(master3.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1', '1.0.2'])
+  expect(master3.published.get('a')?.npm?.latestVersion).toEqual('1.0.2')
 })
 
 test('multiple packages', async () => {

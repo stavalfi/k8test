@@ -1,8 +1,8 @@
 import execa from 'execa'
 import got from 'got'
+import Redis from 'ioredis'
 import { SingletonStrategy, subscribe, Subscription } from 'k8test'
 import { GitServer, starGittServer } from './git-server-testkit'
-import Redis from 'ioredis'
 
 const isRedisReadyPredicate = (_url: string, host: string, port: number) => {
   const redis = new Redis({
@@ -30,6 +30,13 @@ export function prepareTestResources() {
   let npmRegistryDeployment: Subscription
   let redisDeployment: Subscription
   let gitServer: GitServer
+
+  // verdaccio allow us to login as any user & password & email
+  const verdaccioCardentials = {
+    npmRegistryUsername: 'root',
+    npmRegistryToken: 'root',
+    npmRegistryEmail: 'root@root.root',
+  }
 
   beforeAll(async () => {
     gitServer = await starGittServer()
@@ -91,13 +98,14 @@ export function prepareTestResources() {
         host: npmRegistryDeployment.deployedImageIp,
         port: npmRegistryDeployment.deployedImagePort,
         protocol: 'http' as 'http',
+        auth: verdaccioCardentials,
       },
       dockerRegistry: {
         protocol: 'http' as 'http',
         host: dockerRegistry.host,
         port: dockerRegistry.port,
       },
-      redis: {
+      redisServer: {
         host: redisDeployment.deployedImageIp,
         port: redisDeployment.deployedImagePort,
       },
