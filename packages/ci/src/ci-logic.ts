@@ -81,8 +81,6 @@ export async function ci(options: CiOptions) {
     throw new Error(`project must have yarn.lock file in the root folder of the repository`)
   }
 
-  log('calculate hash of every package and check which packages changed since their last publish')
-
   await dockerRegistryLogin({
     dockerRegistry: options.dockerRegistry,
     dockerRegistryToken: options.auth.dockerRegistryToken,
@@ -95,6 +93,7 @@ export async function ci(options: CiOptions) {
     ...(options.auth.redisPassword && { password: options.auth.redisPassword }),
   })
 
+  log('calculate hash of every package and check which packages changed since their last publish')
   const packagesPath = await getPackages(options.rootPath)
   const orderedGraph = await getOrderedGraph({
     rootPath: options.rootPath,
@@ -111,6 +110,16 @@ export async function ci(options: CiOptions) {
       ..._.omit(node.data, ['packageJson']),
       packageJsonVersion: node.data.packageJson.version,
     })
+  })
+
+  await execa.command('yarn install', {
+    cwd: options.rootPath,
+    stdio: 'inherit',
+  })
+
+  await execa.command('yarn build', {
+    cwd: options.rootPath,
+    stdio: 'inherit',
   })
 
   if (!options.skipTests) {

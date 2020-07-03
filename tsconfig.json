@@ -19,7 +19,8 @@
       "k8s-api": ["k8s-api/src/index.ts"],
       "k8test-log": ["log/src/index.ts"],
       "k8test-cli-logic": ["cli-logic/src/index.ts"],
-      "ci": ["ci/src/index.ts"]
+      "@stavalfi/ci": ["ci/src/index.ts"],
+      "@stavalfi/ci/src/ci-node-api": ["ci/src/ci-node-api.ts"]
     }
   }
 }

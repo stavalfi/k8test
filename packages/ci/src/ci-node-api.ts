@@ -1,8 +1,10 @@
 import execa, { StdioOption } from 'execa'
 import path from 'path'
-import { CiOptions } from '../../src/types'
+import { CiOptions } from './types'
 
-const ciCliPath = path.join(__dirname, '../../dist/src/index.js')
+export { CiOptions }
+
+const ciCliPath = path.join(__dirname, '../dist/src/index.js')
 
 export const runCiCli = async (
   options: CiOptions,

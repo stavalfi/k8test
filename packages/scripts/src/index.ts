@@ -1,11 +1,15 @@
 #!/usr/bin/env node --unhandled-rejections=strict
 
+/* eslint-disable no-process-env */
+
 /// <reference path="../../../declarations.d.ts" />
 
+import { runCiCli } from '@stavalfi/ci/src/ci-node-api'
 import { boolean, command, flag, run, subcommands } from 'cmd-ts'
 import execa from 'execa'
 import { clean } from './clean'
 import { deleteK8testResources } from './delete-k8test-resources'
+import { prCiOptions, masterCiOptions } from './get-ci-options'
 
 const app = subcommands({
   name: 'scripts',
@@ -35,6 +39,16 @@ const app = subcommands({
           env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
           stdio: 'inherit',
         }),
+    }),
+    'run-ci-pr': command({
+      name: 'run-ci-pr',
+      args: {},
+      handler: () => runCiCli(prCiOptions, 'inherit'),
+    }),
+    'run-ci-master': command({
+      name: 'run-ci-master',
+      args: {},
+      handler: () => runCiCli(masterCiOptions, 'inherit'),
     }),
   },
 })

@@ -8,7 +8,8 @@
     "clean": "ts-node src/index.ts clean",
     "delete-k8test-resources": "yarn --cwd ../.. build && node dist/src/index.js delete-k8test-resources",
     "start-k8test-monitoring": "eval $(minikube docker-env --shell sh) yarn --cwd ../.. build && yarn workspace k8test-monitoring build:docker && node dist/src/index.js start-k8test-monitoring",
-    "run-ci": "yarn --cwd ../.. build && node dist/src/index.js run-ci"
+    "run-ci-pr": "yarn --cwd ../.. build && node dist/src/index.js run-ci-pr",
+    "run-ci-master": "yarn --cwd ../.. build && node dist/src/index.js run-ci-master"
   },
   "dependencies": {
     "ci-info": "^2.0.0",
@@ -18,6 +19,6 @@
     "k8s-api": "^1.0.0",
     "k8test-cli-logic": "^1.0.0",
     "semver": "^7.3.2",
-    "ci": "^1.0.0"
+    "@stavalfi/ci": "^1.0.0"
   }
 }

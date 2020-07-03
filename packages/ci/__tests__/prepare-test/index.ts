@@ -1,7 +1,7 @@
 import chance from 'chance'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
-import { runCiCli } from './run-ci-cli'
+import { runCiCli } from '../../src/ci-node-api'
 import {
   latestDockerImageTag,
   latestNpmPackageVersion,
