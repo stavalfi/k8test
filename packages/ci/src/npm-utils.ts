@@ -1,5 +1,5 @@
+import execa from 'execa'
 import { ServerInfo } from './types'
-import npmLogin from 'npm-login-noninteractive'
 
 export async function npmRegistryLogin({
   npmRegistry,
@@ -12,6 +12,10 @@ export async function npmRegistryLogin({
   npmRegistryToken: string
   npmRegistryEmail: string
 }): Promise<void> {
+  const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-  npmLogin(npmRegistryUsername, npmRegistryToken, npmRegistryEmail, npmRegistryAddress)
+  // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
+  await execa.command(
+    `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
+  )
 }

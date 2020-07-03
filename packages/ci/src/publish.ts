@@ -45,7 +45,6 @@ async function publishNpm({
 
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
-    stdio: 'pipe',
     cwd: packageInfo.packagePath,
   })
   await execa.command(
