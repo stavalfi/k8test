@@ -3,8 +3,9 @@ import glob from 'fast-glob'
 import fs from 'fs-extra'
 import path from 'path'
 
-const BASE_PATH = path.join(__dirname, '../..')
+const BASE_PATH = path.join(__dirname, '../../..')
 const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
+const EXPECT = ['declarations.d.ts']
 
 const remove = (
   options: ({ onlyFiles: true } | { onlyDirectories: true }) & { beforeRemove: (toRemove: string) => void },
@@ -13,14 +14,16 @@ const remove = (
     cwd: BASE_PATH,
     ignore: ['node_modules', '.git'],
     ...options,
-  }).then(results =>
-    Promise.all(
-      results.map(async toRemove => {
-        options.beforeRemove(toRemove)
-        await fs.remove(path.join(BASE_PATH, toRemove))
-      }),
-    ).then(() => results),
-  )
+  })
+    .then(result => result.filter(toRemove => !EXPECT.includes(toRemove)))
+    .then(results =>
+      Promise.all(
+        results.map(async toRemove => {
+          options.beforeRemove(toRemove)
+          await fs.remove(path.join(BASE_PATH, toRemove))
+        }),
+      ).then(() => results),
+    )
 
 export async function clean(options: { silent: boolean }) {
   const log = options.silent

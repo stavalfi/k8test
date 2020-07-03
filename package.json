@@ -13,7 +13,9 @@
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",
     "run-ci": "yarn workspace scripts run-ci",
-    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && chmod u+x packages/ci/dist/src/index.js",
+    "run-ci-pr": "yarn workspace scripts run-ci-pr",
+    "run-ci-master": "yarn workspace scripts run-ci-master",
+    "build": "yarn tsc -b tsconfig-build.json && chmod u+x packages/core/dist/src/k8test-cli.js && chmod u+x packages/ci/dist/src/index.js && chmod u+x packages/scripts/dist/src/index.js",
     "build:dockers": "yarn build && eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker && yarn workspace k8test-monitoring build:docker"
   },
   "repository": {

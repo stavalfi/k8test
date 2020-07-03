@@ -1,15 +1,14 @@
 import execa, { StdioOption } from 'execa'
-import path from 'path'
 import { CiOptions } from './types'
 
 export { CiOptions }
-
-const ciCliPath = path.join(__dirname, '../dist/src/index.js')
 
 export const runCiCli = async (
   options: CiOptions,
   stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[],
 ): Promise<execa.ExecaChildProcess> => {
+  const ciCliPath = require.resolve('@stavalfi/ci/dist/src/index.js')
+
   const command = `\
   ${ciCliPath}\
     --cwd ${options.rootPath} \
