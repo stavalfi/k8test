@@ -1,6 +1,7 @@
 import execa from 'execa'
 import k8testLog from 'k8test-log'
 import { ServerInfo } from './types'
+import { getHighestDockerTag } from './versions'
 
 const log = k8testLog('ci:docker-utils')
 
@@ -39,11 +40,11 @@ export const buildFullDockerImageName = ({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   packageJsonName: string
-  imageTag: string
+  imageTag?: string
 }) => {
   return `${dockerRegistry.host}:${dockerRegistry.port}/${dockerOrganizationName}/${buildDockerImageName(
     packageJsonName,
-  )}:${imageTag}`
+  )}${imageTag ? `:${imageTag}` : ''}`
 }
 
 /*
@@ -57,35 +58,52 @@ curl -s -L -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H 
 */
 export async function getDockerImageLabelsAndTags({
   packageJsonName,
-  imageTag,
   dockerOrganizationName,
   dockerRegistry,
 }: {
   packageJsonName: string
-  imageTag: string
   dockerOrganizationName: string
   dockerRegistry: ServerInfo
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
-  const fullImageName = buildFullDockerImageName({
+  const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
     packageJsonName,
-    imageTag,
   })
   try {
+    log('searching for all tags for image: "%s"')
+    const { stdout: tagsResult } = await execa.command(
+      `skopeo list-tags ${
+        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
+      } docker://${fullImageNameWithoutTag}`,
+    )
+    const tagsResultJson = JSON.parse(tagsResult || '{}')
+    const allTags = tagsResultJson?.Tags || []
+
+    const highestPublishedTag = getHighestDockerTag(allTags)
+
+    const fullImageName = buildFullDockerImageName({
+      dockerOrganizationName,
+      dockerRegistry,
+      packageJsonName,
+      imageTag: highestPublishedTag,
+    })
+
     log('searching the latest tag and hash for image "%s"', fullImageName)
 
     const { stdout } = await execa.command(
       `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
-    const { Labels, RepoTags } = JSON.parse(stdout)
+    const LabelsResult = JSON.parse(stdout)
+    const labels = LabelsResult.Labels || {}
 
-    log(`labels of image "${fullImageName}": ${Labels}`)
+    log(`labels of image "${fullImageName}": ${labels}`)
     const result = {
-      latestHash: Labels['latest-hash'],
-      latestTag: Labels['latest-tag'],
-      allTags: RepoTags || [],
+      latestHash: labels['latest-hash'],
+      latestTag: labels['latest-tag'],
+      allTags,
     }
+
     log('latest tag and hash for "%s" are: "%O"', fullImageName, result)
     if (!result.latestHash || !result.latestTag) {
       log(
@@ -96,8 +114,8 @@ export async function getDockerImageLabelsAndTags({
     }
     return result
   } catch (e) {
-    if (e.stderr?.includes('authentication required') || e.stderr?.includes('manifest unknown')) {
-      log(`"%s" weren't published before so we can't find this image`, fullImageName)
+    if (e.stderr?.includes('manifest unknown')) {
+      log(`"%s" weren't published before so we can't find this image`, fullImageNameWithoutTag)
     } else {
       throw e
     }

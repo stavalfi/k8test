@@ -51,7 +51,7 @@ const app = command({
     }),
     'redis-server': option({
       type: string,
-      long: 'redis',
+      long: 'redis-server',
       description: 'ip:port',
     }),
     'redis-password': option({
@@ -76,7 +76,7 @@ const app = command({
     }),
     'git-repo': option({
       type: string,
-      long: 'git-server',
+      long: 'git-repo',
       description: 'example: https://github.com/stavalfi/k8test, http://localhost:8081/a/b (ssh-url is not supported)',
     }),
     'docker-repository': option({
@@ -87,19 +87,20 @@ const app = command({
       type: string,
       long: 'docker-registry',
       defaultValue: () => 'https://registry.hub.docker.com',
-      description: 'docker registry address to publish docker-targets to',
+      description:
+        'docker registry address to publish docker-targets to: https://registry.hub.docker.com, http://localhost:5000',
     }),
   },
   handler: async args => {
     const dockerRegistry = toServerInfo({
       host: args['docker-registry'],
     })
-    const { protocol, source, port, name, organization } = parseGitUrl(args['git-repo'])
+    const { protocols, source, port, name, organization } = parseGitUrl(args['git-repo'])
     if (port === null) {
       throw new Error(`can't fidn the port in the git-repo parameter: ${args['git-repo']}`)
     }
     const gitServer = toServerInfo({
-      protocol,
+      protocol: protocols[0],
       host: source,
       port,
     })

@@ -2,7 +2,7 @@ import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
-import { npmRegistryLogin } from '../../src/ci-logic'
+import { npmRegistryLogin, buildFullDockerImageName } from '../../src/ci-logic'
 import { ServerInfo } from '../../src/types'
 import { latestNpmPackageDistTags, latestNpmPackageVersion } from './seach-targets'
 import { CreateAndManageRepo, TargetType, ToActualName } from './types'
@@ -88,6 +88,41 @@ export async function publishNpmPackageWithoutCi({
     stdio: 'pipe',
     cwd: packagePath,
   })
+}
+
+export async function publishDockerPackageWithoutCi({
+  dockerOrganizationName,
+  dockerRegistry,
+  packageName,
+  repoPath,
+  toActualName,
+  imageTag,
+  labels,
+}: {
+  packageName: string
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+  repoPath: string
+  toActualName: ToActualName
+  imageTag: string
+  labels?: { 'latest-hash'?: string; 'latest-tag'?: string }
+}): Promise<void> {
+  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const fullImageNameNewVersion = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: toActualName(packageName),
+    imageTag,
+  })
+  const labelsJoined =
+    Object.entries(labels || {})
+      .map(([key, value]) => `--label ${key}=${value}`)
+      .join(' ') || ''
+
+  await execa.command(`docker build ${labelsJoined} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`, {
+    cwd: packagePath,
+  })
+  await execa.command(`docker push ${fullImageNameNewVersion}`)
 }
 
 export async function unpublishNpmPackage({

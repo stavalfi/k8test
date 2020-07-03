@@ -77,6 +77,11 @@ export type CreateAndManageRepo = (
   addRandomFileToPackage: AddRandomFileToPackage
   addRandomFileToRoot: AddRandomFileToRoot
   installAndRunNpmDependency: (dependencyName: string) => Promise<execa.ExecaChildProcess<string>>
+  publishDockerPackageWithoutCi: (
+    packageName: string,
+    imageTag: string,
+    labels?: { 'latest-hash'?: string; 'latest-tag'?: string },
+  ) => Promise<void>
   publishNpmPackageWithoutCi: (packageName: string) => Promise<void>
   unpublishNpmPackage: (packageName: string, versionToUnpublish: string) => Promise<void>
   removeAllNpmHashTags: (packageName: string) => Promise<void>

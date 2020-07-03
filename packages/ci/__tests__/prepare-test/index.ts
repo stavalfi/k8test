@@ -16,6 +16,7 @@ import {
   unpublishNpmPackage,
   removeAllNpmHashTags,
   modifyPackageJson,
+  publishDockerPackageWithoutCi,
 } from './test-helpers'
 import { CreateAndManageRepo, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
 import { getPackagePath } from './utils'
@@ -43,7 +44,7 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, stdio }) => {
+    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, stdio = 'inherit' }) => {
       await runCiCli(
         {
           isMasterBuild,
@@ -166,6 +167,16 @@ export const newEnv: NewEnvFunc = () => {
           toActualName,
           packageName,
           modification,
+        }),
+      publishDockerPackageWithoutCi: (packageName, imageTag, labels) =>
+        publishDockerPackageWithoutCi({
+          repoPath,
+          toActualName,
+          packageName,
+          imageTag,
+          dockerOrganizationName,
+          dockerRegistry,
+          labels,
         }),
     }
   }

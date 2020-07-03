@@ -53,12 +53,11 @@ export async function latestDockerImageTag(
     const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,
       packageJsonName,
-      imageTag: 'latest',
       dockerRegistry,
     })
     return result?.latestTag
   } catch (e) {
-    if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
+    if (e.stderr?.includes('manifest unknown')) {
       return ''
     } else {
       throw e
@@ -75,12 +74,13 @@ export async function publishedDockerImageTags(
     const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,
       packageJsonName,
-      imageTag: 'latest',
       dockerRegistry,
     })
-    return result?.allTags?.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
+    const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
+    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
+    return sorted
   } catch (e) {
-    if (e.stderr.includes('authentication required') || e.stderr.includes('manifest unknown')) {
+    if (e.stderr?.includes('manifest unknown')) {
       return []
     } else {
       throw e

@@ -6,14 +6,14 @@ import Redis from 'ioredis'
 import k8testLog from 'k8test-log'
 import _ from 'lodash'
 import path from 'path'
+import { dockerRegistryLogin } from './docker-utils'
 import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import { promote } from './promote'
 import { publish } from './publish'
-import { Auth, CiOptions, Graph, PackageInfo, ServerInfo } from './types'
-import { dockerRegistryLogin } from './docker-utils'
+import { CiOptions, Graph, PackageInfo, ServerInfo } from './types'
 
-export { getDockerImageLabelsAndTags, dockerRegistryLogin } from './docker-utils'
+export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
 export { PackageJson, TargetType } from './types'
 
@@ -66,34 +66,6 @@ const isRepoModified = async (rootPath: string) => {
     () => false,
     () => true,
   )
-}
-
-async function gitAmendChanges({
-  auth,
-  gitOrganizationName,
-  gitRepositoryName,
-  gitServer,
-  rootPath,
-}: {
-  rootPath: string
-  gitServer: ServerInfo
-  gitRepositoryName: string
-  gitOrganizationName: string
-  auth: Auth
-}) {
-  if (await isRepoModified(rootPath)) {
-    log('committing changes to git')
-    await execa.command('git add --all', { cwd: rootPath })
-    await execa.command(`git commit -m ci--promoted-packages-versions`, { cwd: rootPath })
-    log('pushing commit to working-branch')
-    await execa.command(
-      `git push ${gitServer.protocol}://${auth.gitServerUsername}:${auth.gitServerToken}@${gitServer.host}:${gitServer.port}/${gitOrganizationName}/${gitRepositoryName}.git`,
-      {
-        cwd: rootPath,
-      },
-    )
-    log('pushed commit to working-branch')
-  }
 }
 
 export async function ci(options: CiOptions) {
@@ -168,15 +140,6 @@ export async function ci(options: CiOptions) {
         dockerOrganizationName: options.dockerOrganizationName,
         auth: options.auth,
       })
-      if (!options.isDryRun) {
-        await gitAmendChanges({
-          auth: options.auth,
-          gitServer: options.gitServer,
-          gitOrganizationName: options.gitOrganizationName,
-          gitRepositoryName: options.gitRepositoryName,
-          rootPath: options.rootPath,
-        })
-      }
     }
   }
   await redisClient.quit()
