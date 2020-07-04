@@ -45,7 +45,7 @@ const startMonitorNamespace = (namespaceName: string) =>
 
 const deleteK8testResources = (namespaceName: string) =>
   execa.command(
-    `--unhandled-rejections=strict ${cliMonitoringPath} delete-k8test-resources --namespace ${namespaceName}`,
+    `node --unhandled-rejections=strict ${cliMonitoringPath} delete-k8test-resources --namespace ${namespaceName}`,
     {
       // eslint-disable-next-line no-process-env
       env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
