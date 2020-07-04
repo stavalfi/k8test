@@ -48,9 +48,17 @@ async function publishNpm({
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
     cwd: packageInfo.packagePath,
+    env: {
+      NPM_AUTH_TOKEN: auth.npmRegistryToken,
+    },
   })
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
+    {
+      env: {
+        NPM_AUTH_TOKEN: auth.npmRegistryToken,
+      },
+    },
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
@@ -122,16 +130,14 @@ async function publishDocker({
     fullImageNameNewVersion,
     packageInfo.packageJson.name,
   )
-  await execa.command(`docker tag ${fullImageNameLatest} ${fullImageNameNewVersion}`, {
-    stdio: 'inherit',
-  })
+  await execa.command(`docker tag ${fullImageNameLatest} ${fullImageNameNewVersion}`, {})
 
   if (isDryRun) {
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  await execa.command(`docker push ${fullImageNameNewVersion}`, { stdio: 'inherit' })
-  await execa.command(`docker push ${fullImageNameLatest}`, { stdio: 'inherit' })
+  await execa.command(`docker push ${fullImageNameNewVersion}`)
+  await execa.command(`docker push ${fullImageNameLatest}`)
 
   log('published docker target in package: "%s"', packageInfo.packageJson.name)
 
