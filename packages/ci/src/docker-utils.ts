@@ -23,6 +23,9 @@ export async function dockerRegistryLogin({
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execa.command(
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
+      {
+        stdio: 'inherit',
+      },
     )
     log('logged in to docker-registry')
   }
