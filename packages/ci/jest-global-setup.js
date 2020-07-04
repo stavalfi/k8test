@@ -2,9 +2,9 @@
 const execa = require('execa')
 
 module.exports = async () => {
-  const command = `${require.resolve('k8test/dist/src/index.js')} start-monitoring --local-image --namespace k8test-ci`
-  // eslint-disable-next-line no-console
-  console.log('stav1', `executing: "${command}"`)
+  const command = `node --unhandled-rejections=strict ${require.resolve(
+    'k8test/dist/src/index.js',
+  )} start-monitoring --local-image --namespace k8test-ci`
   await execa.command(command, {
     stdio: 'inherit',
   })
