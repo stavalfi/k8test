@@ -28,7 +28,7 @@ jobs:
       # - run: apt-get update && apt-get install git -y
       - run: yarn install
       - run: yarn build
-      - run: ./packages/core/dist/src/index.js --help
+      - run: node ./packages/core/dist/src/index.js --help
       - run: yarn test
         env:
           DEBUG: k8test:*
