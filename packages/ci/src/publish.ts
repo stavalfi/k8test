@@ -46,7 +46,7 @@ async function publishNpm({
 
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
-  await execa.command(`yarn publish --registry ${npmRegistryAddress} --non-interactive`, {
+  await execa.command(`yarn publish --registry ${npmRegistryAddress} --non-interactive --access public`, {
     cwd: packageInfo.packagePath,
     env: {
       NPM_AUTH_TOKEN: auth.npmRegistryToken,
