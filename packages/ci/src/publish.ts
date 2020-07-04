@@ -46,11 +46,12 @@ async function publishNpm({
 
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
-  await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
+  await execa.command(`yarn publish --registry ${npmRegistryAddress} --non-interactive`, {
     cwd: packageInfo.packagePath,
     env: {
       NPM_AUTH_TOKEN: auth.npmRegistryToken,
     },
+    stdio: 'inherit',
   })
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
