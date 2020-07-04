@@ -30,6 +30,6 @@ jobs:
       - run: yarn pretest
         env:
           DEBUG: k8test:*
-      - run: yarn jest packages/tests/e2e
+      - run: yarn jest packages/ci/__tests__/pr-build.spec.ts
         env:
           DEBUG: k8test:*
