@@ -2,6 +2,9 @@ import { command, run, subcommands, boolean, flag, string, option } from 'cmd-ts
 import { deleteK8testResources, startMonitoring } from './monitoring'
 import { defaultK8testNamespaceName } from 'k8s-api'
 
+// eslint-disable-next-line no-console
+console.log('stav2')
+
 const namespace = (hasDefaultValue: boolean) =>
   option({
     type: string,

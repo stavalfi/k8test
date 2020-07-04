@@ -50,8 +50,12 @@ async function isMonitoringServiceAlive(k8sClient: K8sClient, namespaceName: str
 }
 
 export async function startMonitoring(options: { 'local-image': boolean; namespace: string }) {
+  // eslint-disable-next-line no-console
+  console.log('stav3')
   const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
   log(`created k8s-cleant object for interacting with %s`, options.namespace)
+  // eslint-disable-next-line no-console
+  console.log('stav4')
 
   const namespaceName = options.namespace
 
