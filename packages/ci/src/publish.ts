@@ -46,21 +46,14 @@ async function publishNpm({
 
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
-  await execa.command(`yarn publish --registry ${npmRegistryAddress} --non-interactive --access public`, {
+  const tags = `--tag ${packageInfo.packageJson.name}@${newVersion} --tag latest-hash--${packageInfo.packageHash}`
+  await execa.command(`yarn publish --registry ${npmRegistryAddress} --non-interactive --access public ${tags}`, {
     cwd: packageInfo.packagePath,
     env: {
       NPM_AUTH_TOKEN: auth.npmRegistryToken,
     },
     stdio: 'inherit',
   })
-  await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
-    {
-      env: {
-        NPM_AUTH_TOKEN: auth.npmRegistryToken,
-      },
-    },
-  )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
 
