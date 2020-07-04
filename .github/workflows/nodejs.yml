@@ -25,11 +25,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - run: apt-get update && apt-get install git -y
       - run: yarn install
       - run: yarn build
       - run: yarn pretest
         env:
           DEBUG: k8test:*
-      - run: /home/runner/work/k8test/k8test/packages/core/dist/src/k8test-cli.js start-monitoring --local-image --namespace k8test-ci
-        env:
-          DEBUG: k8test:*
+      - run: DEBUG=k8test:* node ./packages/core/dist/src/k8test-cli.js start-monitoring --local-image --namespace k8test-ci

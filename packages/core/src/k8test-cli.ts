@@ -1,3 +1,6 @@
 #!/usr/bin/env node --unhandled-rejections=strict
 
-import 'k8test-cli-logic'
+// eslint-disable-next-line no-console
+console.log('stav0')
+
+require('k8test-cli-logic')
