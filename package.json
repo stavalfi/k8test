@@ -12,7 +12,6 @@
     "clean": "yarn workspace scripts clean",
     "delete-k8test-resources": "yarn workspace scripts delete-k8test-resources",
     "start-k8test-monitoring": "yarn workspace scripts start-k8test-monitoring",
-    "run-ci": "yarn workspace scripts run-ci",
     "run-ci-pr": "yarn workspace scripts run-ci-pr",
     "run-ci-master": "yarn workspace scripts run-ci-master",
     "build": "yarn tsc -b tsconfig-build.json && chmod +x packages/core/dist/src/index.js && chmod +x packages/ci/dist/src/index.js && chmod +x packages/scripts/dist/src/index.js",
