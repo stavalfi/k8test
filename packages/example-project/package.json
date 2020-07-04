@@ -5,9 +5,9 @@
   "private": true,
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "pretest": "../core/dist/src/k8test-cli.js start-monitoring --local-image # remove '--local-image'",
+    "pretest": "node ../core/dist/src/index.js start-monitoring --local-image # remove '--local-image'",
     "test": "jest",
-    "posttest": "../core/dist/src/k8test-cli.js delete-k8test-resources # don't write this line!!"
+    "posttest": "node ../core/dist/src/index.js delete-k8test-resources # don't write this line!!"
   },
   "devDependencies": {
     "k8test": "^1.0.0",
