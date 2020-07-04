@@ -7,7 +7,6 @@
 import { boolean, command, flag, run, subcommands } from 'cmd-ts'
 import execa from 'execa'
 import { clean } from './clean'
-import { deleteK8testResources } from './delete-k8test-resources'
 
 const app = subcommands({
   name: 'scripts',
@@ -26,15 +25,16 @@ const app = subcommands({
     'delete-k8test-resources': command({
       name: 'delete-k8test-resources',
       args: {},
-      handler: deleteK8testResources,
+      handler: async () =>
+        execa.command(`node ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`, {
+          stdio: 'inherit',
+        }),
     }),
     'start-k8test-monitoring': command({
       name: 'delete-k8test-resources',
       args: {},
       handler: () =>
-        execa.command(`node ${require.resolve('k8test-cli-logic/dist/src/index.js')} start-monitoring --local-image`, {
-          // eslint-disable-next-line no-process-env
-          env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+        execa.command(`node ${require.resolve('k8test/dist/src/index.js')} start-monitoring --local-image`, {
           stdio: 'inherit',
         }),
     }),

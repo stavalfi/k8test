@@ -10,7 +10,7 @@ export const runCiCli = async (
   const ciCliPath = require.resolve('@stavalfi/ci/dist/src/index.js')
 
   const command = `\
-  ${ciCliPath}\
+  node ${ciCliPath}\
     --cwd ${options.rootPath} \
     --master-build=${options.isMasterBuild} \
     --dry-run=${options.isDryRun} \

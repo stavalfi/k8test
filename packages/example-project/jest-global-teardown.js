@@ -2,5 +2,5 @@
 const execa = require('execa')
 
 module.exports = async () => {
-  await execa.command(`${require.resolve('k8test/dist/src/k8test-cli.js')} delete-k8test-resources`)
+  await execa.command(`node ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`)
 }
