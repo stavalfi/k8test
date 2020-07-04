@@ -19,13 +19,13 @@ test('multiple publishes of the same package but packages has no changes in betw
   })
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 
-  // const master2 = await runCi({
-  //   isMasterBuild: true,
-  // })
-  // expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  const master2 = await runCi({
+    isMasterBuild: true,
+  })
+  expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test('multiple packages - publish again only changed package', async () => {
+test.only('multiple packages - publish again only changed package', async () => {
   const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {
