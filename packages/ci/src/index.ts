@@ -37,7 +37,7 @@ async function main() {
       'npm-registry': option({
         type: string,
         long: 'npm-registry',
-        defaultValue: () => 'https://registry.npmjs.org',
+        defaultValue: () => 'https://registry.npmjs.com',
         description: 'npm registry address to publish npm-targets to',
       }),
       'npm-registry-username': option({

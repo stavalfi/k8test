@@ -21,7 +21,7 @@ export const getPrCiOptions = (): CiOptions => {
       protocol: 'https',
     },
     npmRegistry: {
-      host: 'registry.npmjs.org',
+      host: 'registry.npmjs.com',
       port: 443,
       protocol: 'https',
     },
