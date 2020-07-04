@@ -30,6 +30,7 @@ jobs:
       - run: yarn pretest
         env:
           DEBUG: k8test:*
-      - run: yarn jest packages/ci/__tests__/pr-build.spec.ts
+      - run: node packages/core/dist/src/k8test-cli.js start-monitoring --local-image --namespace k8test-ci
         env:
           DEBUG: k8test:*
+      - run: kubectl get pods -n k8test-ci
