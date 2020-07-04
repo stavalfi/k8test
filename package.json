@@ -15,7 +15,7 @@
     "run-ci": "yarn workspace scripts run-ci",
     "run-ci-pr": "yarn workspace scripts run-ci-pr",
     "run-ci-master": "yarn workspace scripts run-ci-master",
-    "build": "yarn tsc -b tsconfig-build.json && chmod +x packages/core/dist/src/k8test-cli.js && chmod +x packages/ci/dist/src/index.js && chmod +x packages/scripts/dist/src/index.js",
+    "build": "yarn tsc -b tsconfig-build.json && chmod +x packages/core/dist/src/index.js && chmod +x packages/ci/dist/src/index.js && chmod +x packages/scripts/dist/src/index.js",
     "build:dockers": "yarn build && eval $(minikube docker-env --shell sh) && yarn workspace simple-service build:docker && yarn workspace k8test-monitoring build:docker"
   },
   "repository": {

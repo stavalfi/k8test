@@ -1,3 +1,5 @@
+#!/usr/bin/env node  --unhandled-rejections=strict
+
 import got from 'got'
 import {
   ConnectionFrom,
@@ -17,6 +19,10 @@ import chance from 'chance'
 
 export { defaultK8testNamespaceName, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
+
+if (require.main === module) {
+  require('k8test-cli-logic')
+}
 
 const log = k8testLog('core')
 
