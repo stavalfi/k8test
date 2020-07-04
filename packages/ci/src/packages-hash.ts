@@ -112,7 +112,7 @@ export async function calculatePackagesHash(
   rootPath: string,
   packagesPath: string[],
 ): Promise<Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }>> {
-  const repoFilesPathResult = await execa.command('git ls-tree -r --name-only head', {
+  const repoFilesPathResult = await execa.command('git ls-tree -r --name-only HEAD', {
     cwd: rootPath,
   })
 
