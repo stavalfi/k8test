@@ -4,6 +4,7 @@ import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
+import isIp from 'is-ip'
 
 const log = k8testLog('ci:publish')
 
@@ -43,7 +44,8 @@ async function publishNpm({
     return { published: false, packagePath: packageInfo.packagePath }
   }
 
-  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
+  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
     cwd: packageInfo.packagePath,
   })
