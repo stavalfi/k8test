@@ -16,14 +16,14 @@ export async function dockerRegistryLogin({
   dockerRegistry: ServerInfo
 }) {
   if (dockerRegistryUsername && dockerRegistryToken) {
-    log(
-      'logging in to docker-registry: %s',
-      `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
+    const withPort =
+      isIp.v4(dockerRegistry.host) || dockerRegistry.host === 'localhost' ? `:${dockerRegistry.port}` : ''
+    const dockerRegistryAddress = `${dockerRegistry.protocol}://${dockerRegistry.host}${withPort}`
+    log('logging in to docker-registry: %s', `${dockerRegistryAddress}`)
+    // I need to login to read and push from `dockerRegistryUsername` repository
+    await execa.command(
+      `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
     )
-    // I need to login to read and push from `dockerRegistryUsername` repository	  log('logged in to docker-hub registry')
-    await execa.command(`docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken}`, {
-      stdio: 'pipe',
-    })
     log('logged in to docker-registry')
   }
 }
