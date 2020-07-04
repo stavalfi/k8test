@@ -34,18 +34,24 @@ function cleanupAfterEach() {
 }
 
 const startMonitorNamespace = (namespaceName: string) =>
-  execa.command(`node ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`, {
-    // eslint-disable-next-line no-process-env
-    env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
-    stdio: 'inherit',
-  })
+  execa.command(
+    `node --unhandled-rejections=strict ${cliMonitoringPath} start-monitoring --local-image --namespace ${namespaceName}`,
+    {
+      // eslint-disable-next-line no-process-env
+      env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+      stdio: 'inherit',
+    },
+  )
 
 const deleteK8testResources = (namespaceName: string) =>
-  execa.command(`node ${cliMonitoringPath} delete-k8test-resources --namespace ${namespaceName}`, {
-    // eslint-disable-next-line no-process-env
-    env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
-    stdio: 'inherit',
-  })
+  execa.command(
+    `--unhandled-rejections=strict ${cliMonitoringPath} delete-k8test-resources --namespace ${namespaceName}`,
+    {
+      // eslint-disable-next-line no-process-env
+      env: { ...(process.env['DEBUG'] && { DEBUG: process.env['DEBUG'] }) },
+      stdio: 'inherit',
+    },
+  )
 
 const attachContainer = async ({
   appId,

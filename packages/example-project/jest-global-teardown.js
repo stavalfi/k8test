@@ -2,5 +2,7 @@
 const execa = require('execa')
 
 module.exports = async () => {
-  await execa.command(`node ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`)
+  await execa.command(
+    `node --unhandled-rejections=strict ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`,
+  )
 }

@@ -26,17 +26,25 @@ const app = subcommands({
       name: 'delete-k8test-resources',
       args: {},
       handler: async () =>
-        execa.command(`node ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`, {
-          stdio: 'inherit',
-        }),
+        execa.command(
+          `node --unhandled-rejections=strict ${require.resolve('k8test/dist/src/index.js')} delete-k8test-resources`,
+          {
+            stdio: 'inherit',
+          },
+        ),
     }),
     'start-k8test-monitoring': command({
       name: 'delete-k8test-resources',
       args: {},
       handler: () =>
-        execa.command(`node ${require.resolve('k8test/dist/src/index.js')} start-monitoring --local-image`, {
-          stdio: 'inherit',
-        }),
+        execa.command(
+          `node --unhandled-rejections=strict ${require.resolve(
+            'k8test/dist/src/index.js',
+          )} start-monitoring --local-image`,
+          {
+            stdio: 'inherit',
+          },
+        ),
     }),
     'run-ci-pr': command({
       name: 'run-ci-pr',
