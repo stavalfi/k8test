@@ -21,6 +21,14 @@ export async function npmRegistryLogin({
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
   log('logging in to npm-registry: "%s"', npmRegistryAddress)
 
+  // await execa.command(
+  //   `printf "${npmRegistryUsername}\n${npmRegistryToken}\n${npmRegistryEmail}\n" | npm login --registry ${npmRegistryAddress}`,
+  //   {
+  //     shell: true,
+  //     stdio: 'inherit',
+  //   },
+  // )
+
   // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
   await execa.command(
     `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
