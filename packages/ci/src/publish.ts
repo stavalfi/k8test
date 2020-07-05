@@ -47,14 +47,20 @@ async function publishNpm({
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
 
-  await execa.command(`npm publish --registry ${npmRegistryAddress} --non-interactive --access public`, {
-    cwd: packageInfo.packagePath,
-    env: {
-      // npm need this env-var for auth
-      // NPM_AUTH_TOKEN: auth.npmRegistryToken,
+  await execa.command(
+    `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
+      packageInfo.packageJson.name.includes('@') ? '--access public' : ''
+    }`,
+    {
+      cwd: packageInfo.packagePath,
+      env: {
+        // npm need this env-var for auth - this is needed only for production publishing.
+        // in tests it doesn't do anything and we login manually to npm in tests.
+        NPM_AUTH_TOKEN: auth.npmRegistryToken,
+      },
+      stdio: 'inherit',
     },
-    stdio: 'inherit',
-  })
+  )
 
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
