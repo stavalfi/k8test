@@ -63,6 +63,7 @@ async function getOrderedGraph({
 }
 
 const isRepoModified = async (rootPath: string) => {
+  // todo: fix it. it doesn't work.
   return execa.command('git status --porcelain', { cwd: rootPath }).then(
     () => false,
     () => true,
