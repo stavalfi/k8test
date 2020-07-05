@@ -58,15 +58,11 @@ async function publishNpm({
         // in tests it doesn't do anything and we login manually to npm in tests.
         NPM_AUTH_TOKEN: auth.npmRegistryToken,
       },
-      stdio: 'inherit',
     },
   )
 
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
-    {
-      stdio: 'inherit',
-    },
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
