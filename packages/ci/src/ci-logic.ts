@@ -16,7 +16,7 @@ import { IPackageJson } from 'package-json-type'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
-export { PackageJson, TargetType } from './types'
+export { TargetType } from './types'
 
 const log = k8testLog('ci')
 
@@ -137,16 +137,7 @@ export async function ci(options: CiOptions) {
   if (options.isMasterBuild) {
     const promoted = await promote(orderedGraph)
     if (promoted.length > 0) {
-      // Note: we mutated some of the packageJSONs in the promote function so the hashes we calculated earlier are no longer valid
-      const updatedHashes = await calculatePackagesHash(options.rootPath, packagesPath)
-      const updatedOrderedGraph: Graph<PackageInfo> = updatedHashes.map((node, index) => ({
-        ...node,
-        data: {
-          ...orderedGraph[index].data,
-          packageHash: node.data.packageHash,
-        },
-      }))
-      await publish(updatedOrderedGraph, {
+      await publish(orderedGraph, {
         isDryRun: options.isDryRun,
         rootPath: options.rootPath,
         dockerRegistry: options.dockerRegistry,

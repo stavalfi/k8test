@@ -6,6 +6,7 @@ import path from 'path'
 import { getDockerImageLabelsAndTags } from './docker-utils'
 import { PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
 import { calculateNewVersion } from './versions'
+import { IPackageJson } from 'package-json-type'
 
 const log = k8testLog('ci:package-info')
 
@@ -51,6 +52,115 @@ async function getNpmLatestVersionInfo(
   }
 }
 
+async function isNpmTarget({
+  packageJson,
+  npmRegistry,
+  redisClient,
+  packageHash,
+  packagePath,
+}: {
+  packageJson: IPackageJson
+  npmRegistry: ServerInfo
+  redisClient: Redis
+  packageHash: string
+  packagePath: string
+}): Promise<TargetInfo<TargetType.npm> | undefined> {
+  const isNpm = !packageJson.private
+  if (isNpm) {
+    if (!packageJson.name) {
+      throw new Error(`package.json of: ${packagePath} must have a name property.`)
+    }
+    if (!packageJson.version) {
+      throw new Error(`package.json of: ${packagePath} must have a version property.`)
+    }
+    const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
+    return {
+      targetType: TargetType.npm,
+      ...(npmLatestVersionInfo?.latestVersionHash === packageHash
+        ? {
+            needPublish: false,
+            latestPublishedVersion: {
+              version: npmLatestVersionInfo.latestVersion,
+              hash: npmLatestVersionInfo.latestVersionHash,
+            },
+          }
+        : {
+            needPublish: true,
+            newVersion: calculateNewVersion({
+              packagePath,
+              packageJsonVersion: packageJson.version,
+              latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
+              allVersions: npmLatestVersionInfo?.allVersions,
+            }),
+            ...(npmLatestVersionInfo && {
+              latestPublishedVersion: {
+                version: npmLatestVersionInfo.latestVersion,
+                hash: npmLatestVersionInfo.latestVersionHash,
+              },
+            }),
+          }),
+    }
+  }
+}
+
+async function isDockerTarget({
+  packageJson,
+  dockerOrganizationName,
+  dockerRegistry,
+  redisClient,
+  packageHash,
+  packagePath,
+}: {
+  packageJson: IPackageJson
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+  redisClient: Redis
+  packageHash: string
+  packagePath: string
+}): Promise<TargetInfo<TargetType.docker> | undefined> {
+  // @ts-ignore
+  const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
+  if (isDocker) {
+    if (!packageJson.name) {
+      throw new Error(`package.json of: ${packagePath} must have a name property.`)
+    }
+    if (!packageJson.version) {
+      throw new Error(`package.json of: ${packagePath} must have a version property.`)
+    }
+    const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
+      dockerRegistry,
+      dockerOrganizationName,
+      packageJsonName: packageJson.name,
+    })
+    return {
+      targetType: TargetType.docker,
+      ...(dockerLatestTagInfo?.latestHash === packageHash
+        ? {
+            needPublish: false,
+            latestPublishedVersion: {
+              version: dockerLatestTagInfo.latestTag,
+              hash: dockerLatestTagInfo.latestHash,
+            },
+          }
+        : {
+            needPublish: true,
+            newVersion: calculateNewVersion({
+              packagePath,
+              packageJsonVersion: packageJson.version,
+              latestPublishedVersion: dockerLatestTagInfo?.latestTag,
+              allVersions: dockerLatestTagInfo?.allTags,
+            }),
+            ...(dockerLatestTagInfo && {
+              latestPublishedVersion: {
+                version: dockerLatestTagInfo.latestTag,
+                hash: dockerLatestTagInfo.latestHash,
+              },
+            }),
+          }),
+    }
+  }
+}
+
 export async function getPackageInfo({
   dockerOrganizationName,
   packageHash,
@@ -68,77 +178,31 @@ export async function getPackageInfo({
   dockerOrganizationName: string
   redisClient: Redis
 }): Promise<PackageInfo> {
-  const packageJson = await fs.readJson(path.join(packagePath, 'package.json'))
-  const isNpm = !packageJson.private
-  // @ts-ignore
-  const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
-  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
-  const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
-    dockerRegistry,
-    dockerOrganizationName,
-    packageJsonName: packageJson.name,
-  })
+  const packageJson: IPackageJson = await fs.readJson(path.join(packagePath, 'package.json'))
 
-  const npmTarget: false | TargetInfo<TargetType.npm> = isNpm && {
-    targetType: TargetType.npm,
-    ...(npmLatestVersionInfo?.latestVersionHash === packageHash
-      ? {
-          needPublish: false,
-          latestPublishedVersion: {
-            version: npmLatestVersionInfo.latestVersion,
-            hash: npmLatestVersionInfo.latestVersionHash,
-          },
-        }
-      : {
-          needPublish: true,
-          newVersion: calculateNewVersion({
-            packagePath,
-            packageJsonVersion: packageJson.version,
-            latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
-            allVersions: npmLatestVersionInfo?.allVersions,
-          }),
-          ...(npmLatestVersionInfo && {
-            latestPublishedVersion: {
-              version: npmLatestVersionInfo.latestVersion,
-              hash: npmLatestVersionInfo.latestVersionHash,
-            },
-          }),
-        }),
-  }
-  const dockerTarget: false | TargetInfo<TargetType.docker> = isDocker && {
-    targetType: TargetType.docker,
-    ...(dockerLatestTagInfo?.latestHash === packageHash
-      ? {
-          needPublish: false,
-          latestPublishedVersion: {
-            version: dockerLatestTagInfo.latestTag,
-            hash: dockerLatestTagInfo.latestHash,
-          },
-        }
-      : {
-          needPublish: true,
-          newVersion: calculateNewVersion({
-            packagePath,
-            packageJsonVersion: packageJson.version,
-            latestPublishedVersion: dockerLatestTagInfo?.latestTag,
-            allVersions: dockerLatestTagInfo?.allTags,
-          }),
-          ...(dockerLatestTagInfo && {
-            latestPublishedVersion: {
-              version: dockerLatestTagInfo.latestTag,
-              hash: dockerLatestTagInfo.latestHash,
-            },
-          }),
-        }),
-  }
-
-  const target = npmTarget || dockerTarget || undefined
+  const [npmTarget, dockerTarget] = await Promise.all([
+    isNpmTarget({
+      packageHash,
+      packagePath,
+      redisClient,
+      npmRegistry,
+      packageJson,
+    }),
+    isDockerTarget({
+      packageHash,
+      packagePath,
+      redisClient,
+      dockerOrganizationName,
+      dockerRegistry,
+      packageJson,
+    }),
+  ])
 
   return {
     relativePackagePath,
     packagePath,
     packageJson,
     packageHash,
-    target,
+    target: npmTarget || dockerTarget,
   }
 }

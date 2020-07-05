@@ -3,8 +3,9 @@ import execa from 'execa'
 import fs from 'fs-extra'
 import path from 'path'
 import _ from 'lodash'
-import { PackageJson, Graph } from './types'
+import { Graph } from './types'
 import k8testLog from 'k8test-log'
+import { IPackageJson } from 'package-json-type'
 
 const log = k8testLog('ci:packages-hash')
 
@@ -17,7 +18,7 @@ export type PackageHashInfo = {
   relativePackagePath: string
   packagePath: string
   packageHash: string
-  packageJson: PackageJson
+  packageJson: IPackageJson
   children: string[]
   parents: PackageHashInfo[]
 }
@@ -42,7 +43,7 @@ function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>)
 
 function createOrderGraph(
   packageHashInfoByPath: Map<string, PackageHashInfo>,
-): Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }> {
+): Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }> {
   const heads = [...packageHashInfoByPath.values()].filter(packageHashInfo => packageHashInfo.children.length === 0)
   const orderedGraph: PackageHashInfo[] = []
   const visited = new Map<PackageHashInfo, boolean>()
@@ -111,7 +112,9 @@ const isRootFile = (rootPath: string, filePath: string) => !filePath.includes(pa
 export async function calculatePackagesHash(
   rootPath: string,
   packagesPath: string[],
-): Promise<Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }>> {
+): Promise<
+  Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }>
+> {
   const repoFilesPathResult = await execa.command('git ls-tree -r --name-only HEAD', {
     cwd: rootPath,
   })
@@ -124,7 +127,7 @@ export async function calculatePackagesHash(
   const rootFilesHash = await calculateHashOfPackage(rootPath, rootFilesInfo)
 
   const packagesWithPackageJson = await Promise.all(
-    packagesPath.map<Promise<{ packagePath: string; packageJson: PackageJson }>>(async packagePath => ({
+    packagesPath.map<Promise<{ packagePath: string; packageJson: IPackageJson }>>(async packagePath => ({
       packagePath,
       packageJson: await fs.readJson(path.join(packagePath, 'package.json')),
     })),
@@ -139,7 +142,7 @@ export async function calculatePackagesHash(
   type PackageInfo = {
     relativePackagePath: string
     packagePath: string
-    packageJson: PackageJson
+    packageJson: IPackageJson
     packageHash: string
     children: string[]
     parents: []

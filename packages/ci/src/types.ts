@@ -1,9 +1,4 @@
-export type PackageJson = {
-  name: string
-  version: string
-  dependencies?: { [key: string]: string }
-  devDependencies?: { [key: string]: string }
-}
+import { IPackageJson } from 'package-json-type'
 
 export type Protocol = 'http' | 'https'
 
@@ -61,7 +56,7 @@ export type PackageInfo = {
   relativePackagePath: string
   packagePath: string
   packageHash: string
-  packageJson: PackageJson
+  packageJson: IPackageJson
   target?: TargetInfo<TargetType.npm> | TargetInfo<TargetType.docker>
 }
 

@@ -47,6 +47,10 @@ async function publishNpm({
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
 
+  if (!packageInfo.packageJson.name) {
+    throw new Error(`package.json of: ${packageInfo.packagePath} must have a name property.`)
+  }
+
   await execa.command(
     `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
       packageInfo.packageJson.name.includes('@') ? '--access public' : ''
@@ -100,6 +104,10 @@ async function publishDocker({
       newVersion: dockerTarget.latestPublishedVersion.version,
       packagePath: packageInfo.packagePath,
     }
+  }
+
+  if (!packageInfo.packageJson.name) {
+    throw new Error(`package.json of: ${packageInfo.packagePath} must have a name property.`)
   }
 
   const fullImageNameLatest = buildFullDockerImageName({
