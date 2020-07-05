@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "private": true,
   "scripts": {
-    "clean": "ts-node --unhandled-rejections=strict src/index.ts clean",
+    "clean": "ts-node src/index.ts clean",
     "delete-k8test-resources": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js delete-k8test-resources",
     "start-k8test-monitoring": "eval $(minikube docker-env --shell sh) yarn --cwd ../.. build && yarn workspace k8test-monitoring build:docker && node --unhandled-rejections=strict dist/src/index.js start-k8test-monitoring",
     "run-ci-pr": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js run-ci-pr",

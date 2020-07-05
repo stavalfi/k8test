@@ -168,8 +168,8 @@ export const addRandomFileToPackage = ({
   if (!packagePath) {
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
   }
-  const filePath = path.join(repoPath, `random-file-${chance().hash()}`)
-  await fse.writeFile(path.join(repoPath, `random-file-${chance().hash()}`), '')
+  const filePath = path.join(packagePath, `random-file-${chance().hash()}`)
+  await fse.writeFile(filePath, '')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return filePath
@@ -222,7 +222,7 @@ export const addRandomFileToRoot = async ({
   gitRepoAddress: string
 }): Promise<string> => {
   const filePath = path.join(repoPath, `random-file-${chance().hash()}`)
-  await fse.writeFile(path.join(repoPath, `random-file-${chance().hash()}`), '')
+  await fse.writeFile(filePath, '')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return filePath
