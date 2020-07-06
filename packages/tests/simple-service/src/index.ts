@@ -5,9 +5,6 @@ import k8testLog from 'k8test-log'
 const log = k8testLog('simple-server')
 
 async function main() {
-  // eslint-disable-next-line no-console
-  process.on('unhandledRejection', e => console.error(e))
-
   log('starting simple-service')
 
   const map = new Map<string, unknown>()

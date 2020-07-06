@@ -51,12 +51,21 @@ async function isMonitoringServiceAlive(k8sClient: K8sClient, namespaceName: str
 
 export async function startMonitoring(options: { 'local-image': boolean; namespace: string }) {
   const k8sClient = createK8sClient(ConnectionFrom.outsideCluster)
+  log(`created k8s-cleant object for interacting with %s`, options.namespace)
 
   const namespaceName = options.namespace
 
   if (await isMonitoringServiceAlive(k8sClient, namespaceName)) {
     return
   }
+  log(`monitoring service is not alive. invoking monitoring service...`)
+
+  await createNamespaceIfNotExist({
+    k8sClient,
+    namespaceName,
+  })
+
+  log(`created namespace: "%s"`, options.namespace)
 
   await grantAdminRoleToCluster({
     k8sClient,
@@ -70,10 +79,7 @@ export async function startMonitoring(options: { 'local-image': boolean; namespa
     }),
   })
 
-  await createNamespaceIfNotExist({
-    k8sClient,
-    namespaceName,
-  })
+  log(`grant admin-privilages to cluster: "%s"`, options.namespace)
 
   const monitoringDeployedImage = await subscribeToImage({
     k8sClient,

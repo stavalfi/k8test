@@ -1,9 +1,10 @@
 {
   "name": "k8s-api",
-  "version": "1.2.0",
+  "version": "1.2.18",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
+  "bla": "blaaa",
   "files": [
     "src",
     "__tests__",
@@ -15,8 +16,7 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "test": "jest",
-    "prepublishOnly": "yarn --cwd ../.. test && yarn --cwd ../.. build && yarn version --minor"
+    "test": "jest"
   },
   "dependencies": {
     "@kubernetes/client-node": "^0.11.2",

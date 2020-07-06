@@ -15,7 +15,7 @@ describe('simple use-case', () => {
     })
 
     redis = new Redis({
-      host: exposedRedisInfo.deployedImageAddress, // this is the minikube cluster address on your machine
+      host: exposedRedisInfo.deployedImageIp, // this is the minikube cluster address on your machine
       port: exposedRedisInfo.deployedImagePort, // this can be any available port on your machine
       connectTimeout: 1000,
     })

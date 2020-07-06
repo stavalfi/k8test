@@ -108,9 +108,6 @@ function buildService({
 }
 
 async function main() {
-  // eslint-disable-next-line no-console
-  process.on('unhandledRejection', e => console.error(e))
-
   // eslint-disable-next-line no-process-env
   const namespaceName = process.env['K8S_NAMESPACE']
 

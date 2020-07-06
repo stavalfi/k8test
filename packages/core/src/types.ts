@@ -3,7 +3,7 @@ import { ContainerOptions } from 'k8s-api/src/types'
 
 export type Subscription = {
   deployedImageUrl: string
-  deployedImageAddress: string
+  deployedImageIp: string
   deployedImagePort: number
   unsubscribe: () => Promise<void>
 }
@@ -16,11 +16,7 @@ export type SubscribeCreatorOptions = {
   imagePort: number
   containerOptions?: ContainerOptions
   namespaceName?: string
-  isReadyPredicate?: (
-    deployedImageUrl: string,
-    deployedImageAddress: string,
-    deployedImagePort: number,
-  ) => Promise<unknown>
+  isReadyPredicate?: (deployedImageUrl: string, deployedImageIp: string, deployedImagePort: number) => Promise<unknown>
 }
 
 export type SubscribeCreator = (options: SubscribeCreatorOptions) => Promise<Subscription>

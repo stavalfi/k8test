@@ -1,3 +1,5 @@
+#!/usr/bin/env node  --unhandled-rejections=strict
+
 import got from 'got'
 import {
   ConnectionFrom,
@@ -17,6 +19,10 @@ import chance from 'chance'
 
 export { defaultK8testNamespaceName, randomAppId, SingletonStrategy } from 'k8s-api'
 export { SubscribeCreatorOptions, Subscription } from './types'
+
+if (require.main === module) {
+  require('k8test-cli-logic')
+}
 
 const log = k8testLog('core')
 
@@ -99,11 +105,7 @@ export const subscribe: Subscribe = async options => {
   const { isReadyPredicate } = options
   if (isReadyPredicate) {
     await waitUntilReady(() =>
-      isReadyPredicate(
-        deployedImage.deployedImageUrl,
-        deployedImage.deployedImageAddress,
-        deployedImage.deployedImagePort,
-      ),
+      isReadyPredicate(deployedImage.deployedImageUrl, deployedImage.deployedImageIp, deployedImage.deployedImagePort),
     )
   }
 
@@ -115,7 +117,7 @@ export const subscribe: Subscribe = async options => {
 
   return {
     deployedImageUrl: deployedImage.deployedImageUrl,
-    deployedImageAddress: deployedImage.deployedImageAddress,
+    deployedImageIp: deployedImage.deployedImageIp,
     deployedImagePort: deployedImage.deployedImagePort,
     unsubscribe: async () => {
       await got.post(`${monitoringDeployedImageUrl}/unsubscribe`, {

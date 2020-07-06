@@ -28,7 +28,7 @@ export type DeployedImage = {
   serviceName: string
   deploymentName: string
   deployedImageUrl: string
-  deployedImageAddress: string
+  deployedImageIp: string
   deployedImagePort: number
 }
 
@@ -72,7 +72,7 @@ export async function getDeployedImageConnectionDetails(options: {
   exposeStrategy: ExposeStrategy
   serviceName: string
 }) {
-  const [deployedImageAddress, deployedImagePort] = await Promise.all([
+  const [deployedImageIp, deployedImagePort] = await Promise.all([
     options.exposeStrategy === ExposeStrategy.userMachine
       ? getMasterIp({ k8sClient: options.k8sClient })
       : getServiceIp(options.serviceName, { k8sClient: options.k8sClient, namespaceName: options.namespaceName }),
@@ -83,8 +83,8 @@ export async function getDeployedImageConnectionDetails(options: {
     }),
   ])
 
-  const deployedImageUrl = `http://${deployedImageAddress}:${deployedImagePort}`
-  return { deployedImageAddress, deployedImagePort, deployedImageUrl }
+  const deployedImageUrl = `http://${deployedImageIp}:${deployedImagePort}`
+  return { deployedImageIp, deployedImagePort, deployedImageUrl }
 }
 
 export async function subscribeToImage(options: SubscribeToImageOptions): Promise<DeployedImage> {
@@ -142,7 +142,7 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
     })
   }
 
-  const { deployedImageAddress, deployedImagePort, deployedImageUrl } = await getDeployedImageConnectionDetails({
+  const { deployedImageIp, deployedImagePort, deployedImageUrl } = await getDeployedImageConnectionDetails({
     k8sClient: options.k8sClient,
     exposeStrategy: options.exposeStrategy,
     namespaceName: options.namespaceName,
@@ -152,14 +152,14 @@ export async function subscribeToImage(options: SubscribeToImageOptions): Promis
   log(
     'subscribed to resource "%s". resource is reachable through: "%s"',
     resourcesName,
-    `${deployedImageAddress}:${deployedImagePort}`,
+    `${deployedImageIp}:${deployedImagePort}`,
   )
 
   return {
     deploymentName: resourcesName,
     serviceName: resourcesName,
     deployedImageUrl,
-    deployedImageAddress,
+    deployedImageIp,
     deployedImagePort,
   }
 }

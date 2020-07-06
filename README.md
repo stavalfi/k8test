@@ -93,7 +93,7 @@ describe('simple use-case', () => {
 
   test('ensure redis is alive', async () => {
     const redis = new Redis({
-      host: exposedRedisInfo.deployedImageAddress,
+      host: exposedRedisInfo.deployedImageIp,
       port: exposedRedisInfo.deployedImagePort,
       connectTimeout: 1000,
     })
@@ -127,7 +127,7 @@ await subscribe({
   namespaceName?: string
   isReadyPredicate?: (
     deployedImageUrl: string,
-    deployedImageAddress: string,
+    deployedImageIp: string,
     deployedImagePort: number,
   ) => Promise<unknown>
 })
@@ -165,6 +165,12 @@ work in progress. hold on. for now, you can manually search the container you ne
 
 ## Development & contributing
 
+Run the following command in the root folder of the repository
+
+```bash
+yarn install && yarn build && yarn build:dockers
+```
+
 this library is in a early stage but it is functional. I don't have a draft for a better api to the end-users. Feel free to drastically change the api.
 
 Keep in mind that tests are the first priority. production code can use this library but it has a lower level of priority.
@@ -173,6 +179,8 @@ PRs about Api/ speed improvement are welcome.
 
 ### Internal Tools
 
-- secrethub
 - yarn
-- node 14
+- node 12+
+- docker (deamon + cli)
+- minikube
+- secrethub (only for publishing artifacts - npm/docker to registries)
