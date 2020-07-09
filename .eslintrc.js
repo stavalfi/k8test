@@ -32,6 +32,7 @@ module.exports = {
     '@typescript-eslint/triple-slash-reference': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
     'no-floating-promise/no-floating-promise': 'error',
+    '@typescript-eslint/camelcase': 'off',
   },
   overrides: [
     {
