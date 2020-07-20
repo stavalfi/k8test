@@ -73,9 +73,7 @@ module.exports = {
 // __tests__/test.spec.ts
 
 import Redis from 'ioredis'
-import { Subscription } from 'k8test'
-import { subscribe } from './utils'
-import { subscribe, Subscribe } from 'k8test'
+import { subscribe, Subscription } from 'k8test'
 
 describe('simple use-case', () => {
   let exposedRedisInfo: Subscription
