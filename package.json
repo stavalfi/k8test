@@ -50,7 +50,7 @@
     "ci-info": "^2.0.0",
     "create-folder-structure": "^3.0.5",
     "deepmerge": "^4.2.2",
-    "electron": "^9.0.5",
+    "electron": "^22.3.21",
     "esbuild": "^0.5.12",
     "eslint": "6.5.1",
     "eslint-config-prettier": "4.3.0",
